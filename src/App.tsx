@@ -11,6 +11,7 @@ import {
   useState,
   useMemo,
   useEffect,
+  useRef,
   useGrokTheme,
 } from "./canvas";
 import type { CSSProperties, ReactNode } from "./canvas";
@@ -1516,6 +1517,9 @@ export default function App() {
     setIcomTask(c === "SRC" ? "distress" : "power");
     setIcomStep(-1);
     setFunkTab("mayday");
+    setR2({ ch: c === "UBI" ? 10 : 16, prev: 72, call: false, hi: c !== "UBI", dw: 0, scan: false, vol: 8, sql: 2, knob: 0, grp: c === "UBI" ? "ATIS" : "INT", dwt: "Dualwatch", scant: "Priority Scan", sk: 0, scr: "main", mp: [], cur: 0, nature: "Undesignated", flap: false, tx: false, key: "", on: true, tags: [16, 6, 72], rx: "", cat: "" });
+    setMicLang(c === "SRC" ? "en-GB" : "de-DE");
+    setExamPhase("intro");
     setTopic("ueberblick");
     setShowAll(false);
     setTab("erklaeren");
@@ -1877,6 +1881,7 @@ export default function App() {
 
   function enter(np: string[]) {
     if (np[0] === "erklaeren" && np[1] === "ref") np = ["werkzeuge", ...np.slice(2)];
+    if (np[0] === "funkgeraet" && np[1] === "panel") np = ["funkgeraet", "frei", ...np.slice(2)];
     setPath(np);
     setPg(0);
     setOrd([]);
@@ -3682,6 +3687,45 @@ export default function App() {
       /* nur Text */
     }
   };
+  const speakRadio = (text: string, lang: string) => {
+    if (!hasTTS || !speakOn) { noise(350); return; }
+    try {
+      W.speechSynthesis.cancel();
+      const u = new W.SpeechSynthesisUtterance(text);
+      u.lang = lang;
+      u.rate = 0.9;
+      u.pitch = 0.82;
+      const c = audio();
+      let src: any = null;
+      if (c) {
+        try {
+          const n = Math.floor(c.sampleRate * 8);
+          const b = c.createBuffer(1, n, c.sampleRate);
+          const d = b.getChannelData(0);
+          for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * 0.08;
+          src = c.createBufferSource();
+          src.buffer = b;
+          const f = c.createBiquadFilter();
+          f.type = "bandpass";
+          f.frequency.value = 1600;
+          f.Q.value = 0.7;
+          const g = c.createGain();
+          g.gain.value = 0.04;
+          src.connect(f);
+          f.connect(g);
+          g.connect(c.destination);
+          src.start();
+        } catch (_e) { src = null; }
+      }
+      u.onend = () => {
+        if (src) { try { src.stop(); } catch (_e) { /* */ } }
+        noise(280);
+      };
+      W.speechSynthesis.speak(u);
+    } catch (_e) {
+      noise(350);
+    }
+  };
 
   /* Tasten des Schemas (Funktionen nach Icom-Bedienungsanleitung IC-M423G/GE, Tastenlage vereinfacht) */
   const RKEYS: { id: RKey; label: string; info: string }[] = [
@@ -3862,7 +3906,7 @@ export default function App() {
     noise(350);
     if (res.every((r: { ok: boolean }) => r.ok)) {
       nl.push({ who: tr.replyWho, text: tr.reply });
-      setTimeout(() => speak(tr.reply, s.lang), 500);
+      setTimeout(() => speakRadio(tr.reply, s.lang), 500);
     }
     setLog(nl);
   };
@@ -3882,7 +3926,7 @@ export default function App() {
     try {
       const r = new SR();
       const s = curScn();
-      r.lang = s ? s.lang : "de-DE";
+      r.lang = micLang || (s ? s.lang : isUBI ? "de-DE" : "en-GB");
       r.continuous = true;
       r.interimResults = true;
       r.onresult = (e: any) => {
@@ -3896,6 +3940,7 @@ export default function App() {
       };
       r.onend = () => setRec(false);
       r.start();
+      recRef.current = r;
       setRecObj(r);
       setRec(true);
       setMicMsg("");
@@ -3978,10 +4023,10 @@ export default function App() {
 
   const fgHome = (): ReactNode => {
     const tiles: Tile[] = [
-      { id: "panel", title: "Gerät erkunden", sub: "Tasten antippen: Funktion + Anzeige" },
-      { id: "ablauf", title: "Bedienung üben", sub: PROCS2().length + " Abläufe nach Bedienungsanleitung" },
-      { id: "menue", title: "Menüstruktur", sub: "Alle Menüs mit Seitenangaben" },
-      { id: "sim", title: "Funk-Simulator", sub: SCNS().length + " Szenarien mit Antwort der Gegenstelle" },
+      { id: "frei", title: "Gerät frei bedienen", sub: "Virtuelles IC-M423: Tasten, Regler, Klappe, Mikrofon" },
+      { id: "ablauf", title: "Bedienung üben", sub: PROCS2().length + " geführte Abläufe am Gerät" },
+      { id: "sim", title: "Funkverkehr üben", sub: SCNS().length + " Szenarien mit PTT, Mikrofon und Gegenstelle" },
+      { id: "exam", title: "Praxisprüfung", sub: isUBI ? "Textaufnahme, Textabgabe, Fallbeispiele (ABVT)" : "DSC und Sprechfunk nach Anlage 3 plus Sprachteil" },
     ];
     return tileGrid(tiles, 6, 220, open);
   };
@@ -4028,18 +4073,90 @@ export default function App() {
   /* ---------- Funkgerät v2: nach Icom-Bedienungsanleitung IC-M423/M423G/M423GE (deutsch, A7197D-1EX-8, Juni 2020) ---------- */
   type MNode = { n: string; p?: number; c?: MNode[]; o?: string[]; set?: string };
   const MENU_TREE: MNode[] = [
-    { n: "DSC Calls", c: [{ n: "Individual Call", p: 28, o: ["Manual Input"], set: "ind" }, { n: "Group Call", p: 32 }, { n: "All Ships Call", p: 34 }, { n: "Distress Call", p: 25, o: ["Undesignated", "Fire, Explosion", "Flooding", "Collision", "Grounding", "Capsizing", "Sinking", "Adrift", "Abandoning ship", "Piracy", "Man Overboard"], set: "nature" }, { n: "Received Call Log", p: 53 }, { n: "Transmitted Call Log", p: 52 }, { n: "Test Call", p: 35 }] },
+    { n: "DSC Calls", c: [{ n: "Individual Call", p: 28, o: ["Manual Input"], set: "ind" }, { n: "Group Call", p: 32 }, { n: "All Ships Call", p: 34, o: ["Urgency", "Safety"], set: "allsh" }, { n: "Distress Call", p: 25, o: ["Undesignated", "Fire, Explosion", "Flooding", "Collision", "Grounding", "Capsizing", "Sinking", "Adrift", "Abandoning ship", "Piracy", "Man Overboard"], set: "nature" }, { n: "Received Call Log", p: 53 }, { n: "Transmitted Call Log", p: 52 }, { n: "Test Call", p: 35 }] },
     { n: "DSC Settings", c: [{ n: "Position Input", p: 23 }, { n: "Individual ID", p: 20 }, { n: "Group ID", p: 21 }, { n: "Individual ACK", p: 55 }, { n: "Position ACK", p: 55 }, { n: "Test ACK", p: 55 }, { n: "CH 16 Switch", p: 56 }, { n: "Alarm", p: 57 }, { n: "CH 70 SQL Level", p: 57 }, { n: "DSC Loop Test", p: 58 }] },
     { n: "Radio Settings", c: [{ n: "Scan Type", p: 66, o: ["Normal Scan", "Priority Scan"], set: "scant" }, { n: "Scan Timer", p: 66, o: ["OFF", "ON"], set: "scantm" }, { n: "Dual/Tri-Watch", p: 66, o: ["Dualwatch", "Tri-watch"], set: "dwt" }, { n: "CHAN Group", p: 66, o: ["INT", "ATIS", "DSC"], set: "grp" }, { n: "CH Display", p: 66, o: ["3 Digits", "4 Digits"], set: "chd" }] },
     { n: "Configuration", c: [{ n: "Backlight", p: 67 }, { n: "Display Contrast", p: 67 }, { n: "Key Beep", p: 67 }, { n: "Key Assignment", p: 67 }, { n: "UTC Offset", p: 68 }, { n: "Noise Cancel", p: 68 }, { n: "Inactivity Timer", p: 69 }, { n: "NMEA Output", p: 70 }, { n: "Remote ID", p: 71 }] },
     { n: "MMSI/GPS Info", p: 65 },
   ];
-  type R2 = { ch: number; prev: number; call: boolean; hi: boolean; dw: number; scan: boolean; vol: number; sql: number; knob: number; grp: string; dwt: string; scant: string; sk: number; scr: string; mp: number[]; cur: number; nature: string; flap: boolean; tx: boolean; key: string; on: boolean };
-  const R20: R2 = { ch: 16, prev: 72, call: false, hi: true, dw: 0, scan: false, vol: 5, sql: 2, knob: 0, grp: certC === "UBI" ? "ATIS" : "INT", dwt: "Dualwatch", scant: "Priority Scan", sk: 0, scr: "main", mp: [], cur: 0, nature: "Undesignated", flap: false, tx: false, key: "", on: true };
+  type R2 = { ch: number; prev: number; call: boolean; hi: boolean; dw: number; scan: boolean; vol: number; sql: number; knob: number; grp: string; dwt: string; scant: string; sk: number; scr: string; mp: number[]; cur: number; nature: string; flap: boolean; tx: boolean; key: string; on: boolean; tags: number[]; rx: string; cat: string };
+  const R20: R2 = { ch: 16, prev: 72, call: false, hi: true, dw: 0, scan: false, vol: 8, sql: 2, knob: 0, grp: certC === "UBI" ? "ATIS" : "INT", dwt: "Dualwatch", scant: "Priority Scan", sk: 0, scr: "main", mp: [], cur: 0, nature: "Undesignated", flap: false, tx: false, key: "", on: true, tags: [16, 6, 72], rx: "", cat: "" };
   const [r2, setR2] = useState<R2>(R20);
   const [proc2, setProc2] = useState<string>("");
   const [ps2, setPs2] = useState<number>(0);
   const [pw2, setPw2] = useState<string>("");
+  const [holdK, setHoldK] = useState<string>("");
+  const [holdNow, setHoldNow] = useState<number>(0);
+  const [helpOn, setHelpOn] = useState<boolean>(true);
+  const [rigWide, setRigWide] = useState(typeof window !== "undefined" ? window.innerWidth >= 620 && window.innerHeight >= 420 : true);
+  const [micLang, setMicLang] = useState<string>(certC === "SRC" ? "en-GB" : "de-DE");
+  const [examPhase, setExamPhase] = useState<string>("intro");
+  const [examI, setExamI] = useState<number>(0);
+  const [examTry, setExamTry] = useState<number>(1);
+  const [examIds, setExamIds] = useState<string[]>([]);
+  const [examRes, setExamRes] = useState<{ id: string; pass: boolean; tryN: number; notes: string[]; tsec: number }[]>([]);
+  const [dictIn, setDictIn] = useState<string>("");
+  const [examT0, setExamT0] = useState<number>(0);
+  const [showMenuRef, setShowMenuRef] = useState<boolean>(false);
+  const knobDrag = useRef<{ a: number; last: number; moved: boolean; t0: number } | null>(null);
+  const holdRef = useRef<{ k: string; t0: number }>({ k: "", t0: 0 });
+  const sqlRef = useRef<any>(null);
+  const saidRef = useRef<string>("");
+  const recRef = useRef<any>(null);
+  useEffect(() => { saidRef.current = said; }, [said]);
+  useEffect(() => {
+    const fn = () => setRigWide(window.innerWidth >= 620 && window.innerHeight >= 420);
+    fn();
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
+  useEffect(() => {
+    if (!holdK) return;
+    const id = window.setInterval(() => setHoldNow(Date.now()), 40);
+    return () => window.clearInterval(id);
+  }, [holdK]);
+  useEffect(() => {
+    if (!(r2.on && r2.sql === 0 && !r2.tx && r2.vol > 0)) {
+      if (sqlRef.current) { try { sqlRef.current.stop(); } catch (_e) { /* */ } sqlRef.current = null; }
+      return;
+    }
+    const c = audio();
+    if (!c) return;
+    try {
+      if (c.state === "suspended" && typeof c.resume === "function") c.resume();
+      const n = Math.floor(c.sampleRate * 2);
+      const b = c.createBuffer(1, n, c.sampleRate);
+      const d = b.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      const s = c.createBufferSource();
+      s.loop = true;
+      s.buffer = b;
+      const f = c.createBiquadFilter();
+      f.type = "bandpass";
+      f.frequency.value = 1100;
+      f.Q.value = 0.45;
+      const g = c.createGain();
+      g.gain.value = 0.018 * Math.max(0.2, r2.vol / 20);
+      s.connect(f);
+      f.connect(g);
+      g.connect(c.destination);
+      s.start();
+      sqlRef.current = s;
+    } catch (_e) { /* */ }
+    return () => { if (sqlRef.current) { try { sqlRef.current.stop(); } catch (_e2) { /* */ } sqlRef.current = null; } };
+  }, [r2.on, r2.sql, r2.tx, r2.vol]);
+  useEffect(() => {
+    if (r2.scr !== "dsent" && r2.scr !== "rxal") return;
+    let live = true;
+    const tick = () => {
+      if (!live) return;
+      beep(880, 160);
+      window.setTimeout(() => { if (live) beep(1320, 160); }, 200);
+    };
+    tick();
+    const id = window.setInterval(tick, 720);
+    return () => { live = false; window.clearInterval(id); };
+  }, [r2.scr]);
   const SOFT: string[][] = [["SCAN", "DW", "HI/LO", "CHAN"], ["TAG", "NAME", "BKLT", "LOG"]];
   /* Welche Kanäle fest auf 1 W stehen, nennt das Handbuch nicht einzeln (S. 3, 12); hier daher nicht gesperrt. */
   const lowOnly = (_s: R2): boolean => false;
@@ -4078,7 +4195,11 @@ export default function App() {
     if (s.scr === "can3" || s.scr === "info") return ["EXIT", "", "", ""];
     if (s.scr === "iconf") return ["EXIT", "BACK", "CALL", ""];
     if (s.scr === "iwait") return ["EXIT", "", "", ""];
-    if (s.scr === "iack") return ["ALARM OFF", "", "", ""];
+    if (s.scr === "iack" || s.scr === "dack" || s.scr === "rxal") return ["ALARM OFF", "", "", ""];
+    if (s.scr === "ashconf") return ["EXIT", "BACK", "CALL", ""];
+    if (s.scr === "ashsent") return ["EXIT", "", "", ""];
+    if (s.scr === "rcvinfo" || s.scr === "rcvlog") return ["ACK", "EXIT", "", ""];
+    if (s.scr === "gpsinfo" || s.scr === "nodsc") return ["EXIT", "", "", ""];
     return SOFT[s.sk];
   };
   const reduce2 = (s0: R2, k: string): R2 => {
@@ -4086,11 +4207,15 @@ export default function App() {
     if (!s.on && k !== "pwr") return s;
     if (k === "pwr") { s.on = !s0.on; s.scr = "main"; return s; }
     if (k === "flap") { s.flap = !s0.flap; return s; }
+    if (!s0.on && k !== "pwr") return s;
     if (k === "distress") {
+      if (s0.grp === "ATIS") { s.key = "nodsc"; return s; }
       if (!s0.flap) return s;
       s.scr = "dsent"; s.ch = 70; s.dw = 0; s.scan = false; s.mp = []; return s;
     }
     if (k === "ptt") { s.tx = true; return s; }
+    if (k === "pttUp") { s.tx = false; return s; }
+    if (k === "rxin") { s.rx = "distress"; s.scr = "rxal"; s.scan = false; s.dw = 0; return s; }
     if (k === "k16") { if (s.scr === "main") { s.prev = s0.ch === 16 ? s0.prev : s0.ch; s.ch = 16; s.call = false; s.scan = false; } return s; }
     if (k === "k16l") { if (s.scr === "main") { s.ch = s0.grp === "ATIS" ? 10 : 9; s.call = true; } return s; }
     if (k === "hl") { if (s.scr === "main" && !lowOnly(s0)) s.hi = !s0.hi; return s; }
@@ -4103,10 +4228,17 @@ export default function App() {
         return s;
       }
       if (s.scr !== "main") return s;
-      if ((k === "kup" || k === "kdn") && s0.knob === 0) { s.vol = Math.max(0, Math.min(10, s0.vol + d)); return s; }
+      if ((k === "mup" || k === "mdn") && s.scr === "main") {
+        const tgs = (s0.tags.length ? s0.tags : [16]).slice().sort((a: number, b: number) => a - b);
+        const i0 = tgs.indexOf(s0.ch);
+        s.ch = tgs[(i0 < 0 ? 0 : (i0 + d + tgs.length) % tgs.length)];
+        s.call = false;
+        return s;
+      }
+      if ((k === "kup" || k === "kdn") && s0.knob === 0) { s.vol = Math.max(0, Math.min(20, s0.vol + d)); return s; }
       if ((k === "kup" || k === "kdn") && s0.knob === 1) { s.sql = Math.max(0, Math.min(10, s0.sql + d)); return s; }
       s.ch = nextCh(s0.ch, d); s.call = false;
-      if (lowOnly(s)) s.hi = false;
+      if (lowOnly(s) || (s.grp === "ATIS" && (s.ch === 10 || s.ch === 15 || s.ch === 17))) s.hi = false;
       return s;
     }
     if (k === "left" || k === "right") { if (s.scr === "main") s.sk = (s0.sk + 1) % 2; return s; }
@@ -4114,7 +4246,7 @@ export default function App() {
     if (k === "clear") {
       if (s0.scr === "menu") { if (s0.mp.length === 0) s.scr = "main"; else { s.cur = s0.mp[s0.mp.length - 1]; s.mp = s0.mp.slice(0, -1); } return s; }
       if (s0.scan) { s.scan = false; return s; }
-      if (s0.scr === "iconf") { s.scr = "menu"; return s; }
+      if (s0.scr === "iconf" || s0.scr === "gpsinfo" || s0.scr === "rcvlog" || s0.scr === "ashconf" || s0.scr === "nodsc") { s.scr = s0.scr === "iconf" || s0.scr === "ashconf" ? "menu" : "main"; return s; }
       return s;
     }
     if (k === "ent") {
@@ -4125,13 +4257,17 @@ export default function App() {
       const par = parentNode(s0.mp);
       if (par && par.o && par.set) {
         const v = par.o[s0.cur];
-        if (par.set === "grp") { s.grp = v; s.ch = v === "ATIS" ? 10 : 16; }
+        if (par.set === "grp") { s.grp = v; s.ch = v === "ATIS" ? 10 : 16; if (v === "ATIS") s.hi = false; }
         if (par.set === "dwt") s.dwt = v;
         if (par.set === "scant") s.scant = v;
         if (par.set === "nature") { s.nature = v; s.scr = "dconf"; s.mp = []; return s; }
         if (par.set === "ind") { s.scr = "ich"; s.mp = []; return s; }
+        if (par.set === "allsh") { s.cat = v; s.scr = "ashconf"; s.mp = []; return s; }
         return s;
       }
+      if (nd && nd.n === "DSC Calls" && s0.grp === "ATIS") { s.key = "nodsc"; s.scr = "nodsc"; return s; }
+      if (nd && nd.n === "Received Call Log") { s.scr = "rcvlog"; return s; }
+      if (nd && nd.n === "MMSI/GPS Info") { s.scr = "gpsinfo"; return s; }
       if (nd && (nd.c || nd.o)) { s.mp = [...s0.mp, s0.cur]; s.cur = 0; return s; }
       return s;
     }
@@ -4142,18 +4278,29 @@ export default function App() {
       if (lab === "DW") { s.dw = s0.dw > 0 ? 0 : s0.dwt === "Tri-watch" ? 2 : 1; s.scan = false; }
       if (lab === "HI/LO" && !lowOnly(s0)) s.hi = !s0.hi;
       if (lab === "CHAN") { s.ch = s0.prev; s.call = false; }
-      if (lab === "EXIT") { s.scr = "main"; s.mp = []; if (s0.scr === "can3") s.ch = 16; }
+      if (lab === "TAG") { const has = s0.tags.indexOf(s0.ch) >= 0; s.tags = has ? s0.tags.filter((c: number) => c !== s0.ch) : s0.tags.concat([s0.ch]); }
+      if (lab === "EXIT") { s.scr = "main"; s.mp = []; if (s0.scr === "can3" || s0.scr === "ashsent") s.ch = 16; }
+      if (lab === "CALL" && s0.scr === "ashconf") { s.scr = "ashsent"; s.ch = 16; }
       if (lab === "BACK") { if (s0.scr === "can1") s.scr = "dsent"; else if (s0.scr === "iconf") s.scr = "ich"; else return reduce2(s0, "clear"); }
       if (lab === "ENT") return { ...reduce2(s0, "ent"), key: "sk:ENT" };
       if (lab === "CANCEL") s.scr = "can1";
       if (lab === "CONTINUE") s.scr = "can2";
       if (lab === "FINISH") { s.scr = "can3"; s.ch = 16; }
       if (lab === "INFO") s.scr = "info";
-      if (lab === "CALL") { s.scr = "iwait"; }
-      if (lab === "ALARM OFF") { s.scr = "main"; s.ch = 72; }
+      if (lab === "CALL" && s0.scr !== "ashconf" && s0.scr !== "ashsent") { s.scr = "iwait"; }
+      if (lab === "ALARM OFF") {
+        if (s0.scr === "rxal") { s.scr = "rcvinfo"; return s; }
+        if (s0.scr === "dsent") { s.scr = "main"; s.ch = 16; return s; }
+        s.scr = "main"; s.ch = 72;
+      }
+      if (lab === "ACK" && (s0.scr === "rcvinfo" || s0.scr === "rcvlog")) { s.scr = "main"; s.ch = 16; }
       return s;
     }
-    if (k === "ack") { if (s0.scr === "iwait") s.scr = "iack"; return s; }
+    if (k === "ack") {
+      if (s0.scr === "iwait") s.scr = "iack";
+      if (s0.scr === "dsent") { s.scr = "dack"; s.ch = 16; }
+      return s;
+    }
     return s;
   };
   /* Zusatzschritte der DSC-Abläufe (Kanalwahl, Bestätigung) */
@@ -4237,7 +4384,7 @@ export default function App() {
         { say: "Der 10-stellige ATIS-Code wird nach dem MMSI-Code beim Einschalten einmalig programmiert („Push [ENT] to Register Your ATIS“); ändern nur durch Händler. Prüfen: [MENU] drücken.", ok: (s: R2) => s.scr === "menu" },
         { say: "„MMSI/GPS Info“ wählen: zeigt MMSI und ATIS-Code (sonst „NO ATIS MMSI“).", ok: (s: R2) => s.scr === "menu" && s.cur === 4 },
         { say: "Zurück und „Radio Settings“ → „CHAN Group“ → „ATIS“ mit [ENT] bestätigen.", ok: (s: R2) => s.grp === "ATIS" && s.key.indexOf("ent") >= 0 },
-        { say: "[EXIT]. Jetzt [PTT] drücken und loslassen: Beim Loslassen sendet das Gerät die ATIS-Kennung.", ok: (s: R2) => s.scr === "main" && s.key === "ptt" },
+        { say: "[EXIT]. Jetzt [PTT] drücken und loslassen: Beim Loslassen sendet das Gerät die ATIS-Kennung.", ok: (s: R2) => s.scr === "main" && (s.key === "ptt" || s.key === "pttUp") },
       ] },
     ];
     return isUBI ? [...binnen, ...common] : [...see, ...common];
@@ -4267,7 +4414,15 @@ export default function App() {
     if (s.scr === "iconf") return ["Individual Call", "Routine · CH 72", "[CALL] = senden"];
     if (s.scr === "iwait") return ["Individual Call sent", "CH 70 · warte auf", "Able to comply"];
     if (s.scr === "iack") return ["Received ACK", "Able to comply · CH 72", "[ALARM OFF]"];
-    const flags = [s.grp, s.hi ? "25W" : "1W", s.call ? "CALL" : "", s.dw === 1 ? "DUAL 16" : s.dw === 2 ? "TRI 16" : "", s.scan ? (s.scant === "Priority Scan" ? "SCAN 16" : "SCAN") : "", s.tx ? "TX" : ""].filter((x: string) => x !== "").join(" ");
+    if (s.scr === "dack") return ["Distress ACK", "CH 16 · Sprechfunk", "[ALARM OFF]"];
+    if (s.scr === "ashconf") return ["All Ships Call", s.cat + " · CH 16", "[CALL] = senden"];
+    if (s.scr === "ashsent") return [s.cat + " call sent", "CH 16 · Sprechfunk", "[EXIT]"];
+    if (s.scr === "rxal") return ["DSC DISTRESS", "empfangen · CH 70", "[ALARM OFF]"];
+    if (s.scr === "rcvinfo") return ["Distress from", "211234567 · Fire", "Pos. / UTC   [ACK]"];
+    if (s.scr === "rcvlog") return ["RCVD CALL LOG", s.rx ? "1 Distress unread" : "kein Eintrag", s.rx ? "[ACK] / [EXIT]" : "[EXIT]"];
+    if (s.scr === "gpsinfo") return ["MMSI 211123450", "ATIS 9211015005", "GPS 54°25.0N 010°12.0E"];
+    if (s.scr === "nodsc") return ["DSC not available", "CHAN Group = ATIS", "[EXIT]"];
+    const flags = [s.grp, s.hi ? "25W" : "1W", s.call ? "CALL" : "", s.dw === 1 ? "DUAL 16" : s.dw === 2 ? "TRI 16" : "", s.scan ? (s.scant === "Priority Scan" ? "SCAN 16" : "SCAN") : "", s.tx ? "TX" : "", s.tags.indexOf(s.ch) >= 0 ? "TAG" : ""].filter((x: string) => x !== "").join(" ");
     return [String(s.ch).padStart(2, "0"), flags, (["VOL ", "SQL ", "CHAN "][s.knob]) + (s.knob === 0 ? s.vol : s.knob === 1 ? (s.sql === 0 ? "OPEN" : s.sql) : s.ch)];
   };
 
@@ -4314,79 +4469,328 @@ export default function App() {
     }
   };
 
-  const panel2 = (): ReactNode => {
+  const startTx = () => {
+    press2("ptt");
+    pttDown();
+  };
+  const stopTx = () => {
+    pttUp();
+    press2("pttUp");
+    if (r2.grp === "ATIS") {
+      window.setTimeout(() => beep(1750, 80), 40);
+      window.setTimeout(() => beep(1550, 80), 140);
+    }
+    window.setTimeout(() => {
+      const text = (saidRef.current || "").trim();
+      if (!text) return;
+      if (path[0] === "funkgeraet" && path[1] === "sim" && path[2]) evaluate(text);
+      if (path[0] === "funkgeraet" && path[1] === "exam") gradeExam(text, false);
+    }, 320);
+  };
+
+  const holdFrac = (): number => {
+    if (!holdK || !holdRef.current.t0) return 0;
+    const need = holdK === "distress" ? 3000 : holdK === "pwr" || holdK === "k16" ? 1000 : 0;
+    if (!need) return 0;
+    return Math.min(1, (holdNow - holdRef.current.t0) / need);
+  };
+
+  const radioRig = (opts?: { compact?: boolean }): ReactNode => {
     const d = disp2(r2);
     const sl = softLabels(r2);
-    const on = (id: string) => r2.key === id || r2.key === "sk:" + id;
-    const k = (id: string, x: number, y: number, w: number, h: number, label: string, fill?: string, kk?: string): ReactNode => (
-      <g key={id + x} onClick={() => press2(kk || id)} style={{ cursor: "pointer" }}>
-        <rect x={x} y={y} width={w} height={h} rx={7} fill={r2.key === (kk || id) ? accent : fill || t.bg.subtle} stroke={t.border.default} />
-        <text x={x + w / 2} y={y + h / 2 + 4} textAnchor="middle" fontSize={10} fontFamily={fam} fill={r2.key === (kk || id) ? t.bg.base : t.text.primary}>{label}</text>
-      </g>
+    const lcdOn = r2.on;
+    const alarm = r2.scr === "dsent" || r2.scr === "rxal";
+    const lcdBg = !lcdOn ? "#050806" : alarm ? "#1a1208" : "#07160c";
+    const lcdFg = !lcdOn ? "#14301c" : alarm ? "#ffb070" : "#8CFF7A";
+    const lcdDim = !lcdOn ? "#0c1a10" : "#5aaa58";
+    const frac = holdFrac();
+    const info = helpOn ? (KEYINFO[holdK === "pwr" ? "pwr" : holdK === "k16" ? "k16" : (r2.key || holdK)] || KEYINFO[r2.key] || "") : "";
+    const bind = (code: string, kind: "tap" | "hold16" | "holdPwr" | "holdDistress" | "ptt" | "flap") => ({
+      onPointerDown: (e: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_e) { /* */ }
+        holdRef.current = { k: code, t0: Date.now() };
+        setHoldK(code);
+        setHoldNow(Date.now());
+        if (kind === "tap") press2(code);
+        if (kind === "flap") press2("flap");
+        if (kind === "ptt") startTx();
+        if (kind === "holdPwr") knobDrag.current = { a: 0, last: 0, moved: false, t0: Date.now() };
+      },
+      onPointerUp: (e: any) => {
+        e.preventDefault();
+        const dt = Date.now() - holdRef.current.t0;
+        if (kind === "holdDistress") {
+          if (r2.flap && dt >= 3000) press2("distress");
+        } else if (kind === "holdPwr") {
+          const moved = !!(knobDrag.current && knobDrag.current.moved);
+          if (!moved && dt >= 1000) press2("pwr");
+          else if (!moved) press2("push");
+          knobDrag.current = null;
+        } else if (kind === "hold16") {
+          if (dt >= 1000) press2("k16l");
+          else press2("k16");
+        } else if (kind === "ptt") {
+          stopTx();
+        }
+        setHoldK("");
+        holdRef.current = { k: "", t0: 0 };
+      },
+      onPointerCancel: () => {
+        if (kind === "ptt" && r2.tx) stopTx();
+        setHoldK("");
+        holdRef.current = { k: "", t0: 0 };
+        knobDrag.current = null;
+      },
+      style: { cursor: "pointer", touchAction: "none" as const },
+    });
+    const knobPtr = {
+      ...bind("pwr", "holdPwr"),
+      onPointerDown: (e: any) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_e) { /* */ }
+        const svg = (e.currentTarget as SVGElement).ownerSVGElement;
+        const pt = svg ? svg.createSVGPoint() : null;
+        if (pt) {
+          pt.x = e.clientX; pt.y = e.clientY;
+          const ctm = svg!.getScreenCTM();
+          if (ctm) {
+            const loc = pt.matrixTransform(ctm.inverse());
+            const a = Math.atan2(loc.y - 174, loc.x - 390);
+            knobDrag.current = { a, last: a, moved: false, t0: Date.now() };
+          }
+        } else {
+          knobDrag.current = { a: 0, last: 0, moved: false, t0: Date.now() };
+        }
+        holdRef.current = { k: "pwr", t0: Date.now() };
+        setHoldK("pwr");
+        setHoldNow(Date.now());
+      },
+      onPointerMove: (e: any) => {
+        if (!knobDrag.current) return;
+        const svg = (e.currentTarget as SVGElement).ownerSVGElement;
+        if (!svg) return;
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX; pt.y = e.clientY;
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return;
+        const loc = pt.matrixTransform(ctm.inverse());
+        const a = Math.atan2(loc.y - 174, loc.x - 390);
+        let da = a - knobDrag.current.last;
+        if (da > Math.PI) da -= 2 * Math.PI;
+        if (da < -Math.PI) da += 2 * Math.PI;
+        const stepAng = Math.PI / 10;
+        if (Math.abs(da) >= stepAng) {
+          const steps = Math.round(da / stepAng);
+          knobDrag.current.last = a;
+          knobDrag.current.moved = true;
+          for (let i = 0; i < Math.abs(steps); i++) press2(steps > 0 ? "kup" : "kdn");
+        }
+      },
+      onWheel: (e: any) => {
+        press2(e.deltaY < 0 ? "kup" : "kdn");
+      },
+    };
+    const ring = (cx: number, cy: number, r: number, show: boolean): ReactNode => {
+      if (!show || frac <= 0) return null;
+      const C = 2 * Math.PI * r;
+      return <circle cx={cx} cy={cy} r={r} fill="none" stroke={frac >= 1 ? "#ff5a3a" : "#ffd24a"} strokeWidth={3.2} strokeDasharray={C} strokeDashoffset={C * (1 - frac)} strokeLinecap="round" transform={"rotate(-90 " + cx + " " + cy + ")"} />;
+    };
+    const keyCap = (id: string, x: number, y: number, w: number, h: number, label: string, kind: "tap" | "hold16" | "holdDistress" | "flap", fill: string, fg: string, fs?: number): ReactNode => {
+      const down = holdK === id || r2.key === id || r2.key === "sk:" + id;
+      return (
+        <g key={id + String(x)} {...bind(id, kind)}>
+          <rect x={x} y={y} width={w} height={h} rx={Math.min(6, h / 3)} fill={down ? "#4a5560" : fill} stroke="#0d0f12" strokeWidth={1.2} />
+          <rect x={x + 1} y={y + 1} width={w - 2} height={Math.max(2, h * 0.28)} rx={3} fill="rgba(255,255,255,0.11)" />
+          <text x={x + w / 2} y={y + h / 2 + (fs || 7) / 2.4} textAnchor="middle" fontSize={fs || 7.2} fontFamily={fam} fontWeight={700} fill={fg}>{label}</text>
+        </g>
+      );
+    };
+    const radio = (
+      <svg viewBox="0 0 460 250" width="100%" height="100%" style={{ display: "block", maxHeight: "100%", userSelect: "none" }} role="img" aria-label="Icom IC-M423 Frontplatte">
+        <defs>
+          <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#3a3f48" />
+            <stop offset="0.45" stopColor="#262a31" />
+            <stop offset="1" stopColor="#16181d" />
+          </linearGradient>
+          <linearGradient id="bezelG" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#5a616c" />
+            <stop offset="1" stopColor="#2a2e35" />
+          </linearGradient>
+          <radialGradient id="knobG" cx="0.35" cy="0.3" r="0.75">
+            <stop offset="0" stopColor="#6a6e76" />
+            <stop offset="0.55" stopColor="#2c2f35" />
+            <stop offset="1" stopColor="#111317" />
+          </radialGradient>
+          <radialGradient id="spkG" cx="0.5" cy="0.45" r="0.7">
+            <stop offset="0" stopColor="#2a2e34" />
+            <stop offset="1" stopColor="#101216" />
+          </radialGradient>
+          <filter id="lcdGlow"><feGaussianBlur stdDeviation="0.6" result="b" /><feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+        </defs>
+        <rect x={2} y={2} width={456} height={246} rx={22} fill="url(#bodyG)" stroke="#0a0c0e" strokeWidth={2} />
+        <rect x={8} y={8} width={444} height={234} rx={18} fill="none" stroke="rgba(255,255,255,0.07)" />
+        <text x={28} y={28} fontSize={11} fontFamily={fam} fontWeight={800} fill="#d8dde6" letterSpacing="1.5">ICOM</text>
+        <text x={78} y={27} fontSize={7} fontFamily={fam} fill="#9aa3b0">VHF MARINE  ·  IC-M423</text>
+        <circle cx={48} cy={112} r={36} fill="url(#spkG)" stroke="#0c0e11" strokeWidth={2} />
+        <circle cx={48} cy={112} r={32} fill="none" stroke="#3a4048" />
+        {Array.from({ length: 7 }).map((_: unknown, row: number) =>
+          Array.from({ length: 7 }).map((__: unknown, col: number) => {
+            const dx = (col - 3) * 7.2;
+            const dy = (row - 3) * 7.2;
+            if (dx * dx + dy * dy > 29 * 29) return null;
+            return <circle key={"h" + row + col} cx={48 + dx} cy={112 + dy} r={1.35} fill="#0a0b0d" />;
+          }),
+        )}
+        <rect x={94} y={36} width={232} height={108} rx={8} fill="url(#bezelG)" stroke="#0c0e12" strokeWidth={1.5} />
+        <rect x={100} y={42} width={220} height={80} rx={4} fill={lcdBg} stroke="#020403" />
+        {lcdOn ? (
+          <g fontFamily={"ui-monospace, SFMono-Regular, Menlo, " + (t.font.mono || "monospace")} filter="url(#lcdGlow)">
+            {r2.scr === "main" ? (
+              <>
+                <text x={112} y={88} fontSize={42} fontWeight={700} fill={lcdFg}>{d[0]}</text>
+                <text x={210} y={62} fontSize={10} fill={lcdDim}>{d[1]}</text>
+                <text x={210} y={96} fontSize={11} fill={lcdFg}>{d[2]}</text>
+                {r2.tx ? <text x={292} y={62} fontSize={11} fontWeight={700} fill="#ff5a3a">TX</text> : <text x={292} y={62} fontSize={9} fill={lcdDim}>RX</text>}
+              </>
+            ) : (
+              d.map((line: string, i: number) => (
+                <text key={"l" + i} x={108} y={58 + i * 18} fontSize={i === 0 ? 12 : 11} fontWeight={i === 0 ? 700 : 500} fill={i === 0 && alarm ? "#ff8a50" : lcdFg}>{line}</text>
+              ))
+            )}
+          </g>
+        ) : <text x={210} y={86} textAnchor="middle" fontSize={10} fontFamily={fam} fill="#1a2a1c">OFF</text>}
+        {sl.map((lab: string, i: number) => (
+          <text key={"sl" + i} x={128 + i * 54} y={136} textAnchor="middle" fontSize={7.5} fontFamily={fam} fontWeight={700} fill="#d0d5dc">{lab || ""}</text>
+        ))}
+        {[0, 1, 2, 3].map((i: number) => keyCap("s" + (i + 1), 110 + i * 54, 142, 36, 16, "●", "tap", "#2b3038", "#d8dde4", 8))}
+        {/* DISTRESS sits under the spring cap; cap is painted last so it receives the click when closed */}
+        <g {...bind("distress", "holdDistress")} style={{ pointerEvents: r2.flap ? "auto" : "none" }}>
+          <rect x={338} y={40} width={52} height={28} rx={5} fill="#c62828" stroke="#3a0a0a" strokeWidth={1.3} />
+          <text x={364} y={57} textAnchor="middle" fontSize={6.2} fontFamily={fam} fontWeight={800} fill="#ffe8e0">DISTRESS</text>
+          {ring(364, 54, 22, holdK === "distress" && r2.flap)}
+        </g>
+        <g {...bind("flap", "flap")}>
+          {!r2.flap ? (
+            <>
+              <rect x={336} y={34} width={56} height={36} rx={5} fill="#c9a227" stroke="#5a4308" strokeWidth={1.4} />
+              <line x1={346} y1={44} x2={382} y2={60} stroke="#5a4308" strokeWidth={1.2} />
+              <line x1={346} y1={52} x2={376} y2={64} stroke="#5a4308" strokeWidth={1.2} />
+              <text x={364} y={55} textAnchor="middle" fontSize={6.4} fontFamily={fam} fontWeight={700} fill="#2a1c00">CAP</text>
+            </>
+          ) : (
+            <g transform="translate(318,18) rotate(-118)">
+              <rect x={0} y={0} width={52} height={16} rx={3} fill="#c9a227" stroke="#5a4308" />
+            </g>
+          )}
+        </g>
+        {keyCap("ent", 398, 36, 48, 22, "ENT", "tap", "#323842", "#e8edf4", 8)}
+        {keyCap("left", 338, 72, 24, 20, "Ω", "tap", "#323842", "#e8edf4", 9)}
+        {keyCap("right", 366, 72, 24, 20, "≈", "tap", "#323842", "#e8edf4", 9)}
+        {keyCap("up", 398, 62, 48, 20, "∧  CH", "tap", "#323842", "#e8edf4", 8)}
+        {keyCap("dn", 398, 84, 48, 20, "∨  CH", "tap", "#323842", "#e8edf4", 8)}
+        {keyCap("clear", 338, 96, 52, 20, "CLEAR", "tap", "#323842", "#e8edf4", 7.5)}
+        {keyCap("menu", 394, 108, 52, 20, "MENU", "tap", "#323842", "#e8edf4", 8)}
+        {keyCap("k16", 338, 142, 52, 22, "16/C", "hold16", "#1e3a5f", "#e8f0ff", 8.5)}
+        {ring(364, 153, 18, holdK === "k16")}
+        {/* VOL/SQL/PWR knob */}
+        <g {...knobPtr}>
+          <circle cx={390} cy={174} r={32} fill="url(#knobG)" stroke="#0a0c0e" strokeWidth={2} />
+          {Array.from({ length: 16 }).map((_: unknown, i: number) => {
+            const a = (i / 16) * Math.PI * 2;
+            return <line key={"t" + i} x1={390 + Math.cos(a) * 24} y1={174 + Math.sin(a) * 24} x2={390 + Math.cos(a) * 28} y2={174 + Math.sin(a) * 28} stroke="#9aa1aa" strokeWidth={1.3} />;
+          })}
+          <circle cx={390} cy={174} r={14} fill="#1c1f24" stroke="#8a9098" />
+          <line x1={390} y1={174} x2={390} y2={152} stroke="#e8edf4" strokeWidth={2.4} strokeLinecap="round" />
+          {ring(390, 174, 30, holdK === "pwr")}
+        </g>
+        <text x={390} y={218} textAnchor="middle" fontSize={6.5} fontFamily={fam} fill="#9aa3b0">VOL / SQL · PWR</text>
+        <text x={390} y={228} textAnchor="middle" fontSize={5.8} fontFamily={fam} fill="#6b7380">{r2.knob === 0 ? "VOL" : r2.knob === 1 ? "SQL" : "CHAN"} · drehen / drücken / 1 s Ein-Aus</text>
+        {holdK === "distress" && r2.flap ? <text x={230} y={24} textAnchor="middle" fontSize={8} fontFamily={fam} fill="#ffb070">{frac >= 1 ? "SENDEN" : "halten… " + Math.ceil(3 - frac * 3) + " s"}</text> : null}
+      </svg>
+    );
+    const hs = (
+      <svg viewBox="0 0 150 250" width="100%" height="100%" style={{ display: "block", maxHeight: "100%", userSelect: "none" }} role="img" aria-label="Lautsprechermikrofon IC-M423">
+        <defs>
+          <linearGradient id="hsG" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0" stopColor="#2a2e35" />
+            <stop offset="0.5" stopColor="#3c424c" />
+            <stop offset="1" stopColor="#23262c" />
+          </linearGradient>
+        </defs>
+        <path d="M36 10 h62 a22 22 0 0 1 22 22 v176 a32 32 0 0 1 -32 32 h-42 a32 32 0 0 1 -32 -32 v-176 a22 22 0 0 1 22 -22 z" fill="url(#hsG)" stroke="#0a0c0e" strokeWidth={2} />
+        <rect x={52} y={20} width={46} height={36} rx={8} fill="#16181c" />
+        {Array.from({ length: 5 }).map((_: unknown, r: number) =>
+          Array.from({ length: 4 }).map((__: unknown, c: number) => <circle key={"s" + r + c} cx={61 + c * 9} cy={28 + r * 6} r={1.2} fill="#0a0b0d" />),
+        )}
+        <text x={75} y={68} textAnchor="middle" fontSize={6} fontFamily={fam} fill="#9aa3b0">SPEAKER MIC</text>
+        <g {...bind("ptt", "ptt")}>
+          <rect x={18} y={86} width={22} height={78} rx={8} fill={r2.tx ? "#c62828" : "#1e3a5f"} stroke="#0a0c0e" strokeWidth={1.4} />
+          <text x={29} y={122} textAnchor="middle" fontSize={7} fontFamily={fam} fontWeight={800} fill="#fff" transform="rotate(-90 29 122)">PTT</text>
+        </g>
+        {keyCap("k16m", 52, 78, 52, 22, "16/C", "hold16", "#1e3a5f", "#e8f0ff", 8)}
+        {keyCap("hl", 52, 106, 52, 22, "H/L", "tap", "#323842", "#e8edf4", 8)}
+        {keyCap("mup", 52, 134, 52, 20, "∧", "tap", "#323842", "#e8edf4", 10)}
+        {keyCap("mdn", 52, 158, 52, 20, "∨", "tap", "#323842", "#e8edf4", 10)}
+        <rect x={58} y={200} width={34} height={22} rx={10} fill="#16181c" stroke="#0a0c0e" />
+        {Array.from({ length: 3 }).map((_: unknown, i: number) => <circle key={"m" + i} cx={66 + i * 9} cy={211} r={1.4} fill="#0a0b0d" />)}
+        <text x={75} y={236} textAnchor="middle" fontSize={6} fontFamily={fam} fill="#8a929c">MIC</text>
+        {r2.tx ? <text x={75} y={16} textAnchor="middle" fontSize={8} fontFamily={fam} fontWeight={800} fill="#ff5a3a">● TX</text> : null}
+      </svg>
+    );
+    const hsH = (
+      <svg viewBox="0 0 360 92" width="100%" height="100%" style={{ display: "block", maxHeight: "100%", userSelect: "none" }} role="img" aria-label="Lautsprechermikrofon IC-M423 (abgelegt)">
+        <rect x={4} y={8} width={352} height={76} rx={16} fill="#2e333b" stroke="#0a0c0e" strokeWidth={2} />
+        <g {...bind("ptt", "ptt")}>
+          <rect x={14} y={18} width={70} height={56} rx={10} fill={r2.tx ? "#c62828" : "#1e3a5f"} stroke="#0a0c0e" strokeWidth={1.3} />
+          <text x={49} y={51} textAnchor="middle" fontSize={14} fontFamily={fam} fontWeight={800} fill="#fff">{r2.tx ? "● TX" : "PTT"}</text>
+        </g>
+        <rect x={96} y={22} width={40} height={28} rx={6} fill="#16181c" />
+        {Array.from({ length: 3 }).map((_: unknown, r: number) =>
+          Array.from({ length: 4 }).map((__: unknown, c: number) => <circle key={"sh" + r + c} cx={104 + c * 8} cy={30 + r * 7} r={1.1} fill="#0a0b0d" />),
+        )}
+        {keyCap("k16m", 146, 22, 48, 24, "16/C", "hold16", "#1e3a5f", "#e8f0ff", 8)}
+        {keyCap("hl", 200, 22, 44, 24, "H/L", "tap", "#323842", "#e8edf4", 8)}
+        {keyCap("mup", 250, 22, 36, 24, "∧", "tap", "#323842", "#e8edf4", 10)}
+        {keyCap("mdn", 292, 22, 36, 24, "∨", "tap", "#323842", "#e8edf4", 10)}
+        <rect x={146} y={54} width={40} height={18} rx={8} fill="#16181c" stroke="#0a0c0e" />
+        {Array.from({ length: 3 }).map((_: unknown, i: number) => <circle key={"mh" + i} cx={156 + i * 9} cy={63} r={1.3} fill="#0a0b0d" />)}
+        <text x={230} y={67} fontSize={7} fontFamily={fam} fill="#9aa3b0">SPEAKER MIC</text>
+      </svg>
     );
     return (
-      <svg viewBox="0 0 360 250" width="100%" style={{ maxHeight: 270, display: "block" }} role="img" aria-label="Vereinfachte Frontplatte IC-M423 mit Mikrofon">
-        <rect x={2} y={2} width={356} height={182} rx={16} fill={t.bg.elevated} stroke={t.border.default} strokeWidth={2} />
-        <rect x={10} y={14} width={34} height={110} rx={8} fill={t.bg.subtle} stroke={t.border.subtle} />
-        <text x={27} y={74} textAnchor="middle" fontSize={8} fontFamily={fam} fill={t.text.tertiary}>LS</text>
-        <rect x={52} y={14} width={186} height={96} rx={6} fill={t.fill.accentSubtle} stroke={t.border.default} />
-        <text x={60} y={r2.scr === "main" ? 54 : 32} fontSize={r2.scr === "main" ? 34 : 11} fontFamily={t.font.mono} fontWeight={700} fill={r2.scr.indexOf("d") === 0 || r2.scr.indexOf("can") === 0 ? t.text.danger : t.text.primary}>{d[0]}</text>
-        {d.slice(1).map((line: string, i: number) => (
-          <text key={i} x={60} y={(r2.scr === "main" ? 72 : 48) + i * 14} fontSize={10} fontFamily={t.font.mono} fill={t.text.primary}>{line}</text>
-        ))}
-        {sl.map((lab: string, i: number) => (
-          <text key={"sl" + i} x={75 + i * 46} y={106} textAnchor="middle" fontSize={8} fontFamily={t.font.mono} fill={t.text.secondary}>{lab}</text>
-        ))}
-        {[0, 1, 2, 3].map((i: number) => k("s" + (i + 1), 54 + i * 46, 116, 42, 18, "▔", undefined, "s" + (i + 1)))}
-        <g onClick={() => press2(r2.flap ? "distress" : "flap")} style={{ cursor: "pointer" }}>
-          <rect x={246} y={14} width={44} height={34} rx={7} fill={r2.flap ? t.text.danger : t.bg.subtle} stroke={t.text.danger} strokeWidth={2} />
-          <text x={268} y={35} textAnchor="middle" fontSize={8} fontFamily={fam} fill={r2.flap ? t.bg.base : t.text.danger}>{r2.flap ? "DISTRESS" : "Kappe"}</text>
-        </g>
-        {r2.flap ? k("flap", 246, 50, 44, 12, "zu") : null}
-        {k("ent", 296, 14, 54, 22, "ENT")}
-        {k("left", 246, 66, 22, 22, "Ω")}
-        {k("right", 270, 66, 22, 22, "≈")}
-        {k("up", 296, 40, 54, 22, "∧ CH")}
-        {k("dn", 296, 66, 54, 22, "∨ CH")}
-        {k("clear", 246, 92, 46, 22, "CLEAR")}
-        {k("menu", 296, 92, 54, 22, "MENU")}
-        {k("k16", 246, 118, 46, 22, "16/C", t.fill.accentSubtle)}
-        {k("k16l", 246, 144, 46, 18, "16/C 1s")}
-        <g style={{ cursor: "pointer" }}>
-          <circle cx={322} cy={142} r={26} fill={on("push") || on("kup") || on("kdn") ? accent : t.bg.subtle} stroke={t.border.default} strokeWidth={2} onClick={() => press2("push")} />
-          <text x={322} y={139} textAnchor="middle" fontSize={8} fontFamily={fam} fill={t.text.primary} onClick={() => press2("push")}>VOL/SQL</text>
-          <text x={322} y={150} textAnchor="middle" fontSize={8} fontFamily={fam} fill={t.text.primary} onClick={() => press2("push")}>drücken</text>
-          <text x={296} y={176} fontSize={13} fontFamily={fam} fill={t.text.primary} onClick={() => press2("kdn")}>↺</text>
-          <text x={340} y={176} fontSize={13} fontFamily={fam} fill={t.text.primary} onClick={() => press2("kup")}>↻</text>
-        </g>
-        {k("pwr", 10, 132, 34, 18, "PWR")}
-        <rect x={10} y={192} width={340} height={54} rx={14} fill={t.bg.elevated} stroke={t.border.default} />
-        <text x={20} y={210} fontSize={9} fontFamily={fam} fill={t.text.tertiary}>Mikrofon</text>
-        {k("ptt", 20, 216, 110, 24, "PTT", t.fill.accentSubtle)}
-        {k("mup", 140, 202, 44, 18, "∧")}
-        {k("mdn", 140, 222, 44, 18, "∨")}
-        {k("hl", 192, 210, 62, 24, "H/L")}
-        {k("k16m", 262, 210, 80, 24, "16/C (G/GE)", undefined, "k16")}
-      </svg>
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 4, overflow: "hidden" }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: rigWide ? "row" : "column", alignItems: "stretch", gap: 6, overflow: "hidden" }}>
+          <div style={{ flex: "1 1 auto", minWidth: 0, minHeight: 0, display: "flex" }}>{radio}</div>
+          <div style={{ flex: rigWide ? "0 0 132px" : "0 0 86px", minWidth: rigWide ? 96 : 0, minHeight: 0, display: "flex" }}>{rigWide ? hs : hsH}</div>
+        </div>
+        {r2.tx || said ? (
+          <div style={{ flex: "0 0 auto", display: "flex", gap: 8, alignItems: "center", padding: "4px 8px", borderRadius: 8, background: r2.tx ? "rgba(198,40,40,0.15)" : t.fill.accentSubtle }}>
+            <span style={txt("label", r2.tx ? t.text.danger : t.text.secondary)}>{r2.tx ? "● Sende (" + micLang + ")…" : "TX-Text"}</span>
+            <span style={{ ...txt("body2", t.text.primary), fontFamily: t.font.mono, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{said || "…"}</span>
+          </div>
+        ) : null}
+        {helpOn && info ? <span style={{ ...txt("label", t.text.secondary), flex: "0 0 auto", lineHeight: 1.3 }}>{info}</span> : (helpOn && rigWide && !opts?.compact ? <span style={{ ...txt("label", t.text.secondary), flex: "0 0 auto", lineHeight: 1.3 }}>Taste halten: 1 s [16/C] Anrufkanal, 1 s Regler Ein/Aus, 3 s [DISTRESS]. Regler drehen oder Mausrad. PTT halten = senden.</span> : null)}
+      </div>
     );
   };
 
   const panelScreen2 = (): ReactNode => {
-    const info = KEYINFO[r2.key] || "";
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
-        {panel2()}
-        {card(
-          <>
-            <span style={txt("body2", t.text.secondary)}>{info || "Tippe eine Taste an. Anordnung vereinfacht nach Abb. „Frontplatte“ (S. 2–3) und „Lautsprechermikrofon“ (S. 7); die 4 Softkeys unter dem Display sind frei belegbar (Menü Configuration → Key Assignment), Reihenfolge je nach Version/Programmierung."}</span>
-            {isUBI ? <span style={txt("label", t.text.secondary)}>Binnen (Regeln, nicht aus dem Handbuch): Schiff–Schiff, Nautischer Informationsfunk und Hafenfunk nur mit 0,5–1 W; Zweikanalwache (DW) und DSC sind im Binnenschifffahrtsfunk nicht zulässig; jede Aussendung trägt die ATIS-Kennung. Quelle: RAINWAT / Handbuch Binnenschifffahrtsfunk.</span> : null}
-            <div style={rowWrap}>
-              <Button label="Gerät zurücksetzen" variant="quiet" onClick={() => setR2(R20)} />
-              {r2.scr === "iwait" ? <Button label="Gegenstelle bestätigt" onClick={() => press2("ack")} /> : null}
-            </div>
-          </>,
-          { padding: 12, gap: 6 },
-        )}
+      <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+          <Button label={helpOn ? "Hilfe aus" : "Hilfe ein"} variant="quiet" onClick={() => setHelpOn(!helpOn)} />
+          <Button label="Gerät zurücksetzen" variant="quiet" onClick={() => setR2(R20)} />
+          <Button label="Menüstruktur" variant="quiet" onClick={() => setShowMenuRef(!showMenuRef)} />
+          {r2.scr === "iwait" ? <Button label="Gegenstelle bestätigt" onClick={() => press2("ack")} /> : null}
+          <Button label={micLang === "en-GB" ? "Sprache: EN" : "Sprache: DE"} variant="quiet" onClick={() => setMicLang(micLang === "en-GB" ? "de-DE" : "en-GB")} />
+        </div>
+        {isUBI ? <span style={txt("label", t.text.secondary)}>Binnen: CHAN Group ATIS, DSC und DISTRESS gesperrt, Kanäle 10/15/17 automatisch 1 W, beim Loslassen von PTT ATIS-Kennung (RAINWAT / Handbuch Binnenschifffahrtsfunk, nicht aus dem Icom-Handbuch).</span> : null}
+        {showMenuRef ? <div style={{ flex: "0 1 28%", minHeight: 0, overflowY: "auto" }}>{menuRef()}</div> : null}
+        {radioRig()}
       </div>
     );
   };
@@ -4396,21 +4800,341 @@ export default function App() {
     if (!p) return null;
     const done = ps2 >= p.steps.length;
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-        {bar(ps2, p.steps.length)}
-        {card(
-          <>
-            <span style={txt("label", t.text.secondary)}>{done ? "Geschafft" : "Schritt " + (ps2 + 1) + " von " + p.steps.length}</span>
-            <span style={txt("body2", t.text.primary)}>{done ? "Ablauf komplett. Wiederholen festigt die Griffe." : p.steps[ps2].say}</span>
-            {pw2 ? <span style={txt("label", t.text.danger)}>{pw2}</span> : null}
-            <div style={rowWrap}>
-              {done ? <Button label="Nochmal" variant="primary" onClick={() => { setPs2(0); setR2(p.id === "vs" ? { ...R20, on: false } : R20); }} /> : null}
-              {r2.scr === "iwait" ? <Button label="Gegenstelle bestätigt" onClick={() => press2("ack")} /> : null}
-            </div>
-          </>,
-          { padding: 12, gap: 6 },
-        )}
-        {panel2()}
+      <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ flex: "0 0 auto" }}>{bar(ps2, p.steps.length)}</div>
+        <div style={{ flex: "0 1 auto", maxHeight: "30%" }}>
+          {card(
+            <>
+              <span style={txt("label", t.text.secondary)}>{done ? "Geschafft" : "Schritt " + (ps2 + 1) + " von " + p.steps.length}</span>
+              <span style={txt("body2", t.text.primary)}>{done ? "Ablauf komplett. Wiederholen festigt die Griffe." : p.steps[ps2].say}</span>
+              {pw2 ? <span style={txt("label", t.text.danger)}>{pw2}</span> : null}
+              <div style={rowWrap}>
+                {done ? <Button label="Nochmal" variant="primary" onClick={() => { setPs2(0); setR2(p.id === "vs" ? { ...R20, on: false } : R20); }} /> : null}
+                {r2.scr === "iwait" ? <Button label="Gegenstelle bestätigt" onClick={() => press2("ack")} /> : null}
+              </div>
+            </>,
+            { padding: 10, gap: 4 },
+          )}
+        </div>
+        {radioRig({ compact: true })}
+      </div>
+    );
+  };
+
+  const simScreen2 = (s: Scn): ReactNode => {
+    const tr = s.turns[turn];
+    const allOk = fb.length > 0 && fb.every((r: { ok: boolean }) => r.ok);
+    const parts = tr ? tr.model.split(" / ") : [];
+    return (
+      <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ flex: "0 1 34%", minHeight: 0, overflowY: "auto" }}>
+          {card(
+            <>
+              <span style={txt("label", t.text.secondary)}>{"Lage · " + s.ch + " · " + (s.lang === "en-GB" ? "Englisch" : "Deutsch") + " · PTT am Handapparat"}</span>
+              <span style={txt("body2", t.text.primary)}>{s.intro}</span>
+              {log.map((l: { who: string; text: string }, i: number) => (
+                <div key={i} style={{ borderLeft: "4px solid " + (l.who === "Du" ? accent : accent3), paddingLeft: 8 }}>
+                  <span style={txt("label", t.text.tertiary)}>{l.who}</span>
+                  <span style={{ ...txt("body2", t.text.primary), fontFamily: t.font.mono, display: "block" }}>{l.text}</span>
+                </div>
+              ))}
+              {tr ? <span style={txt("body2", t.text.primary, t.weight.semibold)}>{"Dein Spruch " + (turn + 1) + "/" + s.turns.length + ": " + tr.you}</span> : null}
+              {micMsg ? <span style={txt("label", t.text.warning)}>{micMsg}</span> : null}
+              <Input label="Gesendeter Text (Sprache, Bausteine oder tippen)" value={said} onChange={(v: string) => setSaid(v)} />
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {parts.map((p: string, i: number) => chip("pb" + i, p, false, () => setSaid((said + " " + p).trim())))}
+                {chip("pbx", "⌫ leeren", false, () => setSaid(""))}
+                <Button label="Funkspruch prüfen" variant="primary" onClick={() => evaluate(said)} disabled={said.trim() === ""} />
+                {allOk && turn + 1 < s.turns.length ? <Button label="Nächster Spruch" onClick={() => { setTurn(turn + 1); setSaid(""); setFb([]); }} /> : null}
+              </div>
+              {fb.length > 0 ? (
+                <>
+                  <Status tone={allOk ? "success" : "warning"}>{allOk ? "Spruch vollständig – Gegenstelle antwortet" : "Noch nicht vollständig"}</Status>
+                  {fb.map((r: { ok: boolean; label: string }) => <span key={r.label} style={txt("body2", r.ok ? t.text.success : t.text.danger)}>{(r.ok ? "✓ " : "✗ ") + r.label}</span>)}
+                </>
+              ) : null}
+            </>,
+            { padding: 10, gap: 6 },
+          )}
+        </div>
+        {radioRig({ compact: true })}
+      </div>
+    );
+  };
+
+  type ExDev = { label: string; ok: (s: R2) => boolean };
+  type ExTask = {
+    id: string;
+    kind: "pflicht" | "sonstige" | "fall" | "lang" | "text";
+    series?: "A" | "B";
+    title: string;
+    card: string;
+    hint: string;
+    src: string;
+    lang?: string;
+    setup?: (s: R2) => R2;
+    device?: ExDev[];
+    voice?: { checks: Chk[]; replyWho?: string; reply?: string; lang: string };
+    keys?: { label: string; re: RegExp }[];
+    prompt?: string;
+    speakText?: string;
+  };
+
+  const EXAM_TASKS = (): ExTask[] => {
+    const ident = "Eigene Identität in dieser Übung: Yacht SEEADLER, Rufzeichen DA5005, MMSI 211123450, ATIS 9211015005. Position See: 54°25,0'N 010°12,0'E. Binnen: Rhein-km 550, Ortslage Oberwesel.";
+    const maydayEN: Chk[] = [
+      { label: "MAYDAY (3x Anruf + 1x Meldung)", re: /MAYDAY/g, min: 4 },
+      { label: "THIS IS", re: /THIS IS/ },
+      { label: "Schiffsname 3x", re: NAME, min: 3 },
+      { label: "Rufzeichen", re: CALL },
+      { label: "MMSI", re: MMSI },
+      { label: "Position", re: POS },
+      { label: "Art der Not", re: /WATER|FLOOD|FIRE|SINK|CAPSIZ|OVERBOARD|AGROUND|EXPLOSION|TAKING WATER/ },
+      { label: "erbetene Hilfe", re: /ASSISTANCE|HELP|REQUIRE/ },
+      { label: "Personen an Bord", re: /PERSON|PEOPLE|ON BOARD|CREW/ },
+      { label: "Abschluss OVER", re: OVER },
+    ];
+    const maydayDE: Chk[] = [
+      { label: "MAYDAY (3x + 1x)", re: /MAYDAY/g, min: 4 },
+      { label: "HIER IST", re: /HIER IST/ },
+      { label: "Schiffsname 3x", re: NAME, min: 3 },
+      { label: "Rufzeichen", re: CALL },
+      { label: "Ortsangabe", re: POS },
+      { label: "Art der Not", re: /WASSER|LECK|FEUER|BRAND|SINK|KENTER|ÜBER BORD|MANN/ },
+      { label: "Hilfe", re: /HILFE|ASSISTENZ|SCHLEPP/ },
+      { label: "Personen", re: /PERSON/ },
+      { label: "BITTE KOMMEN", re: KOMMEN },
+    ];
+    const srcA: ExTask[] = [
+      { id: "sa1", kind: "pflicht", series: "A", title: "Pflicht 1.a – DSC-Notalarm aussenden", src: "ELWIS Durchführungsrichtlinien Funkbetriebszeugnisse, Anlage 3 (Fachstelle WSV Koblenz, 04.03.2021), Pflichtaufgabe 1.a", card: ident + " Wassereinbruch, 4 Personen an Bord, unmittelbare Gefahr. Sende einen DSC-Notalarm (einfach oder mit Art der Not). Schutzkappe öffnen, [DISTRESS] 3 Sekunden halten – oder Menü DSC Calls → Distress Call, Art wählen, dann 3 s [DISTRESS].", hint: "Klappe auf, DISTRESS 3 Sekunden. Im Display muss der gesendete Notalarm erscheinen.", device: [{ label: "Notalarm gesendet (Anzeige dsent, Kanal 70)", ok: (s: R2) => s.scr === "dsent" }] },
+      { id: "sa2", kind: "pflicht", series: "A", title: "Pflicht 2.a – Notmeldung per Sprechfunk", src: "Anlage 3, Pflichtaufgabe 2.a", card: ident + " Die Küstenfunkstelle hat den Notalarm bestätigt (ALARM OFF). Sprich auf Kanal 16 die Notmeldung in englischer Sprache.", hint: "Kanal 16, PTT halten, MAYDAY-Spruch vollständig.", setup: (s: R2) => ({ ...s, scr: "dack", ch: 16, flap: true }), device: [{ label: "Kanal 16", ok: (s: R2) => s.ch === 16 }], voice: { lang: "en-GB", checks: maydayEN, replyWho: "Bremen Rescue", reply: "MAYDAY SEEADLER SEEADLER SEEADLER DA5005, THIS IS BREMEN RESCUE BREMEN RESCUE BREMEN RESCUE, RECEIVED MAYDAY. Rescue craft is proceeding. Keep watch on channel 16. OVER." } },
+      { id: "sa3", kind: "pflicht", series: "A", title: "Pflicht 3.a – Beenden des Notverkehrs", src: "Anlage 3, Pflichtaufgabe 3.a", card: ident + " Alle Personen sind in Sicherheit, die Hilfe ist abgeschlossen. Beende den Notverkehr auf Kanal 16 (SILENCE FINI / SEELONCE FEENEE).", hint: "Sprechfunk auf 16: MAYDAY, all stations, this is SEEADLER, SILENCE FINI, out.", device: [{ label: "Kanal 16", ok: (s: R2) => s.ch === 16 }], voice: { lang: "en-GB", checks: [{ label: "MAYDAY am Anfang zulässig", re: /MAYDAY|ALL STATIONS|SILENCE|SEELONCE|FEENEE|FINI/ }, { label: "SILENCE FINI / SEELONCE FEENEE", re: /SILENCE FINI|SEELONCE FEENEE|SEELONCE FINI|PRUDONCE|PRU DONCE/ }, { label: "eigener Name oder Rufzeichen", re: NAME }], replyWho: "Bremen Rescue", reply: "SILENCE FINI received, THIS IS BREMEN RESCUE, OUT." } },
+      { id: "sa4", kind: "pflicht", series: "A", title: "Pflicht 4.a – DSC-Dringlichkeit und Pan Pan", src: "Anlage 3, Pflichtaufgabe 4.a", card: ident + " Motorschaden, ihr treibt 3 sm nördlich von Fehmarn und braucht einen Schlepp. Sende einen DSC-All-Ships-Anruf der Kategorie Urgency und sprich danach die Dringlichkeitsmeldung auf Kanal 16.", hint: "[MENU] → DSC Calls → All Ships Call → Urgency → CALL, dann PTT auf 16.", device: [{ label: "All-Ships Urgency gesendet oder Kategorie Urgency und Kanal 16", ok: (s: R2) => s.cat === "Urgency" && (s.scr === "ashsent" || s.ch === 16) }], voice: { lang: "en-GB", checks: [{ label: "PAN PAN 3x", re: /PAN ?PAN|PANPAN/g, min: 3 }, { label: "ALL STATIONS 3x", re: /ALL STATIONS/g, min: 3 }, { label: "THIS IS", re: /THIS IS/ }, { label: "Schiffsname 3x", re: NAME, min: 3 }, { label: "Rufzeichen", re: CALL }, { label: "Sachverhalt", re: /ENGINE|FAILURE|DRIFT|TOW|ASSISTANCE/ }, { label: "OVER", re: OVER }], replyWho: "Bremen Rescue", reply: "PAN PAN SEEADLER, THIS IS BREMEN RESCUE, RECEIVED PAN PAN. A tow is arranged. Keep watch on channel 16. OVER." } },
+    ];
+    const srcB: ExTask[] = [
+      { id: "sb1", kind: "pflicht", series: "B", title: "Pflicht 1.b – Empfangener DSC-Notalarm", src: "Anlage 3, Pflichtaufgabe 1.b", card: ident + " Es geht ein DSC-Notalarm ein (Alarmton). Schalte den Alarm ab, sieh dir den Eintrag an und bestätige, sofern keine Küstenfunkstelle antwortet (ACK), danach Wache auf Kanal 16.", hint: "[ALARM OFF], prüfen, [ACK].", setup: (s: R2) => ({ ...s, rx: "distress", scr: "rxal", scan: false, dw: 0 }), device: [{ label: "Alarm quittiert und/oder ACK, Kanal 16 oder Anzeige rcvinfo", ok: (s: R2) => s.scr === "rcvinfo" || (s.scr === "main" && s.ch === 16 && s.rx === "distress") }] },
+      { id: "sb2", kind: "pflicht", series: "B", title: "Pflicht 2.b – Mayday Relay", src: "Anlage 3, Pflichtaufgabe 2.b", card: ident + " Yacht MOEWE (DB1234) hat Feuer, 2 sm südlich von dir. Keine Küstenfunkstelle hat bestätigt. Setze einen Mayday Relay auf Kanal 16 ab.", hint: "MAYDAY RELAY 3x, ALL STATIONS 3x, THIS IS SEEADLER … MAYDAY MOEWE …", device: [{ label: "Kanal 16", ok: (s: R2) => s.ch === 16 }], voice: { lang: "en-GB", checks: [{ label: "MAYDAY RELAY 3x", re: /MAYDAY RELAY/g, min: 3 }, { label: "ALL STATIONS 3x", re: /ALL STATIONS/g, min: 3 }, { label: "THIS IS", re: /THIS IS/ }, { label: "eigener Name", re: NAME }, { label: "Name des Notfahrzeugs", re: /MOEWE|MÖWE|MOWE/ }, { label: "MAYDAY in der Meldung", re: /MAYDAY/ }, { label: "OVER", re: OVER }], replyWho: "Bremen Rescue", reply: "MAYDAY RELAY SEEADLER, THIS IS BREMEN RESCUE, RECEIVED MAYDAY RELAY. We are taking over coordination. OUT." } },
+      { id: "sb3", kind: "pflicht", series: "B", title: "Pflicht 3.b – Fehlalarm zurücknehmen", src: "Anlage 3, Pflichtaufgabe 3.b", card: ident + " Du hast versehentlich einen DSC-Notalarm ausgelöst. Storniere ihn am Gerät (CANCEL → CONTINUE → FINISH) und sprich die Rücknahme auf Kanal 16.", hint: "Gerät: CANCEL, CONTINUE, FINISH. Dann Sprechfunk: ALL STATIONS, cancel distress, MMSI, position, OVER.", setup: (s: R2) => ({ ...s, scr: "dsent", ch: 70, flap: true }), device: [{ label: "Stornierung beendet (can3) oder wieder Kanal 16 nach FINISH/EXIT", ok: (s: R2) => s.scr === "can3" || (s.ch === 16 && (s.scr === "main" || s.scr === "can3")) }], voice: { lang: "en-GB", checks: [{ label: "ALL STATIONS", re: /ALL STATIONS/ }, { label: "cancel / distress", re: /CANCEL|CANCELLATION|DISTRESS/ }, { label: "Name oder MMSI", re: /SEEADLER|211 ?123 ?450|DA ?5005/ }, { label: "OVER oder OUT", re: /OVER|OUT/ }], replyWho: "Bremen Rescue", reply: "ALL STATIONS, THIS IS BREMEN RESCUE, distress cancellation from SEEADLER received. OUT." } },
+      { id: "sb4", kind: "pflicht", series: "B", title: "Pflicht 4.b – DSC-Sicherheit und Sécurité", src: "Anlage 3, Pflichtaufgabe 4.b", card: ident + " Du siehst einen treibenden Container bei 54°20,0'N 011°05,0'E. Sende einen DSC-All-Ships-Anruf Safety und danach die Sicherheitsmeldung auf Kanal 16.", hint: "[MENU] → All Ships Call → Safety → CALL, dann SECURITE auf 16.", device: [{ label: "All-Ships Safety gesendet oder Kategorie Safety und Kanal 16", ok: (s: R2) => s.cat === "Safety" && (s.scr === "ashsent" || s.ch === 16) }], voice: { lang: "en-GB", checks: [{ label: "SECURITE 3x", re: /SECURIT/g, min: 3 }, { label: "ALL STATIONS 3x", re: /ALL STATIONS/g, min: 3 }, { label: "THIS IS", re: /THIS IS/ }, { label: "Schiffsname", re: NAME }, { label: "Gefahr", re: /CONTAINER|DANGER|OBJECT|WRECK/ }, { label: "OUT oder OVER", re: /OUT|OVER/ }], replyWho: "–", reply: "" } },
+    ];
+    const sonst: ExTask[] = [
+      { id: "so_log", kind: "sonstige", title: "Sonstige – Speicherabfrage (Received Call Log)", src: "Anlage 3, sonstige Fertigkeiten (Speicherabfrage)", card: ident + " Ein DSC-Notalarm liegt im Speicher. Öffne das Received Call Log und sieh den Eintrag an.", hint: "Softkey LOG oder [MENU] → DSC Calls → Received Call Log.", setup: (s: R2) => ({ ...s, rx: "distress", scr: "main" }), device: [{ label: "Log oder Eintragsanzeige geöffnet", ok: (s: R2) => s.scr === "rcvlog" || s.scr === "rcvinfo" }] },
+      { id: "so_sil", kind: "sonstige", title: "Sonstige – Funkstille gebieten (SILENCE MAYDAY)", src: "Anlage 3, sonstige Fertigkeiten", card: ident + " Du koordinierst den Notverkehr. Eine unbeteiligte Station stört. Gebiete Funkstille auf Kanal 16.", hint: "SILENCE MAYDAY / SEELONCE MAYDAY.", device: [{ label: "Kanal 16", ok: (s: R2) => s.ch === 16 }], voice: { lang: "en-GB", checks: [{ label: "SILENCE/SEELONCE MAYDAY", re: /SILENCE MAYDAY|SEELONCE MAYDAY|SEELONCE MAY/ }, { label: "eigener Name oder Station", re: /SEEADLER|RESCUE|COAST/ }], replyWho: "–", reply: "" } },
+      { id: "so_ind", kind: "sonstige", title: "Sonstige – DSC-Einzelanruf an eine Küstenfunkstelle", src: "Anlage 3, sonstige Fertigkeiten (Routine-DSC an Küstenfunkstelle)", card: ident + " Rufe die Küstenfunkstelle Bremen Rescue (Übung: Individual Call) per DSC und wechsle nach der Bestätigung auf den Arbeitskanal.", hint: "[MENU] → DSC Calls → Individual Call → Manual Input → CALL. In der Übung bestätigt die Taste bzw. die Gegenstelle.", device: [{ label: "Individual Call gesendet oder ACK empfangen", ok: (s: R2) => s.scr === "iwait" || s.scr === "iack" || (s.scr === "main" && s.key === "sk:ALARM OFF") }] },
+      { id: "so_ch", kind: "sonstige", title: "Sonstige – Kanalwechsel Arbeitskanal", src: "Anlage 3, sonstige Fertigkeiten (Kanalwechsel)", card: ident + " Nach einer Vereinbarung sollst du auf Arbeitskanal 72 gehen und hohe Leistung nur nutzen, wenn nötig.", hint: "[∧•CH]/[∨•CH] oder Regler auf CHAN, Kanal 72.", device: [{ label: "Kanal 72 gewählt", ok: (s: R2) => s.ch === 72 }] },
+      { id: "so_rs", kind: "sonstige", title: "Sonstige – Routineverkehr Schiff–Schiff", src: "Anlage 3, sonstige Fertigkeiten", card: ident + " Rufe auf Kanal 16 die Yacht NORDSTERN und schlage Kanal 72 vor.", hint: "NORDSTERN, THIS IS SEEADLER, on channel 16, propose 72, OVER.", device: [{ label: "Kanal 16 oder 72", ok: (s: R2) => s.ch === 16 || s.ch === 72 }], voice: { lang: "en-GB", checks: [{ label: "aufgerufene Station", re: /NORDSTERN|NORD STERN/ }, { label: "THIS IS", re: /THIS IS/ }, { label: "eigener Name", re: NAME }, { label: "Kanal 72 vorgeschlagen", re: /72|SEVEN TWO|CHANNEL/ }, { label: "OVER", re: OVER }], replyWho: "Yacht Nordstern", reply: "SEEADLER, THIS IS NORDSTERN, switching to channel 72. OVER." } },
+      { id: "so_uc", kind: "sonstige", title: "Sonstige – Dringlichkeit zurücknehmen", src: "Anlage 3, sonstige Fertigkeiten (Aufheben der Dringlichkeit)", card: ident + " Der Motorschaden ist behoben, ein Schlepp wird nicht mehr gebraucht. Hebe die Dringlichkeit auf Kanal 16 auf.", hint: "PAN PAN, ALL STATIONS, THIS IS SEEADLER, cancel urgency, OVER.", device: [{ label: "Kanal 16", ok: (s: R2) => s.ch === 16 }], voice: { lang: "en-GB", checks: [{ label: "PAN PAN oder ALL STATIONS", re: /PAN ?PAN|ALL STATIONS/ }, { label: "cancel / urgency", re: /CANCEL|URGENCY|PAN ?PAN/ }, { label: "eigener Name", re: NAME }], replyWho: "Bremen Rescue", reply: "SEEADLER, THIS IS BREMEN RESCUE, urgency cancellation received. OUT." } },
+    ];
+    const lang: ExTask[] = [
+      { id: "lang1", kind: "lang", title: "Theoretischer Sprachteil – Ansage und Übersetzung EN→DE", src: "ELWIS Durchführungsrichtlinien Funkbetriebszeugnisse § 5.2 und Anlage 1 / Anlage 7 (Seefunktexte): Teil der theoretischen, nicht der praktischen Prüfung. Übungstext ist eigens formuliert, kein amtlicher Katalogtext.", card: "Das ist nicht der praktische Teil nach Anlage 3, sondern eine kurze Übung zum amtlichen Sprachteil der Theorieprüfung: Du hörst eine englische Notmeldung (Diktat, Buchstabiertafel erlaubt) und schreibst die Übersetzung ins Deutsche ohne Hilfsmittel. Starte die Ansage, dann übersetze.", hint: "Wiedergabe anhören, dann auf Deutsch die Kernangaben notieren.", speakText: "MAYDAY MAYDAY MAYDAY. THIS IS SAILING YACHT STURMVOGEL, STURMVOGEL, STURMVOGEL. CALL SIGN DELTA BRAVO ONE TWO THREE FOUR. I AM ON FIRE AND REQUIRE IMMEDIATE ASSISTANCE. FOUR PERSONS ON BOARD. OVER.", keys: [{ label: "MAYDAY / Seenot", re: /MAYDAY|SEENOT|NOTRUF|NOTMELDUNG/ }, { label: "STURMVOGEL", re: /STURMVOGEL/ }, { label: "Rufzeichen / DB1234", re: /DB ?1234|DELTA BRAVO|RUFZEICHEN/ }, { label: "Feuer / Brand", re: /FEUER|BRAND|FIRE/ }, { label: "sofortige Hilfe", re: /HILFE|ASSISTENZ|SOFORT/ }, { label: "4 Personen", re: /4|VIER|PERSON/ }], prompt: "Deutsche Übersetzung (eintippen)" },
+      { id: "lang2", kind: "lang", title: "Theoretischer Sprachteil – Übersetzung DE→EN", src: "Wie lang1: theoretischer Sprachteil, eigens formulierter Übungstext.", card: "Übersetze den folgenden deutschen Seefunktext ins Englische (Übungstext, kein amtlicher Anlage-7-Text): „Hier ist Motoryacht Seeadler, Rufzeichen DA 5005. Ich habe einen Wassereinbruch und benötige sofortige Hilfe. Drei Personen an Bord.“", hint: "THIS IS, Name, call sign, taking water / flooding, immediate assistance, three persons, OVER.", keys: [{ label: "THIS IS", re: /THIS IS/ }, { label: "SEEADLER", re: /SEEADLER/ }, { label: "DA5005 oder call sign", re: /DA ?5005|CALL SIGN/ }, { label: "Wassereinbruch", re: /TAKING WATER|FLOOD|SINKING|WATER/ }, { label: "sofortige Hilfe", re: /IMMEDIATE ASSISTANCE|REQUIRE.*ASSISTANCE|HELP/ }, { label: "drei Personen", re: /THREE|3 PERSON/ }], prompt: "English translation" },
+    ];
+    const ubi: ExTask[] = [
+      { id: "u_dict", kind: "text", title: "Textaufnahme", src: "ABVT: praktische UBI-Prüfung, Teil Textaufnahme (amtliche Seite UKW-Sprechfunkzeugnisse / UBI).", card: "Die Prüfstelle sagt einen deutschen Funkspruch an (Namen werden buchstabiert). Höre zu und schreibe den Text mit den aufgelösten Namen.", hint: "Ansage starten, dann den Inhalt eintippen.", speakText: "HIER IST MOTORJACHT SEEADLER, SIERRA ECHO ECHO ALFA DELTA LIMA ECHO ROMEO, RUFZEICHEN DELTA ALFA FÜNF NULL NULL FÜNF, BEI RHEIN KILOMETER FÜNF FÜNF NULL, ORTSLAGE OBERWESEL, MANN ÜBER BORD, BITTE KOMMEN.", keys: [{ label: "SEEADLER", re: /SEEADLER/ }, { label: "DA5005 / Rufzeichen", re: /DA ?5005|DELTA ALFA/ }, { label: "Rhein-km 550", re: /550|FÜNF FÜNF NULL|KILOMETER/ }, { label: "Oberwesel", re: /OBERWESEL/ }, { label: "Mann über Bord", re: /MANN ÜBER BORD|ÜBER BORD|MOB/ }], prompt: "Aufgenommener Text" },
+      { id: "u_read", kind: "text", title: "Textabgabe", src: "ABVT: praktische UBI-Prüfung, Teil Textabgabe.", card: ident + " Lies den folgenden Spruch fehlerfrei über PTT (markierte Namen buchstabieren): „Revierzentrale Oberwesel, hier ist Motoryacht Seeadler, Rufzeichen DA5005, bei Rhein-Kilometer 550, ich möchte die Fahrwasserverhältnisse erfragen, bitte kommen.“", hint: "PTT halten oder den Text eintippen; SEEADLER und Oberwesel buchstabieren zählt.", keys: [{ label: "Revierzentrale / Oberwesel", re: /REVIERZENTRALE|OBERWESEL|OSCAR BRAVO/ }, { label: "HIER IST", re: /HIER IST/ }, { label: "SEEADLER (oder buchstabiert)", re: NAME }, { label: "Rufzeichen", re: CALL }, { label: "Rhein-km / Position", re: POS }, { label: "BITTE KOMMEN", re: KOMMEN }], prompt: "Abgegebener Text (Mikrofon oder tippen)", voice: { lang: "de-DE", checks: [{ label: "Revierzentrale oder Oberwesel", re: /REVIERZENTRALE|OBERWESEL/ }, { label: "HIER IST", re: /HIER IST/ }, { label: "SEEADLER", re: NAME }, { label: "Rufzeichen", re: CALL }, { label: "BITTE KOMMEN", re: KOMMEN }], replyWho: "Revierzentrale Oberwesel", reply: "SEEADLER, HIER IST OBERWESEL REVIERZENTRALE, gekommen. Die Strecke ist frei, Normalwasser. BITTE KOMMEN." } },
+      { id: "u_may", kind: "fall", title: "Fallbeispiel Notlage – Revierzentrale", src: "ABVT: Gerätebedienung mit Fallbeispielen (Notlage einordnen und Nachricht absetzen). DMYV: Anruf einer Funkstelle / Beantworten.", card: ident + " Mann über Bord am Rhein-km 550, Ortslage Oberwesel. Ordne die Lage als Notlage ein und setze den Notruf per Sprechfunk an die Revierzentrale ab (ATIS-Betrieb, kein DSC). Kanal 10 oder 16.", hint: "MAYDAY auf Deutsch, Kanal 10 oder 16, PTT. Gerät muss in ATIS sein.", device: [{ label: "ATIS-Betrieb", ok: (s: R2) => s.grp === "ATIS" }, { label: "Kanal 10 oder 16", ok: (s: R2) => s.ch === 10 || s.ch === 16 }], voice: { lang: "de-DE", checks: maydayDE, replyWho: "Revierzentrale Oberwesel", reply: "MAYDAY SEEADLER SEEADLER SEEADLER DA5005, HIER IST OBERWESEL REVIERZENTRALE, MAYDAY EMPFANGEN. Hilfe ist unterwegs. BITTE KOMMEN." } },
+      { id: "u_pan", kind: "fall", title: "Fallbeispiel Dringlichkeit", src: "ABVT: Fallbeispiel Dringlichkeit", card: ident + " Ruderanlage ausgefallen, ihr treibt bei Rhein-km 550, keine unmittelbare Personen-Gefahr, ihr braucht einen Schlepp. Dringlichkeitsmeldung an die Revierzentrale.", hint: "PAN PAN, Deutsch, Kanal 10 oder 16.", device: [{ label: "Kanal 10 oder 16", ok: (s: R2) => s.ch === 10 || s.ch === 16 }], voice: { lang: "de-DE", checks: [{ label: "PAN PAN 3x", re: /PAN ?PAN/g, min: 3 }, { label: "HIER IST", re: /HIER IST/ }, { label: "SEEADLER 3x", re: NAME, min: 3 }, { label: "Rufzeichen", re: CALL }, { label: "Sachverhalt", re: /RUDER|SCHLEPP|TREIB|STEUER/ }, { label: "BITTE KOMMEN", re: KOMMEN }], replyWho: "Revierzentrale Oberwesel", reply: "PAN PAN SEEADLER, HIER IST OBERWESEL REVIERZENTRALE, verstanden, ein Schlepp wird organisiert. BITTE KOMMEN." } },
+      { id: "u_sec", kind: "fall", title: "Fallbeispiel Sicherheit", src: "ABVT: Fallbeispiel Sicherheit", card: ident + " Ihr habt ein treibendes Hindernis bei Rhein-km 548 festgestellt (entwurzelter Baum). Sicherheitsmeldung.", hint: "SÉCURITÉ / SECURITE auf Deutsch.", device: [{ label: "sinnvoller Arbeits- oder Sicherheitskanal (10 oder 16)", ok: (s: R2) => s.ch === 10 || s.ch === 16 }], voice: { lang: "de-DE", checks: [{ label: "SECURITE 3x", re: /SECURIT|SÉCURITÉ|SICHERHEIT/g, min: 3 }, { label: "ALLE STATIONEN oder Revierzentrale", re: /ALLE FUNKSTELLEN|ALLE STATIONEN|REVIERZENTRALE/ }, { label: "HIER IST", re: /HIER IST/ }, { label: "SEEADLER", re: NAME }, { label: "Hindernis / Gefahr", re: /BAUM|HINDERNIS|TREIB|GEFAHR/ }], replyWho: "Revierzentrale Oberwesel", reply: "SEEADLER, HIER IST OBERWESEL REVIERZENTRALE, Sicherheitsmeldung empfangen, wir geben sie weiter. ENDE." } },
+      { id: "u_sl", kind: "fall", title: "Fallbeispiel Routine – Schleuse", src: "ABVT / DMYV: Routineanruf einer Funkstelle. Verkehrskreis Schleusen- und Hebewerkfunk oft Kanal 22, in dieser Übung Kanal 22 oder 10.", card: ident + " Ihr wollt die Schleuse Iffezheim auf Kanal 22 (oder 10) anrufen und die Schleusung anmelden.", hint: "Routineanruf, 1 W wenn vorgeschrieben, ATIS bleibt aktiv.", device: [{ label: "Kanal 22 oder 10", ok: (s: R2) => s.ch === 22 || s.ch === 10 }, { label: "ATIS-Betrieb", ok: (s: R2) => s.grp === "ATIS" }], voice: { lang: "de-DE", checks: [{ label: "Schleuse / Iffezheim", re: /SCHLEUSE|IFFEZHEIM/ }, { label: "HIER IST", re: /HIER IST/ }, { label: "SEEADLER", re: NAME }, { label: "Rufzeichen oder ATIS-Bezug", re: CALL }, { label: "BITTE KOMMEN", re: KOMMEN }], replyWho: "Schleuse Iffezheim", reply: "SEEADLER, HIER IST SCHLEUSE IFFEZHEIM, gekommen, Sie können einfahren, Kammer ist frei. BITTE KOMMEN." } },
+    ];
+    return [...lang, ...srcA, ...srcB, ...sonst, ...ubi];
+  };
+
+  const curExam = (): ExTask | undefined => EXAM_TASKS().find((x: ExTask) => x.id === examIds[examI]);
+
+  const applyExamSetup = (task: ExTask) => {
+    const base: R2 = { ...R20, grp: isUBI ? "ATIS" : "INT", ch: isUBI ? 10 : 16, hi: !isUBI, on: true, flap: false, scr: "main", tx: false, key: "" };
+    const n = task.setup ? task.setup(base) : base;
+    setR2(n);
+    setSaid("");
+    setDictIn("");
+    setFb([]);
+    setExamT0(Date.now());
+    if (task.lang) setMicLang(task.lang);
+    else if (task.voice) setMicLang(task.voice.lang);
+  };
+
+  const startExam = () => {
+    const shuffleA = <T,>(a: T[]): T[] => {
+      const b = a.slice();
+      for (let i = b.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = b[i]; b[i] = b[j]; b[j] = tmp;
+      }
+      return b;
+    };
+    let ids: string[] = [];
+    if (isUBI) {
+      const falls = shuffleA(["u_may", "u_pan", "u_sec", "u_sl"]).slice(0, 3);
+      ids = ["u_dict", "u_read", ...falls];
+    } else {
+      const series = Math.random() < 0.5 ? "A" : "B";
+      const pf = EXAM_TASKS().filter((x: ExTask) => x.kind === "pflicht" && x.series === series).map((x: ExTask) => x.id);
+      const so = shuffleA(EXAM_TASKS().filter((x: ExTask) => x.kind === "sonstige").map((x: ExTask) => x.id)).slice(0, 3);
+      ids = ["lang1", "lang2", ...pf, ...so];
+    }
+    setExamIds(ids);
+    setExamI(0);
+    setExamTry(1);
+    setExamRes([]);
+    setExamPhase("task");
+    const first = EXAM_TASKS().find((x: ExTask) => x.id === ids[0]);
+    if (first) applyExamSetup(first);
+  };
+
+  const gradeExam = (textIn: string, fromButton: boolean) => {
+    if (examPhase !== "task") return;
+    const task = curExam();
+    if (!task) return;
+    if (!fromButton && task.kind === "lang") return;
+    const tsec = (Date.now() - examT0) / 1000;
+    const raw = (textIn || dictIn || said || "").toUpperCase().replace(/[.,;!?]/g, " ").replace(/\s+/g, " ").trim();
+    const notes: string[] = [];
+    let ok = true;
+    if (task.device) {
+      task.device.forEach((d: ExDev) => {
+        const pass = d.ok(r2);
+        notes.push((pass ? "Gerät ✓ " : "Gerät ✗ ") + d.label);
+        if (!pass) ok = false;
+      });
+    }
+    const checks = task.voice ? task.voice.checks : (task.keys || []).map((k: { label: string; re: RegExp }) => ({ label: k.label, re: k.re }));
+    if (checks && checks.length) {
+      if (!raw && (task.voice || task.keys) && !fromButton) return;
+      checks.forEach((c: Chk) => {
+        const m = raw.match(new RegExp(c.re.source, "g"));
+        const pass = (m ? m.length : 0) >= (c.min || 1);
+        notes.push((pass ? "Spruch ✓ " : "Spruch ✗ ") + c.label);
+        if (!pass) ok = false;
+      });
+    }
+    if (tsec > 180) notes.push("Zeit " + Math.round(tsec) + " s – über 3 Minuten (nur Hinweis; ein festes amtliches Zeitlimit für den einzelnen Griff ist nicht belegt).");
+    else notes.push("Zeit " + Math.round(tsec) + " s.");
+    if (!ok && examTry < 2) {
+      setExamTry(2);
+      setFb(notes.map((n: string) => ({ ok: n.indexOf("✓") >= 0, label: n })));
+      return;
+    }
+    const row = { id: task.id, pass: ok, tryN: examTry, notes, tsec };
+    const all = [...examRes, row];
+    setExamRes(all);
+    setFb(notes.map((n: string) => ({ ok: n.indexOf("✓") >= 0, label: n })));
+    if (ok && task.voice && task.voice.reply) {
+      setLog((lg: { who: string; text: string }[]) => [...lg, { who: "Du", text: raw }, { who: task.voice!.replyWho || "Gegenstelle", text: task.voice!.reply || "" }]);
+      window.setTimeout(() => speakRadio(task.voice!.reply || "", task.voice!.lang), 400);
+    }
+    setExamPhase("debrief");
+  };
+
+  const nextExam = () => {
+    const nx = examI + 1;
+    if (nx >= examIds.length) { setExamPhase("done"); return; }
+    setExamI(nx);
+    setExamTry(1);
+    setExamPhase("task");
+    setLog([]);
+    const task = EXAM_TASKS().find((x: ExTask) => x.id === examIds[nx]);
+    if (task) applyExamSetup(task);
+  };
+
+  const examPass = (): { ok: boolean; detail: string } => {
+    const by = (id: string) => examRes.find((r) => r.id === id);
+    if (isUBI) {
+      const texts = examIds.filter((id: string) => id === "u_dict" || id === "u_read");
+      const falls = examIds.filter((id: string) => id.indexOf("u_") === 0 && id !== "u_dict" && id !== "u_read");
+      const tOk = texts.every((id: string) => by(id) && by(id)!.pass);
+      const fOk = falls.every((id: string) => by(id) && by(id)!.pass);
+      const ok = tOk && fOk;
+      return { ok, detail: ok ? "Bestanden (Übung, Bewertungsschema angenommen: Textteile und alle Fallbeispiele mindestens ausreichend, zwei Versuche)." : "Nicht bestanden (Übung): ein Textteil oder ein Fallbeispiel war auch im zweiten Versuch nicht ausreichend. Amtliches Punkteschema wie Anlage 3 für UBI wurde nicht gefunden – angenommen." };
+    }
+    const lang = examIds.filter((id: string) => id.indexOf("lang") === 0);
+    const pf = examIds.filter((id: string) => id.indexOf("sa") === 0 || id.indexOf("sb") === 0);
+    const so = examIds.filter((id: string) => id.indexOf("so_") === 0);
+    const pfOk = pf.every((id: string) => by(id) && by(id)!.pass);
+    const soPass = so.filter((id: string) => by(id) && by(id)!.pass).length;
+    const langOk = lang.filter((id: string) => by(id) && by(id)!.pass).length;
+    const ok = pfOk && soPass >= 2;
+    return { ok, detail: (ok ? "Praktischer Teil bestanden: alle Pflichtaufgaben ausreichend, " + soPass + " von " + so.length + " sonstigen Fertigkeiten ausreichend (Anlage 3: von höchstens 3 sonstigen müssen mindestens 2 ausreichend sein)." : "Praktischer Teil nicht bestanden: " + (pfOk ? soPass + " von " + so.length + " sonstigen ausreichend (mindestens 2 nötig)." : "mindestens eine Pflichtaufgabe auch im zweiten Versuch nicht ausreichend.")) + " Sprachteil (Theorie, zur Übung): " + langOk + " von " + lang.length + " Aufgaben – zählt amtlich nicht zum praktischen Teil." };
+  };
+
+  const examScreen2 = (): ReactNode => {
+    if (examPhase === "intro" || examIds.length === 0) {
+      return (
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          {card(
+            <>
+              <span style={txt("body1", t.text.primary, t.weight.semibold)}>Praxisprüfung {certC} – Übungssimulation</span>
+              {isUBI ? (
+                <>
+                  <span style={txt("body2", t.text.primary)}>Laut der Amtsseite der ABVT (WSV) umfasst die praktische UBI-Prüfung drei Teile: Textaufnahme, Textabgabe und Gerätebedienung mit Fallbeispielen (Lage als Not, Dringlichkeit, Sicherheit oder Routine einordnen und die Nachricht am Gerät absetzen). Der DMYV beschreibt zusätzlich typische Aufgaben wie den Anruf einer oder aller Funkstellen und das Beantworten von Anrufen.</span>
+                  <span style={txt("label", t.text.warning)}>Bewertung: Ein Anlage-3-ähnliches amtliches Punkteraster für UBI wurde nicht gefunden. In dieser Übung gelten Textteile und alle Fallbeispiele (2–3, zufällig) mit je zwei Versuchen als bestanden, wenn Gerät und Spruchstruktur stimmen – angenommen, kenntlich gemacht.</span>
+                </>
+              ) : (
+                <>
+                  <span style={txt("body2", t.text.primary)}>Praktischer Teil nach den Durchführungsrichtlinien Funkbetriebszeugnisse, Anlage 3 (Fachstelle der WSV für den Seefunk, Koblenz, 04.03.2021; Protokollersatz 02.08.2018, WS23/62332.3/3), Quelle ELWIS: entweder Pflichtreihe 1.a–4.a oder 1.b–4.b, alle mindestens „ausreichend“, sonst zwei Versuche, sonst ist der praktische Teil nicht bestanden. Dazu höchstens drei sonstige Fertigkeiten, von denen mindestens zwei ausreichend sein müssen. Prüfungssprache: englischer GMDSS-Seefunk an zwei DSC-UKW-Geräten.</span>
+                  <span style={txt("body2", t.text.primary)}>Zusätzlich ein kurzer theoretischer Sprachteil zur Übung (Diktat/Übersetzung). Amtlich gehört dieser Teil zur Theorieprüfung (§ 5.2, Anlage 1 / Anlage 7), nicht zur Praxis nach Anlage 3 – in der Auswertung getrennt ausgewiesen. Die Übungstexte sind selbst formuliert, keine amtlichen Seefunktexte aus Anlage 7.</span>
+                </>
+              )}
+              <span style={txt("label", t.text.secondary)}>Du arbeitest am virtuellen IC-M423. PTT hält das Mikrofon (oder Bausteine/Tippfeld, falls die Erkennung fehlt). Die Gegenstelle antwortet per Sprache.</span>
+              <div style={rowWrap}><Button label="Prüfungsfahrt starten" variant="primary" onClick={startExam} /></div>
+            </>,
+            { padding: 14, gap: 8 },
+          )}
+        </div>
+      );
+    }
+    if (examPhase === "done") {
+      const r = examPass();
+      return (
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          {card(
+            <>
+              <Status tone={r.ok ? "success" : "danger"}>{r.ok ? "Bestanden" : "Nicht bestanden"}</Status>
+              <span style={txt("body2", t.text.primary)}>{r.detail}</span>
+              {examRes.map((row) => {
+                const tsk = EXAM_TASKS().find((x: ExTask) => x.id === row.id);
+                return (
+                  <div key={row.id} style={{ borderLeft: "4px solid " + (row.pass ? t.text.success : t.text.danger), paddingLeft: 8, display: "flex", flexDirection: "column", gap: 2 }}>
+                    <span style={txt("body2", t.text.primary, t.weight.semibold)}>{(row.pass ? "✓ " : "✗ ") + (tsk ? tsk.title : row.id) + " · Versuch " + row.tryN}</span>
+                    {row.notes.map((n: string, i: number) => <span key={i} style={txt("label", t.text.secondary)}>{n}</span>)}
+                  </div>
+                );
+              })}
+              <div style={rowWrap}><Button label="Neue Prüfungsfahrt" variant="primary" onClick={() => { setExamPhase("intro"); setExamIds([]); }} /></div>
+            </>,
+            { padding: 14, gap: 8 },
+          )}
+        </div>
+      );
+    }
+    const task = curExam();
+    if (!task) return null;
+    const idx = examI + 1;
+    return (
+      <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ flex: "0 1 30%", maxHeight: "34%", minHeight: 0, overflowY: "auto" }}>
+          {card(
+            <>
+              <span style={txt("label", t.text.secondary)}>{"Aufgabe " + idx + " / " + examIds.length + " · Versuch " + examTry + " von 2 · " + task.src}</span>
+              <span style={txt("body1", t.text.primary, t.weight.semibold)}>{task.title}</span>
+              <span style={txt("body2", t.text.primary)}>{task.card}</span>
+              <span style={txt("label", t.text.tertiary)}>{task.hint}</span>
+              {task.speakText ? <Button label="Ansage abspielen" onClick={() => speakRadio(task.speakText || "", task.id === "u_dict" ? "de-DE" : "en-GB")} /> : null}
+              {task.prompt ? <Input label={task.prompt} value={task.kind === "lang" || task.kind === "text" ? dictIn : said} onChange={(v: string) => { if (task.kind === "lang" || (task.kind === "text" && task.id === "u_dict")) setDictIn(v); else setSaid(v); }} /> : (task.voice ? <Input label="Gesendeter Text (PTT oder tippen)" value={said} onChange={(v: string) => setSaid(v)} /> : null)}
+              {micMsg ? <span style={txt("label", t.text.warning)}>{micMsg}</span> : null}
+              {examPhase === "task" ? <div style={rowWrap}><Button label={examTry === 1 ? "Aufgabe prüfen" : "Zweiten Versuch prüfen"} variant="primary" onClick={() => gradeExam(task.kind === "lang" || task.id === "u_dict" ? dictIn : said, true)} /></div> : null}
+              {examPhase === "debrief" && fb.length > 0 ? (
+                <>
+                  <Status tone={examRes.length && examRes[examRes.length - 1].id === task.id && examRes[examRes.length - 1].pass ? "success" : "warning"}>{examRes.length && examRes[examRes.length - 1].pass ? "Ausreichend" : "Nicht ausreichend"}</Status>
+                  {fb.map((r: { ok: boolean; label: string }, i: number) => <span key={i} style={txt("body2", r.ok ? t.text.success : t.text.danger)}>{r.label}</span>)}
+                  <Button label={examI + 1 >= examIds.length ? "Gesamtergebnis" : "Nächste Aufgabe"} variant="primary" onClick={nextExam} />
+                </>
+              ) : (examTry === 2 && examPhase === "task" && fb.length > 0 ? fb.map((r: { ok: boolean; label: string }, i: number) => <span key={i} style={txt("body2", r.ok ? t.text.success : t.text.danger)}>{r.label + " – bitte korrigieren"}</span>) : null)}
+            </>,
+            { padding: 10, gap: 5 },
+          )}
+        </div>
+        {radioRig({ compact: true })}
       </div>
     );
   };
@@ -4435,7 +5159,7 @@ export default function App() {
     { id: "erklaeren", title: "Erklären", sub: "Kurs mit aufbauenden Lektionen", color: accent },
     { id: "fragen", title: "Prüfungsfragen", sub: "Katalog üben mit Fortschritt", color: accent2 },
     { id: "pruefung", title: "Prüfung", sub: "Amtliche Bögen 1–12 mit Zeit", color: accent3 },
-    { id: "funkgeraet", title: "Funkgerät", sub: "IC-M423, Bedienung üben, Funk-Simulator", color: accent },
+    { id: "funkgeraet", title: "Funkgerät", sub: "Virtuelles IC-M423, Funkverkehr, Praxisprüfung", color: accent },
     { id: "werkzeuge", title: "Nachschlagen & Werkzeuge", sub: "Buchstabier-Trainer, Kanäle, MMSI, Quellen", color: accent2 },
   ];
   const ERK: Tile[] = [
@@ -4478,10 +5202,10 @@ export default function App() {
     }
     if (a === "fragen") return id === "alle" ? "Alle Kapitel" : shortLabel((CHAPTERS.find((c: Chapter) => c.key === id) || { label: id }).label);
     if (a === "funkgeraet") {
-      if (lvl === 1) return id === "panel" ? "Gerät erkunden" : id === "ablauf" ? "Bedienung üben" : "Funk-Simulator";
-      if (lvl === 1 && id === "menue") return "Menüstruktur";
+      if (lvl === 1) return id === "frei" || id === "panel" ? "Gerät frei bedienen" : id === "ablauf" ? "Bedienung üben" : id === "sim" ? "Funkverkehr üben" : id === "exam" ? "Praxisprüfung" : id === "menue" ? "Menüstruktur" : id;
       if (path[1] === "ablauf") return (PROCS2().find((x: { id: string }) => x.id === id) || { title: id }).title;
-      return (SCNS().find((x: Scn) => x.id === id) || { title: id }).title;
+      if (path[1] === "sim") return (SCNS().find((x: Scn) => x.id === id) || { title: id }).title;
+      return id;
     }
     if (a === "pruefung") return id === "zufall" ? "Zufallsbogen" : id === "quote" ? "Teil-Verteilung" : "Bogen " + id;
     return id;
@@ -4687,16 +5411,21 @@ export default function App() {
       title = "Funkgerät IC-M423";
       sub = isUBI ? "Binnen: ATIS-Betrieb, Sprechfunk auf Deutsch" : "See: DSC und Sprechfunk, Prüfungssprache Englisch";
       body = fgHome();
-    } else if (path[1] === "panel") {
-      title = "Gerät erkunden";
+    } else if (path[1] === "frei" || path[1] === "panel") {
+      title = "Gerät frei bedienen";
+      sub = "Tasten, langer Druck, Regler drehen, Klappe, PTT mit Mikrofon";
       body = panelScreen2();
     } else if (path[1] === "menue") {
       title = "Menüstruktur IC-M423";
       sub = "Nach Bedienungsanleitung S. 64–71";
       body = menuRef();
+    } else if (path[1] === "exam") {
+      title = "Praxisprüfung " + certC;
+      sub = isUBI ? "Laut ABVT: Textaufnahme, Textabgabe, Gerätebedienung mit Fallbeispielen" : "Praktischer Teil nach ELWIS Anlage 3; Sprachteil zur Übung (theoretische Prüfung)";
+      body = examScreen2();
     } else if (path.length === 2) {
-      title = path[1] === "ablauf" ? "Bedienung üben" : "Funk-Simulator";
-      sub = path[1] === "ablauf" ? "Die richtige Taste im Schema drücken, um weiterzukommen" : (SR ? "Mikrofon: PTT halten und sprechen" : "Ohne Spracherkennung: Bausteine antippen oder tippen") + (hasTTS ? " · Gegenstelle spricht" : " · Antwort als Text");
+      title = path[1] === "ablauf" ? "Bedienung üben" : "Funkverkehr üben";
+      sub = path[1] === "ablauf" ? "Die richtige Taste am Gerät drücken, um weiterzukommen" : (SR ? "PTT am Mikrofon halten und sprechen" : "Ohne Spracherkennung: Bausteine oder tippen") + (hasTTS ? " · Gegenstelle spricht" : " · Antwort als Text");
       body = path[1] === "ablauf" ? tileGrid(PROCS2().map((p: { id: string; title: string; steps: P2[] }) => ({ id: p.id, title: p.title, sub: p.steps.length + " Schritte" })), 6, 240, open) : tileGrid(SCNS().map((x: Scn) => ({ id: x.id, title: x.title, sub: x.ch })), 6, 240, open);
     } else if (path[1] === "ablauf") {
       title = labelOf(2, path[2]);
@@ -4705,7 +5434,7 @@ export default function App() {
       const s = curScn();
       title = s ? s.title : "Szenario";
       sub = "Gegenstelle mit Sprachausgabe";
-      body = s ? simScreen(s) : null;
+      body = s ? simScreen2(s) : null;
       if (s) sub = hasTTS ? "Ton: " + (speakOn ? "an" : "aus") : "Sprachausgabe nicht verfügbar – Antwort als Text";
     }
   } else if (a0 === "pruefung") {
@@ -4722,11 +5451,11 @@ export default function App() {
   const crumbs = [certC, ...path.map((id: string, i: number) => labelOf(i, id))];
 
   if (!chosen) {
-    return <div style={{ height: "min(760px, max(560px, 100dvh))", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base }}>{chooser()}</div>;
+    return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base }}>{chooser()}</div>;
   }
 
   return (
-    <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 1100, margin: "0 auto", height: "min(760px, max(560px, 100dvh))", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
+    <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 1100, margin: "0 auto", height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
       <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
         <button
           type="button"
