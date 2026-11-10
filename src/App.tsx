@@ -486,6 +486,84 @@ function spellCall(cs: string): string {
     .join(" ");
 }
 
+/* helpers only — inserted after spellCall() */
+const LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const SPELL_WORDS = ["SEEADLER", "ALBATROS", "BREMEN", "RESCUE", "FEHMARN", "YACHT", "MOEWE", "MAYDAY", "SIERRA"];
+const SPELL_CALLS = ["DABC2", "DA5005", "DB1234", "DH2084", "DF4421", "211123450", "002111240", "269012345"];
+const WORD_ALT: Record<string, string[]> = { A: ["ALFA", "ALPHA"], J: ["JULIETT", "JULIET"], X: ["XRAY", "X-RAY"] };
+const FIG_ALT: Record<string, string[]> = {
+  "0": ["ZERO", "NADAZERO"],
+  "1": ["ONE", "UNAONE"],
+  "2": ["TWO", "BISSOTWO"],
+  "3": ["THREE", "TREE", "TERRATHREE"],
+  "4": ["FOUR", "FOWER", "KARTEFOUR"],
+  "5": ["FIVE", "FIFE", "PANTAFIVE"],
+  "6": ["SIX", "SOXISIX"],
+  "7": ["SEVEN", "SETTESEVEN"],
+  "8": ["EIGHT", "OKTOEIGHT"],
+  "9": ["NINE", "NINER", "NOVENINE"],
+};
+const SPELL_KEY = "funkschein-spell-v1";
+type SpRec = { ok: number; bad: number };
+type SpSave = { rec: Record<string, SpRec>; streak: number; best: number | null };
+const SP0: SpSave = { rec: {}, streak: 0, best: null };
+type SpMode = "home" | "letter" | "code" | "phrase" | "listen" | "speak" | "weak";
+
+function officialWord(ch: string): string {
+  if (NATO[ch]) return NATO[ch];
+  if (ch >= "0" && ch <= "9") return DIGIT_EN[Number(ch)];
+  return ch;
+}
+function altsOf(ch: string): string[] {
+  if (NATO[ch]) return WORD_ALT[ch] || [NATO[ch].toUpperCase()];
+  if (ch >= "0" && ch <= "9") return FIG_ALT[ch];
+  return [ch];
+}
+function normTok(s: string): string {
+  return s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+}
+function tokList(s: string): string[] {
+  return s.toUpperCase().replace(/[.,;:!?]/g, " ").split(/\s+/).filter((x: string) => x.length > 0);
+}
+function tokOk(tok: string, ch: string): boolean {
+  const n = normTok(tok);
+  return n === ch || altsOf(ch).some((a: string) => normTok(a) === n);
+}
+function seqOk(input: string, target: string): boolean {
+  const t = target.replace(/\s/g, "").toUpperCase();
+  if (normTok(input) === t) return true;
+  const toks = tokList(input);
+  if (toks.length !== t.length) return false;
+  return t.split("").every((ch: string, i: number) => tokOk(toks[i], ch));
+}
+function pickWeighted(pool: string[], rec: Record<string, SpRec>): string {
+  const w = pool.map((ch: string) => {
+    const r = rec[ch] || { ok: 0, bad: 0 };
+    const n = r.ok + r.bad;
+    const err = n === 0 ? 0.35 : r.bad / n;
+    return 0.25 + err * 3 + (r.bad > r.ok ? 1.2 : 0);
+  });
+  let x = Math.random() * w.reduce((a: number, b: number) => a + b, 0);
+  for (let i = 0; i < pool.length; i++) {
+    x -= w[i];
+    if (x <= 0) return pool[i];
+  }
+  return pool[pool.length - 1];
+}
+function pickChoices(correct: string, pool: string[], n: number): string[] {
+  return shuffle([correct, ...shuffle(pool.filter((x: string) => x !== correct)).slice(0, n - 1)]);
+}
+function spellPrompt(mode: SpMode, rec: Record<string, SpRec>): string {
+  if (mode === "letter" || mode === "code") return pickWeighted(LETTERS, rec);
+  const mix = Math.random();
+  if (mix < 0.35) return SPELL_WORDS[Math.floor(Math.random() * SPELL_WORDS.length)];
+  if (mix < 0.7) return SPELL_CALLS[Math.floor(Math.random() * SPELL_CALLS.length)];
+  let s = "";
+  const len = 4 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < len; i++) s += pickWeighted(LETTERS.concat("0123456789".split("")), rec);
+  return s;
+}
+
 /* ---------- ATIS & MMSI ---------- */
 interface AtisResult {
   code: string;
@@ -1197,6 +1275,169 @@ export default function App() {
       setStored(false);
     }
   }, [prog, loaded, stored]);
+
+  /* ---------- Buchstabier-Trainer ---------- */
+  const [spSave, setSpSave] = useState<SpSave>(SP0);
+  const [spReady, setSpReady] = useState<boolean>(false);
+  const [spMode, setSpMode] = useState<SpMode>("home");
+  const [spI, setSpI] = useState<number>(0);
+  const [spScore, setSpScore] = useState<number>(0);
+  const [spTimer, setSpTimer] = useState<boolean>(false);
+  const [spT0, setSpT0] = useState<number>(0);
+  const [spNow, setSpNow] = useState<number>(0);
+  const [spPrompt, setSpPrompt] = useState<string>("");
+  const [spChoices, setSpChoices] = useState<string[]>([]);
+  const [spIn, setSpIn] = useState<string>("");
+  const [spFb, setSpFb] = useState<"" | "ok" | "bad">("");
+  const [spMsg, setSpMsg] = useState<string>("");
+  const [spRecOn, setSpRecOn] = useState<boolean>(false);
+  const [spRecObj, setSpRecObj] = useState<any>(null);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(SPELL_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as SpSave;
+        if (d && d.rec) setSpSave({ rec: d.rec || {}, streak: d.streak || 0, best: d.best ?? null });
+      }
+    } catch (_e) {
+      /* bleibt SP0 */
+    }
+    setSpReady(true);
+  }, []);
+  useEffect(() => {
+    if (!spReady) return;
+    try {
+      window.localStorage.setItem(SPELL_KEY, JSON.stringify(spSave));
+    } catch (_e) {
+      /* Speicher voll */
+    }
+  }, [spSave, spReady]);
+  useEffect(() => {
+    if (spMode === "home" || spMode === "weak" || spI >= 10 || !spTimer) return;
+    const id = setInterval(() => setSpNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, [spMode, spI, spTimer]);
+
+  const spHasTTS = typeof window !== "undefined" && !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === "function";
+  const SRCtor: any = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
+
+  const markLetters = (target: string, ok: boolean) => {
+    setSpSave((prev: SpSave) => {
+      const rec: Record<string, SpRec> = { ...prev.rec };
+      for (const ch of target.toUpperCase().split("")) {
+        if (!NATO[ch] && !(ch >= "0" && ch <= "9")) continue;
+        const cur = rec[ch] || { ok: 0, bad: 0 };
+        rec[ch] = ok ? { ok: cur.ok + 1, bad: cur.bad } : { ok: cur.ok, bad: cur.bad + 1 };
+      }
+      return { ...prev, rec };
+    });
+  };
+  const speakSeq = (seq: string) => {
+    if (!spHasTTS) {
+      setSpMsg("Sprachausgabe ist in diesem Browser nicht verfügbar.");
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const words = seq.split("").map((ch: string) => officialWord(ch)).join(", ");
+      const u = new window.SpeechSynthesisUtterance(words);
+      u.lang = "en-GB";
+      u.rate = 0.85;
+      window.speechSynthesis.speak(u);
+      setSpMsg("");
+    } catch (_e) {
+      setSpMsg("Sprachausgabe konnte nicht gestartet werden.");
+    }
+  };
+  const nextItem = (mode: SpMode, rec: Record<string, SpRec>) => {
+    const p = spellPrompt(mode, rec);
+    setSpPrompt(p);
+    setSpIn("");
+    setSpFb("");
+    setSpMsg("");
+    if (mode === "letter") setSpChoices(pickChoices(officialWord(p), LETTERS.map((c: string) => officialWord(c)), 4));
+    else if (mode === "code") setSpChoices(pickChoices(p, LETTERS, 4));
+    else setSpChoices([]);
+    if (mode === "listen") setTimeout(() => speakSeq(p), 250);
+  };
+  const startRound = (mode: SpMode) => {
+    setSpMode(mode);
+    setSpI(0);
+    setSpScore(0);
+    setSpT0(Date.now());
+    setSpNow(Date.now());
+    nextItem(mode, spSave.rec);
+  };
+  const finishRound = (score: number) => {
+    const sec = Math.max(1, Math.round((Date.now() - spT0) / 1000));
+    setSpSave((prev: SpSave) => ({
+      rec: prev.rec,
+      streak: score === 10 ? prev.streak + 1 : 0,
+      best: spTimer && score === 10 && (prev.best === null || sec < prev.best) ? sec : prev.best,
+    }));
+  };
+  const submit = (raw?: string) => {
+    if (spFb !== "" || spI >= 10) return;
+    const ans = (raw !== undefined ? raw : spIn).trim();
+    if (!ans) return;
+    let ok = false;
+    if (spMode === "letter") ok = tokOk(ans, spPrompt);
+    else if (spMode === "code") ok = ans.toUpperCase() === spPrompt;
+    else ok = seqOk(ans, spPrompt);
+    setSpFb(ok ? "ok" : "bad");
+    markLetters(spPrompt, ok);
+    const ns = spScore + (ok ? 1 : 0);
+    setSpScore(ns);
+    if (spI + 1 >= 10) finishRound(ns);
+  };
+  const goNext = () => {
+    if (spI + 1 >= 10) {
+      setSpI(10);
+      return;
+    }
+    setSpI(spI + 1);
+    nextItem(spMode, spSave.rec);
+  };
+  const pttStart = () => {
+    if (!SRCtor) {
+      setSpMsg("Spracherkennung ist nicht verfügbar. Tippe die Codewörter oder nutze die Tastatur darunter.");
+      return;
+    }
+    try {
+      const r = new SRCtor();
+      r.lang = "en-GB";
+      r.continuous = true;
+      r.interimResults = true;
+      r.onresult = (e: any) => {
+        let all = "";
+        for (let i = 0; i < e.results.length; i++) all += e.results[i][0].transcript + " ";
+        setSpIn(all.trim());
+      };
+      r.onerror = (e: any) => {
+        setSpRecOn(false);
+        setSpMsg(e && (e.error === "not-allowed" || e.error === "service-not-allowed") ? "Mikrofon blockiert. Tippe die Codewörter." : "Spracherkennung fehlgeschlagen. Tippe die Codewörter.");
+      };
+      r.onend = () => setSpRecOn(false);
+      r.start();
+      setSpRecObj(r);
+      setSpRecOn(true);
+      setSpMsg("");
+    } catch (_e) {
+      setSpMsg("Mikrofon konnte nicht gestartet werden. Tippe die Codewörter.");
+    }
+  };
+  const pttStop = () => {
+    if (spRecObj) {
+      try {
+        spRecObj.stop();
+      } catch (_e) {
+        /* schon gestoppt */
+      }
+    }
+    setSpRecObj(null);
+    setSpRecOn(false);
+  };
   const [funkTab, setFunkTab] = useState<string>("mayday");
   const [wissenTab, setWissenTab] = useState<string>("ablauf");
   const [icomStep, setIcomStep] = useState<number>(-1);
@@ -1709,7 +1950,172 @@ export default function App() {
     return pager(pages);
   };
 
-  const stepPages = (steps: Steps, per: number): ReactNode[] =>
+  const addWord = (w: string) => setSpIn((prev: string) => (prev ? prev + " " + w : w));
+  const weakList = (): { ch: string; ok: number; bad: number; rate: number }[] =>
+    LETTERS.concat("0123456789".split(""))
+      .map((ch: string) => {
+        const r = spSave.rec[ch] || { ok: 0, bad: 0 };
+        const n = r.ok + r.bad;
+        return { ch, ok: r.ok, bad: r.bad, rate: n === 0 ? -1 : r.bad / n };
+      })
+      .filter((x: { bad: number; rate: number }) => x.bad > 0 || x.rate > 0)
+      .sort((a: { rate: number; bad: number }, b: { rate: number; bad: number }) => b.rate - a.rate || b.bad - a.bad);
+
+  const spellPad = (): ReactNode => (
+    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+      {LETTERS.map((c: string) => chip("sp-" + c, c, false, () => addWord(officialWord(c))))}
+      {"0123456789".split("").map((c: string) => chip("spd-" + c, c, false, () => addWord(officialWord(c))))}
+      {chip("spx", "⌫ leeren", false, () => setSpIn(""))}
+    </div>
+  );
+
+  const spellScreen = (): ReactNode => {
+    const done = spMode !== "home" && spMode !== "weak" && spI >= 10;
+    const sec = Math.max(0, Math.round(((spTimer ? spNow : Date.now()) - spT0) / 1000));
+    const modes: { id: SpMode; title: string; sub: string }[] = [
+      { id: "letter", title: "Buchstabe → Codewort", sub: "A wird zu Alfa – tippen oder aus 4 wählen" },
+      { id: "code", title: "Codewort → Buchstabe", sub: "Alfa wird zu A" },
+      { id: "phrase", title: "Wort / Rufzeichen", sub: "Namen, Rufzeichen, MMSI ziffernweise" },
+      { id: "listen", title: "Hören", sub: "Vorgesprochen (en-GB), Buchstaben eintippen" },
+      { id: "speak", title: "Sprechen", sub: "Per Mikrofon buchstabieren (en-GB)" },
+    ];
+    if (spMode === "home") {
+      return (
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
+            <span style={txt("label", t.text.secondary)}>{"Serie " + spSave.streak + (spSave.best !== null ? " · Bestzeit 10/10: " + spSave.best + " s" : "")}</span>
+            <Toggle label="Zeit messen" value={spTimer} onChange={setSpTimer} />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {modes.map((m: { id: SpMode; title: string; sub: string }, i: number) => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => startRound(m.id)}
+                style={{ textAlign: "left", cursor: "pointer", background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderLeft: "5px solid " + [accent, accent2, accent3][i % 3], borderRadius: t.radius.xl, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 2, fontFamily: fam }}
+              >
+                <span style={txt("body1", t.text.primary, t.weight.semibold)}>{m.title}</span>
+                <span style={txt("label", t.text.secondary)}>{m.sub}</span>
+              </button>
+            ))}
+          </div>
+          <div style={rowWrap}>
+            <Button label="Schwache Buchstaben" onClick={() => setSpMode("weak")} />
+            <Button label="Buchstabiertafel" variant="quiet" onClick={() => enter(["erklaeren", "ref", "nato"])} />
+          </div>
+          <span style={txt("label", t.text.tertiary)}>Offizielle Schreibweise nach ITU VO Funk, Anhang 14: Alfa, Juliett. Anerkannt werden auch Alpha und Juliet. Ziffern übst du mit Zero…Nine (auch Tree, Fower, Fife, Niner). Die ITU-Ziffernwörter Nadazero…Novenine gelten ebenfalls und stehen unter der Tafel.</span>
+        </div>
+      );
+    }
+    if (spMode === "weak") {
+      const weak = weakList();
+      return (
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          {weak.length === 0 ? <span style={txt("body2", t.text.secondary)}>Noch keine Fehler gespeichert. Nach ein paar Runden erscheinen hier die unsicheren Zeichen.</span> : weak.map((x: { ch: string; ok: number; bad: number; rate: number }) => (
+            <div key={x.ch} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                <span style={txt("body2", t.text.primary, t.weight.semibold)}>{x.ch + " · " + officialWord(x.ch)}</span>
+                <span style={txt("label", t.text.secondary)}>{x.bad + " falsch / " + (x.ok + x.bad)}</span>
+              </div>
+              {bar(x.bad, Math.max(1, x.ok + x.bad), t.text.danger)}
+            </div>
+          ))}
+          <div style={rowWrap}>
+            <Button label="Schwache üben" variant="primary" onClick={() => startRound("letter")} disabled={weak.length === 0} />
+            <Button label="Zurück" onClick={() => setSpMode("home")} />
+            {Object.keys(spSave.rec).length > 0 ? <Button label="Statistik löschen" variant="quiet" onClick={() => setSpSave(SP0)} /> : null}
+          </div>
+        </div>
+      );
+    }
+    if (done) {
+      return (
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+          {card(
+            <>
+              <span style={txt("heading3", t.text.primary, t.weight.semibold)}>{spScore + " von 10 richtig"}</span>
+              {spTimer ? <span style={txt("body2", t.text.secondary)}>{"Zeit: " + sec + " s"}</span> : null}
+              <span style={txt("body2", t.text.secondary)}>{spScore === 10 ? "Saubere Runde. Serie: " + (spSave.streak) : "Schau unter „Schwache Buchstaben“, was noch unsicher ist."}</span>
+              <div style={rowWrap}>
+                <Button label="Noch eine Runde" variant="primary" onClick={() => startRound(spMode)} />
+                <Button label="Schwache Buchstaben" onClick={() => setSpMode("weak")} />
+                <Button label="Zum Menü" onClick={() => setSpMode("home")} />
+              </div>
+            </>,
+            { padding: 16, gap: 8 },
+          )}
+        </div>
+      );
+    }
+    const expect = spMode === "letter" ? officialWord(spPrompt) : spMode === "code" ? spPrompt : spPrompt.split("").map((c: string) => officialWord(c)).join(" ");
+    return (
+      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, ...txt("label", t.text.secondary) }}>
+            <span>{"Frage " + (spI + 1) + " / 10 · " + spScore + " richtig"}</span>
+            {spTimer ? <span>{sec + " s"}</span> : null}
+          </div>
+          {bar(spI + (spFb !== "" ? 1 : 0), 10)}
+        </div>
+        {card(
+          <>
+            <span style={txt("label", t.text.tertiary)}>{spMode === "letter" ? "Wie heißt das Codewort?" : spMode === "code" ? "Welcher Buchstabe?" : spMode === "listen" ? "Was wurde buchstabiert?" : spMode === "speak" ? "Buchstabiere laut (en-GB)" : "Buchstabiere mit Codewörtern"}</span>
+            {spMode === "listen" ? (
+              <div style={rowWrap}>
+                <Button label={spHasTTS ? "Nochmal vorsprechen" : "Sprache nicht verfügbar"} onClick={() => speakSeq(spPrompt)} disabled={!spHasTTS} />
+              </div>
+            ) : (
+              <div style={{ fontFamily: t.font.mono, fontSize: t.font.heading1.fontSize, lineHeight: t.font.heading1.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary, letterSpacing: 2 }}>{spMode === "code" ? officialWord(spPrompt) : spPrompt}</div>
+            )}
+            {spMode === "letter" || spMode === "code" ? (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {spChoices.map((c: string) => (
+                  <button
+                    key={c}
+                    type="button"
+                    disabled={spFb !== ""}
+                    onClick={() => {
+                      setSpIn(c);
+                      submit(c);
+                    }}
+                    style={{ padding: "8px 14px", borderRadius: t.radius.lg, border: "2px solid " + (spFb !== "" && tokOk(c, spMode === "letter" ? spPrompt : c) && (spMode === "letter" ? tokOk(c, spPrompt) : c === spPrompt) ? t.text.success : t.border.default), background: t.bg.elevated, color: t.text.primary, fontFamily: fam, fontWeight: t.weight.semibold, cursor: spFb !== "" ? "default" : "pointer" }}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {spMode === "speak" ? (
+              <div style={rowWrap}>
+                <button
+                  type="button"
+                  onPointerDown={pttStart}
+                  onPointerUp={pttStop}
+                  onPointerLeave={() => (spRecOn ? pttStop() : undefined)}
+                  style={{ padding: "12px 20px", borderRadius: t.radius.full, border: "2px solid " + (spRecOn ? t.text.danger : accent), background: spRecOn ? t.text.danger : t.fill.accentSubtle, color: spRecOn ? t.bg.base : t.text.primary, fontFamily: fam, fontWeight: t.weight.semibold, cursor: "pointer", touchAction: "none", userSelect: "none" }}
+                >
+                  {spRecOn ? "● Sprechen … loslassen" : "PTT halten und buchstabieren"}
+                </button>
+              </div>
+            ) : null}
+            <Input label={spMode === "letter" || spMode === "code" ? "Oder tippen" : "Antwort (Codewörter oder Zeichen)"} value={spIn} onChange={(v: string) => setSpIn(v)} />
+            {spMode === "phrase" || spMode === "listen" || spMode === "speak" ? spellPad() : null}
+            {spMsg ? <span style={txt("label", t.text.warning)}>{spMsg}</span> : null}
+            {spFb === "ok" ? <Status tone="success">Richtig</Status> : null}
+            {spFb === "bad" ? <Status tone="danger">{"Nicht ganz. Richtig: " + expect}</Status> : null}
+            <div style={rowWrap}>
+              {spFb === "" ? <Button label="Prüfen" variant="primary" onClick={() => submit()} disabled={spIn.trim() === ""} /> : <Button label={spI + 1 >= 10 ? "Auswertung" : "Weiter"} variant="primary" onClick={goNext} />}
+              <Button label="Abbrechen" variant="quiet" onClick={() => setSpMode("home")} />
+            </div>
+          </>,
+          { padding: 14, gap: 8 },
+        )}
+      </div>
+    );
+  };
+
+
+    const stepPages = (steps: Steps, per: number): ReactNode[] =>
     chunk(steps, per).map((grp: Steps, gi: number) =>
       stack(
         <>
@@ -2125,6 +2531,9 @@ export default function App() {
               <Toggle label="Ziffern als ITU-Codewörter" value={ituDigits} onChange={setItuDigits} />
             </div>
             {spelled.length > 0 ? <div style={{ fontFamily: t.font.mono, fontSize: t.font.code.fontSize, color: t.text.primary, lineHeight: "1.7", padding: 12, borderRadius: t.radius.lg, border: "2px solid " + accent }}>{spelled.map((p: SpellPart) => p.word).join(" · ")}</div> : null}
+            <div style={rowWrap}>
+              <Button label="Buchstabier-Trainer öffnen" variant="primary" onClick={() => enter(["erklaeren", "ref", "spelltrain"])} />
+            </div>
           </>,
         ),
         stack(<>{screenTitle("Buchstaben A–M")}{letterGrid(L.slice(0, 13))}</>),
@@ -2818,7 +3227,15 @@ export default function App() {
 
   const toolCard = (tool: string): ReactNode => {
     if (tool === "order") return orderTool();
-    if (tool === "spell") return wissenPages("nato")[0];
+    if (tool === "spell")
+      return stack(
+        <>
+          {wissenPages("nato")[0]}
+          <div style={rowWrap}>
+            <Button label="Buchstabier-Trainer öffnen" variant="primary" onClick={() => enter(["erklaeren", "ref", "spelltrain"])} />
+          </div>
+        </>,
+      );
     if (tool === "mmsi") return wissenPages("mmsi")[certC === "UBI" ? 1 : 0];
     if (tool === "atis") return wissenPages("mmsi")[0];
     return stack(
@@ -3822,6 +4239,7 @@ export default function App() {
     { id: "trainer", title: "Funkspruch-Trainer", sub: "Eigenen Funkspruch bauen" },
     { id: "geraet", title: "Gerät IC-M423", sub: myTasks.length + " Abläufe · Tasten · Tipps" },
     { id: "nato", title: "Buchstabiertafel", sub: "Werkzeug und Tafel" },
+    { id: "spelltrain", title: "Buchstabier-Trainer", sub: "10er-Runden: Hören, Sprechen, schwache Buchstaben" },
     { id: "kanaele", title: "Kanäle & Leistung", sub: certC === "SRC" ? "Seefunk" : "Binnenfunk, Verkehrskreise" },
     { id: "mmsi", title: certC === "SRC" ? "MMSI" : "MMSI & ATIS", sub: certC === "SRC" ? "Decoder und Kennungen" : "ATIS-Rechner, Decoder, Kennungen" },
     { id: "ablauf", title: "Prüfungsablauf", sub: "Theorie, Sprache, Praxis, Videos" },
@@ -4024,6 +4442,10 @@ export default function App() {
       title = "Nachschlagen & Werkzeuge";
       sub = "Alles kompakt zum schnellen Nachsehen";
       body = tileGrid(ERK, 6, 260, open);
+    } else if (path[2] === "spelltrain") {
+      title = "Buchstabier-Trainer";
+      sub = "Internationale Buchstabiertafel · 10er-Runden";
+      body = spellScreen();
     } else if (path[2] === "funk" && path.length === 3) {
       title = "Funkverfahren";
       sub = "Rangfolge: Not vor Dringlichkeit vor Sicherheit vor Routine (SRC 85, UBI 110)";

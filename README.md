@@ -9,6 +9,7 @@ Lern-App für das **UKW-Sprechfunkzeugnis Binnen (UBI)** und das **Short Range C
 - **Prüfungsfragen:** alle amtlichen Katalogfragen üben, mit Fortschritt
 - **Prüfung:** die 12 amtlichen Bögen je Zeugnis mit Zeit und Auswertung
 - **Funkgerät:** Icom IC-M423 interaktiv (nach Bedienungsanleitung), Bedienabläufe üben, Menüstruktur
+- **Buchstabier-Trainer:** internationale Buchstabiertafel in 10er-Runden (Buchstabe/Codewort, Rufzeichen, Hören, Sprechen), mit Fehlerstatistik
 - **Funk-Simulator:** Funksprüche (Mayday, Pan-Pan, Sécurité, Routine …) per Mikrofon oder Bausteinen sprechen, mit Prüfung und Antwort der Gegenstelle
 
 Der Fortschritt wird nur lokal im Browser gespeichert.
