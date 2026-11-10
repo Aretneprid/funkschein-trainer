@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "favicon-32.png", "apple-touch-icon.png"],
+      includeAssets: ["favicon.svg", "favicon-32.png", "apple-touch-icon.png", "media/*.webp"],
       manifest: {
         name: "Funkschein-Trainer",
         short_name: "Funkschein",
@@ -25,7 +25,7 @@ export default defineConfig({
           { src: "maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
-      workbox: { globPatterns: ["**/*.{js,css,html,svg,png,webmanifest}"], maximumFileSizeToCacheInBytes: 5000000, navigateFallback: "index.html" },
+      workbox: { globPatterns: ["**/*.{js,css,html,svg,png,webp,webmanifest}"], maximumFileSizeToCacheInBytes: 5000000, navigateFallback: "index.html" },
     }),
   ],
 });

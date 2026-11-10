@@ -17,6 +17,36 @@ import type { CSSProperties, ReactNode } from "./canvas";
 
 type Theme = ReturnType<typeof useGrokTheme>;
 
+/* In der PWA liegen Commons-Fotos unter ./media/ (offline im Service Worker). Die Canvas-Fassung setzt USE_PHOTOS auf false und zeichnet stattdessen eigene SVGs. */
+const USE_PHOTOS = true;
+
+type PhotoId = "gmdss" | "vhfdsc" | "epirb" | "sart" | "navtex" | "navareas" | "handheld" | "liferaft" | "zentrale" | "b11b";
+
+type PhotoMeta = { file: string; title: string; author: string; license: string; wiki: string; svg: string };
+
+const PHOTO_META: Record<PhotoId, PhotoMeta> = {
+  gmdss: { file: "gmdss-areas.webp", title: "GMDSS-Seegebiete A1–A4", author: "Delroland", license: "CC BY-SA 3.0", wiki: "File:GMDSS_Sea_Areas.jpg", svg: "areas" },
+  vhfdsc: { file: "vhf-dsc.webp", title: "UKW-Seefunkgerät mit DSC, rote Distress-Taste", author: "Fanny Schertzer", license: "CC BY-SA 2.5", wiki: "File:VHF_radio_with_Maritime_Distress_Safety_System.jpg", svg: "vhfdsc" },
+  epirb: { file: "epirb.webp", title: "Seenotfunkbake EPIRB (406 MHz)", author: "Marwan Mohamad", license: "CC BY-SA 4.0", wiki: "File:EPIRB_(1).jpg", svg: "epirb" },
+  sart: { file: "sart.webp", title: "Radartransponder SART", author: "Ulf Larsen", license: "CC BY-SA 3.0", wiki: "File:SART_radar_transponder.jpg", svg: "sart" },
+  navtex: { file: "navtex.webp", title: "NAVTEX-Empfänger an Bord", author: "K. Krallis (SV1XV)", license: "CC BY-SA 3.0", wiki: "File:NASA-Marine-NAVTEX-RX.jpg", svg: "navtex" },
+  navareas: { file: "navareas.webp", title: "NAVAREAs für Nachrichten zur Sicherheit der Seeschifffahrt (MSI)", author: "Chrumps", license: "CC0", wiki: "File:NAVAREA.jpg", svg: "navareas" },
+  handheld: { file: "handheld.webp", title: "UKW-Handsprechfunkgerät", author: "Ulf Larsen", license: "CC BY-SA 3.0", wiki: "File:Handheld_Maritime_VHF.jpg", svg: "handheld" },
+  liferaft: { file: "liferaft.webp", title: "Aufgeblasene Rettungsinsel", author: "Sillerkiil", license: "CC BY-SA 4.0", wiki: "File:Päästeparv_2014._aastal_Tallinna_sadamas_merepäevadel.jpg", svg: "liferaft" },
+  zentrale: { file: "revierzentrale.webp", title: "Revierzentrale Oberwesel (Nautischer Informationsfunk)", author: "Marion Halft", license: "CC BY-SA 4.0", wiki: "File:Revierzentrale_Oberwesel_Wasserstraßen-_und_Schifffahrtsamt_Bingen_(01).jpg", svg: "zentrale" },
+  b11b: { file: "zeichen-b11b.webp", title: "Schifffahrtszeichen B.11b: Gebot, Sprechfunk auf dem angegebenen Kanal zu benutzen", author: "Raimond Spekking", license: "CC BY-SA 4.0", wiki: "File:Schifffahrtszeichen_B.11b_Gebot_Sprechfunk_auf_dem_angegebenen_Kanal_zu_benutzen-0234.jpg", svg: "b11b" },
+};
+
+const PHOTO_GROUPS: Record<string, PhotoId[]> = {
+  "SRC-S1": ["gmdss"],
+  "SRC-S3": ["vhfdsc"],
+  "SRC-S6": ["navtex", "navareas"],
+  "SRC-S7": ["epirb", "sart", "handheld", "liferaft"],
+  "UBI-U3": ["zentrale"],
+  "UBI-U4": ["b11b"],
+};
+
+
 /* ---------- Amtliche Fragenkataloge (Antwort an Position 1 ist laut Katalog richtig) ---------- */
 type Row = [number, string, string, string, string, string];
 
@@ -1240,7 +1270,7 @@ export default function App() {
 
 
   /* ---------- App-Shell ---------- */
-  type Tab = "erklaeren" | "fragen" | "pruefung" | "funkgeraet";
+  type Tab = "erklaeren" | "fragen" | "pruefung" | "funkgeraet" | "werkzeuge";
   const [tab, setTab] = useState<Tab>("erklaeren");
   const [chosen, setChosen] = useState<boolean>(false);
   const [topic, setTopic] = useState<string>("ueberblick");
@@ -1846,6 +1876,7 @@ export default function App() {
   };
 
   function enter(np: string[]) {
+    if (np[0] === "erklaeren" && np[1] === "ref") np = ["werkzeuge", ...np.slice(2)];
     setPath(np);
     setPg(0);
     setOrd([]);
@@ -2136,41 +2167,46 @@ export default function App() {
   const exSee = (scen: Scen, extra?: Partial<SP>): string[] => (certC === "SRC" ? buildSpruch({ ...EX_SEE, scen, ...extra }).en || [] : buildSpruch({ ...EX_SEE, rev: "binnen", scen, ...extra }).de);
   const exTitle = (): string => (certC === "SRC" ? "Beispiel See (SRC) – Englisch, wie in der Prüfung" : "Beispiel Binnen (UBI) – nach amtlicher Sprechfunktafel");
 
-  /* ---------- Bilder & Videos ---------- */
-  type Media = { kind: "Bild" | "Video"; title: string; site: string; href: string };
-  const VID_ALL: Media = { kind: "Video", title: "Funkzeugnisse SRC, UBI & LRC – einfach erklärt & sicher bestehen!", site: "YouTube · SegelnAG (deutsch)", href: "https://www.youtube.com/watch?v=bF8MFbhxJYg" };
-  const VID_FUNK: Media = { kind: "Video", title: "Richtig Funken Teil 2 – Mayday, Pan-Pan, Securité", site: "YouTube · YACHT tv (deutsch, Seefunk)", href: "https://www.youtube.com/watch?v=6LRCRcM8kv4" };
-  const VID_DSC: Media = { kind: "Video", title: "SRC, LRC – DSC / Digitaler Selektivruf im GMDSS", site: "YouTube · Yachtschule im Netz (deutsch)", href: "https://www.youtube.com/watch?v=T07xGVO3JGY" };
-  const MEDIA: Record<string, Media[]> = {
-    "SRC-ablauf": [VID_ALL],
-    "UBI-ablauf": [VID_ALL, { kind: "Video", title: "UKW-Funkzeugnis Binnen (UBI) – Vorbereitung & Tipps für deine Prüfung", site: "YouTube · SegelnAG (deutsch)", href: "https://www.youtube.com/watch?v=CSSJiMY-Vio" }],
-    "SRC-S1": [{ kind: "Bild", title: "GMDSS-Seegebiete A1–A4 als Karte", site: "Wikimedia Commons · Delroland, CC BY-SA 3.0", href: "https://commons.wikimedia.org/wiki/File:GMDSS_Sea_Areas.jpg" }],
-    "SRC-S3": [VID_DSC, { kind: "Bild", title: "UKW-Seefunkgerät mit DSC (GMDSS), rote Distress-Taste", site: "Wikimedia Commons · Fanny Schertzer, CC BY-SA 2.5", href: "https://commons.wikimedia.org/wiki/File:VHF_radio_with_Maritime_Distress_Safety_System.jpg" }],
-    "SRC-S5": [VID_FUNK],
-    "SRC-S7": [
-      { kind: "Bild", title: "Seenotfunkbake EPIRB (406 MHz)", site: "Wikimedia Commons · Marwan Mohamad, CC BY-SA 4.0", href: "https://commons.wikimedia.org/wiki/File:EPIRB_(1).jpg" },
-      { kind: "Bild", title: "Radartransponder SART an Bord einer Fähre", site: "Wikimedia Commons · Ulf Larsen, CC BY-SA 3.0", href: "https://commons.wikimedia.org/wiki/File:SART_radar_transponder.jpg" },
-    ],
-    "UBI-U3": [{ kind: "Bild", title: "Revierzentrale Oberwesel (Nautischer Informationsfunk am Rhein)", site: "Wikimedia Commons · Marion Halft, CC BY-SA 4.0", href: "https://commons.wikimedia.org/wiki/File:Revierzentrale_Oberwesel_Wasserstra%C3%9Fen-_und_Schifffahrtsamt_Bingen_(01).jpg" }],
-    "UBI-U4": [{ kind: "Bild", title: "Schifffahrtszeichen B.11b: Gebot, Sprechfunk auf dem angegebenen Kanal zu benutzen", site: "Wikimedia Commons · Raimond Spekking, CC BY-SA 4.0", href: "https://commons.wikimedia.org/wiki/File:Schifffahrtszeichen_B.11b_Gebot_Sprechfunk_auf_dem_angegebenen_Kanal_zu_benutzen-0234.jpg" }],
-    "SRC-funk": [VID_FUNK, VID_DSC],
-    "UBI-funk": [VID_ALL],
-    "SRC-geraet": [VID_DSC],
-    "UBI-geraet": [{ kind: "Video", title: "What is ATIS and how to enable it on an ICOM marine radio? (am IC-M423G)", site: "YouTube · Icom UK (englisch)", href: "https://www.youtube.com/watch?v=M1VCoS9dXlw" }],
-  };
-  const mediaPages = (key: string): ReactNode[] => {
-    const list = MEDIA[key];
-    if (!list || list.length === 0) return [];
-    return [
-      stack(
-        <>
-          {screenTitle("Bilder & Videos", "Öffnen in einem neuen Tab: Bilder auf Wikimedia Commons, Videos auf YouTube")}
-          <LinkCards links={list.map((m: Media) => ({ title: (m.kind === "Video" ? "▶ Video: " : "Bild: ") + m.title, site: m.site, href: m.href }))} />
-        </>,
-      ),
-    ];
+  /* ---------- Bilder, Schemata & Videos ---------- */
+  const photoCredit = (p: PhotoMeta, bundled: boolean): string =>
+    bundled ? p.title + " · " + p.author + ", " + p.license + " (Wikimedia Commons)" : p.title + " (Schema)";
+
+  const figBlock = (id: PhotoId, h?: string, cap?: string): ReactNode => {
+    const p = PHOTO_META[id];
+    const src = USE_PHOTOS ? "./media/" + p.file : "";
+    return (
+      <div key={id} style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+        {h ? screenTitle(h) : null}
+        {src ? (
+          <img
+            src={src}
+            alt={p.title}
+            style={{ width: "100%", maxHeight: 200, objectFit: "contain", borderRadius: t.radius.lg, background: t.bg.elevated, border: "1px solid " + t.border.subtle, display: "block" }}
+          />
+        ) : (
+          diagram(p.svg)
+        )}
+        {cap ? <div style={txt("body2", t.text.secondary)}>{cap}</div> : null}
+        <span style={txt("label", t.text.tertiary)}>{photoCredit(p, !!src)}</span>
+      </div>
+    );
   };
 
+  const figPages = (key: string): ReactNode[] => {
+    const ids = PHOTO_GROUPS[key];
+    if (!ids || ids.length === 0) return [];
+    return chunk(ids, 2).map((g: PhotoId[], i: number) => stack(<div key={key + "-" + i} style={{ display: "flex", flexDirection: "column", gap: 10 }}>{g.map((id: PhotoId) => figBlock(id))}</div>));
+  };
+
+  const VIDEOS: { title: string; site: string; href: string }[] = [
+    { title: "Funkzeugnisse SRC, UBI & LRC – einfach erklärt & sicher bestehen!", site: "YouTube · SegelnAG (deutsch)", href: "https://www.youtube.com/watch?v=bF8MFbhxJYg" },
+    { title: "UKW-Funkzeugnis Binnen (UBI) – Vorbereitung & Tipps für deine Prüfung", site: "YouTube · SegelnAG (deutsch)", href: "https://www.youtube.com/watch?v=CSSJiMY-Vio" },
+    { title: "Richtig Funken Teil 2 – Mayday, Pan-Pan, Securité", site: "YouTube · YACHT tv (deutsch, Seefunk)", href: "https://www.youtube.com/watch?v=6LRCRcM8kv4" },
+    { title: "SRC, LRC – DSC / Digitaler Selektivruf im GMDSS", site: "YouTube · Yachtschule im Netz (deutsch)", href: "https://www.youtube.com/watch?v=T07xGVO3JGY" },
+    { title: "What is ATIS and how to enable it on an ICOM marine radio? (am IC-M423G)", site: "YouTube · Icom UK (englisch)", href: "https://www.youtube.com/watch?v=M1VCoS9dXlw" },
+  ];
+
+  /* ---------- Inhalte: Funkverfahren ---------- */
   /* ---------- Inhalte: Funkverfahren ---------- */
   const FUNK: { id: string; title: string; steps: Steps; ex?: () => string[]; srcOnly?: boolean }[] = [
     {
@@ -2265,7 +2301,6 @@ export default function App() {
     if (!f) return [];
     const pages = stepPages(f.steps, 2);
     if (f.ex) pages.push(spruchPage(id === "fehlalarm" ? "Fehlalarm aufheben – Englisch" : exTitle(), f.ex()));
-    if (id === "mayday") pages.push(...mediaPages(certC + "-funk"));
     return pages;
   };
 
@@ -2399,7 +2434,6 @@ export default function App() {
             />
           </>,
         ),
-        ...mediaPages(certC + "-geraet"),
       ];
     }
     const task = ICOM_TASKS.find((x: { value: string }) => x.value === id);
@@ -2515,9 +2549,9 @@ export default function App() {
               Für das UBI gilt ein neuer Gesamtfragenkatalog mit neuer Sprechfunktafel; das Prüfungsdatum entscheidet. Diese App nutzt bereits den neuen Katalog. Für SRC gilt weiter der Katalog von 2018. In beiden amtlichen Leseversionen ist immer die erste Antwort richtig.
             </Callout>
             <div style={txt("body2", t.text.secondary)}>Prüfungsausschüsse stellen häufig Geräte der Icom-M423-Reihe für die Praxis; PA Bremen nennt ausdrücklich das ICOM M423. Wer sein eigenes Gerät kennt, ist im Vorteil.</div>
+            <div style={txt("body2", t.text.secondary)}>Erklärvideos liegen unter Nachschlagen & Werkzeuge › Videos.</div>
           </>,
         ),
-        ...mediaPages(certC + "-ablauf"),
       ];
     }
     if (id === "nato") {
@@ -2589,9 +2623,31 @@ export default function App() {
       pages.push(...rowsPages(IDS, 3, accent3, "Kennungen"));
       return pages;
     }
+    if (id === "videos") {
+      return [
+        stack(
+          <>
+            {screenTitle("Videos", "Öffnen in einem neuen Tab auf YouTube – Videos können nicht in der App gespeichert werden")}
+            <LinkCards links={VIDEOS} />
+          </>,
+        ),
+      ];
+    }
     if (id === "quellen") {
+      const credits = (Object.keys(PHOTO_META) as PhotoId[]).map((id: PhotoId) => PHOTO_META[id]);
       return [
         ...chunk(LINKS, 5).map((g: { title: string; site: string; href: string }[]) => <LinkCards key={g[0].href} links={g} />),
+        stack(
+          <>
+            {screenTitle("Bildnachweis", "Fotos aus Wikimedia Commons, in der App gespeichert für die Offline-Nutzung")}
+            {credits.map((p: PhotoMeta) => (
+              <div key={p.wiki} style={txt("label", t.text.secondary)}>
+                {p.title + " — " + p.author + ", " + p.license + " · " + p.wiki}
+              </div>
+            ))}
+            <div style={txt("body2", t.text.secondary)}>Schemata ohne Fotoangabe (Reichweite, Seegebiete, DSC-Ablauf, Kanäle, Mayday-Aufbau u. a.) sind eigene Grafiken.</div>
+          </>,
+        ),
         <div key="q33" style={txt("body2", t.text.secondary)}>SRC-Frage 33 fehlt im Quiz, weil die Antworten 1 und 2 in der amtlichen Leseversion wortgleich sind. Rechtsverbindlich sind nur die im Verkehrsblatt veröffentlichten Texte.</div>,
       ];
     }
@@ -2632,7 +2688,7 @@ export default function App() {
         { padding: 16 },
       );
     });
-    return [intro, ...qa, ...mediaPages(certC + "-" + key)];
+    return [intro, ...qa, ...figPages(certC + "-" + key)];
   };
 
   /* ================= Kurs „Erklären“: Lernpfad mit aufbauenden Lektionen ================= */
@@ -2644,7 +2700,7 @@ export default function App() {
     | { k: "tool"; tool: "order" | "spell" | "mmsi" | "atis" | "trainer" }
     | { k: "merke"; items: string[] }
     | { k: "check"; n: number }
-    | { k: "media"; key: string }
+    | { k: "fig"; ids: PhotoId[]; h: string; cap: string }
     | { k: "task"; id: string };
   type Lesson = { id: string; title: string; min: number; cards: LCard[] };
 
@@ -2695,10 +2751,9 @@ export default function App() {
       cards: [
         { k: "goal", items: ["Wozu GMDSS da ist", "Was die Seegebiete A1–A4 bedeuten", "Wer im Seenotfall koordiniert"] },
         { k: "text", h: "GMDSS in einem Satz", body: "Das Weltweite Seenot- und Sicherheitsfunksystem sorgt für schnelle und genaue Alarmierung in Not-, Dringlichkeits- und Sicherheitsfällen (SRC 2, 3). Satellitengestützt arbeiten COSPAS-SARSAT und Inmarsat (SRC 15).", fact: "MSI = Nachrichten für die Sicherheit der Seeschifffahrt (SRC 16)." },
-        { k: "svg", h: "Seegebiete (schematisch)", d: "areas", cap: "Für die Seegebiete A1, A2, A3, A4 gilt jeweils eine bestimmte Funkausrüstung (SRC 13). A1 ist durch die Sprechfunkreichweite einer UKW-Küstenfunkstelle abgedeckt (SRC 14) – dort bist du mit dem SRC unterwegs." },
+        { k: "fig", ids: ["gmdss"], h: "Seegebiete A1–A4", cap: "Für die Seegebiete A1, A2, A3, A4 gilt jeweils eine bestimmte Funkausrüstung (SRC 13). A1 ist durch die Sprechfunkreichweite einer UKW-Küstenfunkstelle abgedeckt (SRC 14) – dort bist du mit dem SRC unterwegs." },
         { k: "text", h: "Wer hilft im Notfall?", body: "SAR heißt Suche und Rettung (SRC 125). Die Seenotleitung MRCC koordiniert die verfügbaren Kräfte (SRC 127, 147), der On-Scene Coordinator leitet vor Ort (SRC 129). In Deutschland ist das Bremen Rescue Radio – empfangsbereit auf Kanal 16 und Kanal 70 (SRC 148)." },
         { k: "merke", items: ["GMDSS: Not, Dringlichkeit, Sicherheit schnell alarmieren", "A1 = UKW-Bereich einer Küstenfunkstelle", "MRCC koordiniert, OSC leitet vor Ort", "Bremen Rescue: Kanal 16 und 70"] },
-        { k: "media", key: "SRC-S1" },
         { k: "check", n: 3 },
         { k: "check", n: 14 },
         { k: "check", n: 148 },
@@ -2747,7 +2802,7 @@ export default function App() {
         { k: "task", id: "distress" },
         { k: "task", id: "individual" },
         { k: "merke", items: ["DSC = Digitaler Selektivruf auf Kanal 70", "Notalarm: Schutzkappe, [DISTRESS] 3 s", "Danach Sprechfunk auf Kanal 16", "GPS liefert die Position"] },
-        { k: "media", key: "SRC-S3" },
+        { k: "fig", ids: ["vhfdsc"], h: "UKW-Gerät mit DSC", cap: "Die rote Distress-Taste sitzt unter einer Schutzkappe. Drei Sekunden [DISTRESS] senden den Notalarm auf Kanal 70." },
         { k: "check", n: 53 },
         { k: "check", n: 56 },
         { k: "check", n: 113 },
@@ -2767,7 +2822,7 @@ export default function App() {
         { k: "text", h: "Fehlalarm ausgelöst?", body: "a) Gerät sofort zurücksetzen, b) wenn möglich per DSC zurücknehmen, c) auf Kanal 16 „An alle Funkstellen“ den Fehlalarm aufheben (SRC 157).", fact: "Am IC-M423: [CANCEL] → [CONTINUE] → [FINISH], das Gerät wechselt auf Kanal 16." },
         { k: "ex", h: "Fehlalarm aufheben (Englisch)", lines: () => exE("cancel") },
         { k: "merke", items: ["MAYDAY ×3 – THIS IS – Name ×3 – Rufzeichen – MMSI", "MAYDAY – Name – Position – Notfall – Hilfe – OVER", "Bestätigen nur, wenn du helfen kannst", "Fehlalarm: zurücksetzen, DSC-Storno, Kanal 16"] },
-        { k: "media", key: "SRC-funk" },
+        { k: "svg", h: "Aufbau der Notmeldung", d: "mayday", cap: "Erst der Notanruf, dann die Notmeldung mit Position, Art des Notfalls und der erbetenen Hilfe (SRC 135 ff.)." },
         { k: "check", n: 135 },
         { k: "check", n: 142 },
         { k: "check", n: 157 },
@@ -2783,6 +2838,7 @@ export default function App() {
         { k: "ex", h: "Beispiel Pan Pan (Englisch)", lines: () => exE("panpan") },
         { k: "text", h: "SECURITE – Sicherheit", body: "Leitet eine Sicherheitsmeldung ein (SRC 100, 101): wichtige nautische Warnnachricht oder wichtige Wetterwarnung (SRC 102). Auf Kanal 16 wird sie nur angekündigt (SRC 139)." },
         { k: "text", h: "NAVTEX", body: "Nautische Warnnachrichten im Funktelexverfahren (SRC 116) für MSI, Reichweite ca. 600 sm (SRC 119). Navigationswarnungen, Wetterwarnungen und SAR-Meldungen lassen sich nicht unterdrücken (SRC 121).", fact: "Deutscher NAVTEX-Sender: regelmäßig alle 4 Stunden (SRC 123). WX = Wetterbericht, NX = nautische Warnnachricht (SRC 17, 18)." },
+        { k: "fig", ids: ["navtex", "navareas"], h: "NAVTEX und NAVAREAs", cap: "NAVTEX empfängt MSI im Funktelex; die Weltmeere sind dafür in NAVAREAs eingeteilt." },
         { k: "merke", items: ["Pan Pan: DSC 70 ankündigen, Meldung auf 16", "Pan Pan an alle → später aufheben", "Sécurité: nautische Warnung oder Wetterwarnung", "NAVTEX ≈ 600 sm, alle 4 h"] },
         { k: "check", n: 96 },
         { k: "check", n: 99 },
@@ -2815,7 +2871,8 @@ export default function App() {
         { k: "text", h: "SART – Radartransponder", body: "Erleichtert das Auffinden mit Radar (SRC 179). Auf dem Radarbild erscheint eine Linie von mindestens zwölf Zeichen (SRC 173, 174). EPIRB und SART senden Signale zur Ortung (SRC 159).", fact: "Prüfen: Batterie- und Auslöser-Haltbarkeit, Funktion nach Hersteller (SRC 172). Vor dem Ausbau Fehlalarm ausschließen (SRC 171)." },
         { k: "text", h: "Handfunk und Handy", body: "Handfunkgeräte vorzugsweise für Funkverkehr an Bord und zum Überlebensfahrzeug (SRC 104). UKW erreicht alle Seefunkstellen in Reichweite, ein Telefonat können andere nicht mithören (SRC 175–177)." },
         { k: "merke", items: ["EPIRB: 406 MHz Alarm, 121,5 MHz Homing", "SART: Linie aus ≥ 12 Punkten auf dem Radar", "Batterie-Haltbarkeit regelmäßig prüfen", "UKW statt Handy: alle hören mit"] },
-        { k: "media", key: "SRC-S7" },
+        { k: "fig", ids: ["epirb", "sart"], h: "EPIRB und SART", cap: "Die EPIRB alarmiert über 406 MHz und sendet auf 121,5 MHz zur Zielfahrt. Der SART erzeugt auf dem Radar eine Linie aus mindestens zwölf Zeichen." },
+        { k: "fig", ids: ["handheld", "liferaft"], h: "Handfunk und Rettungsinsel", cap: "Handsprechfunkgeräte vorzugsweise für Funkverkehr an Bord und zum Überlebensfahrzeug (SRC 104)." },
         { k: "check", n: 169 },
         { k: "check", n: 173 },
         { k: "check", n: 163 },
@@ -2866,7 +2923,7 @@ export default function App() {
         { k: "text", h: "Schiff – Schiff und Kanal 10", body: "Funk zwischen Schiffsfunkstellen über Schutz von Personen, Fahrt und Sicherheit (UBI 59, 60). In Deutschland muss jede Schiffsfunkstelle während der Fahrt auf Kanal 10 empfangsbereit sein (UBI 91). Dort wird automatisch auf höchstens 1 W reduziert (UBI 89, 90).", fact: "Aussendungen auf Kanal 10 können nicht unterbrochen werden – also kurz fassen (UBI 97, 98)." },
         { k: "text", h: "Nautische Information, Hafen, an Bord", body: "NIF: Funk mit den Behörden der Wasserstraße über Zustand, Verkehrsberatung und -lenkung (UBI 63, 64); Anweisungen sind zu befolgen (UBI 99). Nur hier sind 25 W zulässig (UBI 57). Schiff – Hafenbehörde: Liegeplätze und Fahrt im Hafen (UBI 68, 69). An Bord: Kanäle 15 und 17 (UBI 75), nicht für Kleinfahrzeuge (UBI 77)." },
         { k: "text", h: "Weitere Kanäle und Tafelzeichen", body: "Nachrichten sozialer Art: Kanäle 72 und 77 (UBI 94). Kanal 16 darf auf den Bundeswasserstraßen der Zonen 3 und 4 nicht benutzt werden (UBI 92). Tafelzeichen zeigen den Schleusenkanal (UBI 106): weiß mit rotem Rand „UKW 20“ = Gebot Kanal 20 (UBI 107), blau „UKW 18“ = Hinweis auf NIF (UBI 108).", fact: "Zweikanalüberwachung ersetzt keine echte Hörbereitschaft auf zwei Kanälen – sie hört nur abwechselnd (UBI 88)." },
-        { k: "media", key: "UBI-U4" },
+        { k: "fig", ids: ["b11b"], h: "Tafelzeichen an der Schleuse", cap: "Weiß mit rotem Rand „UKW 20“ = Gebot, den angegebenen Kanal zu benutzen (UBI 107). Blau „UKW 18“ = Hinweis auf den Nautischen Informationsfunk (UBI 108)." },
         { k: "merke", items: ["Kanal 10: immer hören, max. 1 W automatisch", "25 W nur bei Nautischer Information", "15/17 an Bord, 72/77 sozial", "Kein Kanal 16 in Zonen 3 und 4"] },
         { k: "check", n: 57 },
         { k: "check", n: 90 },
@@ -2901,7 +2958,7 @@ export default function App() {
         { k: "text", h: "Bestätigen und weiterleiten", body: "Im NIF bestätigt die zuständige Schleuse oder Revierzentrale (UBI 116), im Verkehrskreis Schiff – Schiff eine Schiffsfunkstelle in der Nähe (UBI 117). MAYDAY RELAY: Notmeldung durch eine Funkstelle, die selbst nicht in Not ist (UBI 118)." },
         { k: "text", h: "Funkstille und Ende", body: "SILENCE MAYDAY: Die Funkstelle in Not gebietet allen anderen Funkstille (UBI 120). SILENCE FINI: Der Notverkehr ist beendet (UBI 119)." },
         { k: "merke", items: ["Unmittelbare Gefahr → Notverkehr", "Vorzugsweise Revierzentrale rufen", "Bestätigung: Schleuse/Revierzentrale oder Schiff in der Nähe", "SILENCE MAYDAY / SILENCE FINI"] },
-        { k: "media", key: "UBI-funk" },
+        { k: "svg", h: "Aufbau der Notmeldung", d: "mayday", cap: "Binnen nach Sprechfunktafel: Notanruf, dann Notmeldung mit Position (z. B. Rhein-km), Art des Notfalls und erbetener Hilfe, Abschluss BITTE KOMMEN." },
         { k: "check", n: 112 },
         { k: "check", n: 109 },
         { k: "check", n: 116 },
@@ -2930,7 +2987,7 @@ export default function App() {
       cards: [
         { k: "goal", items: ["Revierzentralen und Landfunkstellen kennen", "Routineanruf aufbauen", "Funkspruch-Trainer ausprobieren"] },
         { k: "text", h: "Revierzentralen", body: "Eine Revierzentrale ist eine Landfunkstelle des Verkehrskreises Nautische Information (UBI 5). In Deutschland: Duisburg, Oberwesel, Minden, Magdeburg, Gösselthal (UBI 71). Auch Iffezheim Schleuse und Lübeck Hubbrücken gehören zum NIF (UBI 67, 70); Marina Düsseldorf Port ist Schiff – Hafenbehörde (UBI 72).", fact: "Gefahrgutschiffe und Sondertransporte unterliegen auf bestimmten Strecken einer Meldepflicht (UBI 95)." },
-        { k: "media", key: "UBI-U3" },
+        { k: "fig", ids: ["zentrale"], h: "Revierzentrale", cap: "Eine Revierzentrale ist eine Landfunkstelle des Verkehrskreises Nautische Information (UBI 5), hier Oberwesel am Rhein." },
         { k: "text", h: "Routineanruf", body: "Beispiel Bunkerboot: Anruf auf Kanal 10 mit der Bitte, auf einen Kanal für Nachrichten sozialer Art zu wechseln (UBI 93), also 72 oder 77 (UBI 94). Anweisungen der NIF-Funkstellen sind zu befolgen (UBI 99)." },
         { k: "ex", h: "Beispiel Routineanruf Binnen", lines: () => exB("routine") },
         { k: "tool", tool: "trainer" },
@@ -2952,7 +3009,6 @@ export default function App() {
         { k: "task", id: "hilo" },
         { k: "task", id: "dw" },
         { k: "merke", items: ["[VOL/SQL•PWR] 1 s = Ein/Aus", "Kanalgruppe ATIS wählen", "Leistung 1 W / 25 W (UBI 47); Kanal 10 reduziert automatisch", "Dual Watch hört nur abwechselnd (UBI 88)"] },
-        { k: "media", key: "UBI-geraet" },
         { k: "check", n: 54 },
         { k: "check", n: 47 },
         { k: "check", n: 88 },
@@ -3151,6 +3207,152 @@ export default function App() {
         "Die vier Verkehrskreise mit Kanal und Leistung",
       );
     }
+    if (d === "mayday") {
+      const lines = certC === "SRC"
+        ? ["MAYDAY × 3", "THIS IS · Name × 3 · Rufzeichen · MMSI", "MAYDAY · Name · Rufzeichen · MMSI", "Position mit UTC", "Art des Notfalls · erbetene Hilfe", "Personen an Bord · OVER"]
+        : ["MAYDAY × 3", "THIS IS · Name × 3 · Rufzeichen", "MAYDAY · Name · Rufzeichen", "Position (z. B. Rhein-km)", "Art des Notfalls · erbetene Hilfe", "BITTE KOMMEN"];
+      return svgBox(
+        "0 0 360 200",
+        <>
+          {lines.map((x: string, i: number) => (
+            <g key={i}>
+              <rect x="16" y={4 + i * 32} width="328" height="28" rx="8" fill={t.fill.accentSubtle} stroke={i === 0 ? t.text.danger : accent} strokeWidth="2" />
+              {sT(180, 23 + i * 32, i + 1 + "  " + x, { color: t.text.primary, size: 12, bold: i === 0 })}
+            </g>
+          ))}
+        </>,
+        "Aufbau von Notanruf und Notmeldung",
+      );
+    }
+    if (d === "epirb")
+      return svgBox(
+        "0 0 360 190",
+        <>
+          <path d="M 0 150 Q 180 130 360 150 L 360 190 L 0 190 Z" fill={t.fill.accentSubtle} stroke={ln} />
+          <rect x="150" y="40" width="60" height="100" rx="14" fill={accent3} stroke={t.text.primary} strokeWidth="2" />
+          <rect x="162" y="52" width="36" height="20" rx="4" fill={t.bg.elevated} />
+          <line x1="180" y1="40" x2="180" y2="16" stroke={t.text.primary} strokeWidth="3" />
+          <circle cx="180" cy="14" r="5" fill={t.text.danger} />
+          {sT(180, 175, "schwimmt frei, sendet die Notposition", { size: 11 })}
+          {sT(70, 70, "406 MHz", { color: t.text.primary, bold: true, size: 13 })}
+          {sT(70, 88, "Alarm", { size: 11 })}
+          {sT(290, 70, "121,5 MHz", { color: t.text.primary, bold: true, size: 13 })}
+          {sT(290, 88, "Zielfahrt", { size: 11 })}
+        </>,
+        "Schema einer Seenotfunkbake EPIRB",
+      );
+    if (d === "sart")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <rect x="40" y="30" width="36" height="120" rx="10" fill={accent3} stroke={t.text.primary} strokeWidth="2" />
+          <line x1="58" y1="30" x2="58" y2="12" stroke={t.text.primary} strokeWidth="3" />
+          {sT(58, 168, "SART", { color: t.text.primary, bold: true })}
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((i: number) => (
+            <circle key={i} cx={120 + i * 16} cy={90} r="5" fill={t.text.danger} />
+          ))}
+          <line x1="84" y1="90" x2="112" y2="90" stroke={ln} strokeWidth="2" />
+          {sT(216, 70, "auf dem Radar: Linie aus", { size: 11 })}
+          {sT(216, 114, "mindestens 12 Zeichen", { size: 11, color: t.text.primary, bold: true })}
+        </>,
+        "Schema eines Radartransponders SART",
+      );
+    if (d === "navtex")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <rect x="40" y="24" width="160" height="110" rx="12" fill={t.fill.accentSubtle} stroke={accent} strokeWidth="2" />
+          <rect x="52" y="38" width="136" height="50" rx="6" fill={t.bg.elevated} stroke={t.border.default} />
+          {sT(120, 68, "NAVTEX", { color: t.text.primary, bold: true, size: 14 })}
+          <rect x="200" y="70" width="110" height="14" rx="2" fill={t.bg.elevated} stroke={ln} />
+          {sT(120, 154, "518 kHz · MSI ca. 600 sm", { size: 11 })}
+          {sT(280, 50, "Streifen", { size: 11 })}
+        </>,
+        "Schema eines NAVTEX-Empfängers",
+      );
+    if (d === "navareas")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <ellipse cx="180" cy="90" rx="150" ry="70" fill={t.fill.accentSubtle} stroke={accent} strokeWidth="2" />
+          {[["I", 180, 50], ["II", 130, 80], ["III", 230, 80], ["IV", 80, 100], ["XII", 280, 100]].map((x: (string | number)[]) => (
+            <g key={String(x[0])}>
+              <circle cx={Number(x[1])} cy={Number(x[2])} r="16" fill={t.bg.elevated} stroke={accent2} />
+              {sT(Number(x[1]), Number(x[2]) + 5, String(x[0]), { color: t.text.primary, bold: true, size: 12 })}
+            </g>
+          ))}
+          {sT(180, 172, "NAVAREAs teilen die Meere für MSI ein", { size: 11 })}
+        </>,
+        "Schema der NAVAREAs",
+      );
+    if (d === "handheld")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <rect x="150" y="40" width="60" height="110" rx="12" fill={t.fill.accentSubtle} stroke={accent} strokeWidth="2" />
+          <rect x="160" y="52" width="40" height="28" rx="4" fill={t.bg.elevated} />
+          <line x1="180" y1="40" x2="180" y2="16" stroke={t.text.primary} strokeWidth="3" />
+          <circle cx="180" cy="14" r="4" fill={accent2} />
+          {sT(180, 168, "Funk an Bord und zum Überlebensfahrzeug", { size: 11 })}
+          {sT(70, 90, "UKW", { color: t.text.primary, bold: true, size: 14 })}
+          {sT(290, 90, "ATIS/MMSI", { color: t.text.primary, size: 12 })}
+        </>,
+        "Schema eines UKW-Handsprechfunkgeräts",
+      );
+    if (d === "liferaft")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <path d="M 0 140 Q 180 120 360 140 L 360 180 L 0 180 Z" fill={t.fill.accentSubtle} stroke={ln} />
+          <ellipse cx="180" cy="120" rx="90" ry="28" fill={accent3} stroke={t.text.primary} strokeWidth="2" />
+          <path d="M 110 120 Q 180 40 250 120" fill={t.fill.accentSubtle} stroke={t.text.danger} strokeWidth="3" />
+          {sT(180, 88, "Rettungsinsel", { color: t.text.primary, bold: true, size: 13 })}
+        </>,
+        "Schema einer Rettungsinsel",
+      );
+    if (d === "zentrale")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <path d="M 0 130 Q 180 110 360 140 L 360 180 L 0 180 Z" fill={t.fill.accentSubtle} stroke={ln} />
+          <rect x="120" y="60" width="120" height="70" rx="6" fill={t.bg.elevated} stroke={accent} strokeWidth="2" />
+          <polygon points="120,60 180,28 240,60" fill={t.fill.accentSubtle} stroke={accent} strokeWidth="2" />
+          <line x1="200" y1="40" x2="200" y2="8" stroke={t.text.primary} strokeWidth="3" />
+          <circle cx="200" cy="8" r="4" fill={accent2} />
+          {sT(180, 100, "Revierzentrale", { color: t.text.primary, bold: true, size: 13 })}
+          {sT(180, 168, "Nautischer Informationsfunk (NIF)", { size: 11 })}
+        </>,
+        "Schema einer Revierzentrale am Fluss",
+      );
+    if (d === "b11b")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <rect x="40" y="24" width="120" height="120" rx="8" fill={t.bg.elevated} stroke={t.text.danger} strokeWidth="6" />
+          {sT(100, 70, "UKW", { color: t.text.primary, bold: true, size: 18 })}
+          {sT(100, 100, "20", { color: t.text.primary, bold: true, size: 22 })}
+          {sT(100, 160, "Gebot", { size: 11, color: t.text.primary })}
+          <rect x="200" y="24" width="120" height="120" rx="8" fill={accent} stroke={accent} strokeWidth="6" />
+          {sT(260, 70, "UKW", { color: t.bg.base, bold: true, size: 18 })}
+          {sT(260, 100, "18", { color: t.bg.base, bold: true, size: 22 })}
+          {sT(260, 160, "Hinweis NIF", { size: 11, color: t.text.primary })}
+        </>,
+        "Tafelzeichen: Gebot und Hinweis zum Sprechfunkkanal",
+      );
+    if (d === "vhfdsc")
+      return svgBox(
+        "0 0 360 180",
+        <>
+          <rect x="50" y="24" width="260" height="130" rx="14" fill={t.fill.accentSubtle} stroke={accent} strokeWidth="2" />
+          <rect x="68" y="40" width="140" height="60" rx="8" fill={t.bg.elevated} stroke={t.border.default} />
+          {sT(138, 75, "CH 16", { color: t.text.primary, bold: true, size: 16 })}
+          <circle cx="260" cy="70" r="22" fill={t.text.danger} />
+          {sT(260, 74, "SOS", { color: t.bg.base, bold: true, size: 11 })}
+          {sT(180, 130, "DISTRESS unter Schutzkappe · 3 s", { size: 11, color: t.text.primary })}
+          {sT(180, 168, "DSC-Notalarm auf Kanal 70", { size: 11 })}
+        </>,
+        "Schema eines UKW-Geräts mit roter Distress-Taste",
+      );
     return null;
   };
 
@@ -3295,7 +3497,8 @@ export default function App() {
           ),
         );
       else if (c.k === "check") out.push(checkCard(c.n));
-      else if (c.k === "media") out.push(...mediaPages(c.key));
+      else if (c.k === "fig")
+        out.push(stack(<div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{c.ids.map((id: PhotoId) => figBlock(id, c.ids[0] === id ? c.h : undefined, c.ids[c.ids.length - 1] === id ? c.cap : undefined))}</div>));
       else if (c.k === "task") {
         const task = ICOM_TASKS.find((x: { value: string }) => x.value === c.id);
         geraetPages(c.id).forEach((p: ReactNode, i: number) => out.push(stack(<>{screenTitle("Am IC-M423: " + (task ? task.label : ""), "Schritt " + (i + 1) + " von " + (task ? task.steps.length : 0))}{p}</>)));
@@ -3391,7 +3594,7 @@ export default function App() {
         </div>
         {pager(pages)}
         <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "center" }}>
-          <Button label="Nachschlagen & Werkzeuge ›" variant="quiet" onClick={() => enter(["erklaeren", "ref"])} />
+          <Button label="Nachschlagen & Werkzeuge ›" variant="quiet" onClick={() => enter(["werkzeuge"])} />
         </div>
       </>
     );
@@ -4229,20 +4432,22 @@ export default function App() {
 
   /* ---------- Navigationsbaum ---------- */
   const AREA_INFO: { id: Tab; title: string; sub: string; color: string }[] = [
-    { id: "erklaeren", title: "Erklären", sub: "Kapitel, Funkverfahren, Trainer, Gerät, Wissen", color: accent },
+    { id: "erklaeren", title: "Erklären", sub: "Kurs mit aufbauenden Lektionen", color: accent },
     { id: "fragen", title: "Prüfungsfragen", sub: "Katalog üben mit Fortschritt", color: accent2 },
     { id: "pruefung", title: "Prüfung", sub: "Amtliche Bögen 1–12 mit Zeit", color: accent3 },
-    { id: "funkgeraet", title: "Funkgerät", sub: "IC-M423 interaktiv, Bedienung üben, Funk-Simulator mit Mikrofon", color: accent },
+    { id: "funkgeraet", title: "Funkgerät", sub: "IC-M423, Bedienung üben, Funk-Simulator", color: accent },
+    { id: "werkzeuge", title: "Nachschlagen & Werkzeuge", sub: "Buchstabier-Trainer, Kanäle, MMSI, Quellen", color: accent2 },
   ];
   const ERK: Tile[] = [
+    { id: "spelltrain", title: "Buchstabier-Trainer", sub: "10er-Runden: Hören, Sprechen, schwache Buchstaben" },
+    { id: "nato", title: "Buchstabiertafel", sub: "Werkzeug und Tafel" },
     { id: "funk", title: "Funkverfahren", sub: "Mayday, Pan Pan, Sécurité, Routine" + (certC === "SRC" ? ", Fehlalarm" : "") },
     { id: "trainer", title: "Funkspruch-Trainer", sub: "Eigenen Funkspruch bauen" },
     { id: "geraet", title: "Gerät IC-M423", sub: myTasks.length + " Abläufe · Tasten · Tipps" },
-    { id: "nato", title: "Buchstabiertafel", sub: "Werkzeug und Tafel" },
-    { id: "spelltrain", title: "Buchstabier-Trainer", sub: "10er-Runden: Hören, Sprechen, schwache Buchstaben" },
     { id: "kanaele", title: "Kanäle & Leistung", sub: certC === "SRC" ? "Seefunk" : "Binnenfunk, Verkehrskreise" },
     { id: "mmsi", title: certC === "SRC" ? "MMSI" : "MMSI & ATIS", sub: certC === "SRC" ? "Decoder und Kennungen" : "ATIS-Rechner, Decoder, Kennungen" },
-    { id: "ablauf", title: "Prüfungsablauf", sub: "Theorie, Sprache, Praxis, Videos" },
+    { id: "ablauf", title: "Prüfungsablauf", sub: "Theorie, Sprache, Praxis" },
+    { id: "videos", title: "Videos", sub: VIDEOS.length + " Erklärvideos (YouTube)" },
     { id: "quellen", title: "Quellen", sub: LINKS.length + " amtliche Dokumente und Anleitungen" },
   ];
   const FUNK_TILES: Tile[] = [
@@ -4264,10 +4469,12 @@ export default function App() {
     if (lvl === 0) return (AREA_INFO.find((a: { id: Tab }) => a.id === id) || AREA_INFO[0]).title;
     const a = path[0];
     if (a === "erklaeren") {
-      if (lvl === 1) return id === "ref" ? "Nachschlagen" : (LESSONS.find((x: Lesson) => x.id === id) || { title: id }).title;
-      if (lvl === 2) return (ERK.find((x: Tile) => x.id === id) || { title: id }).title;
-      if (path[2] === "funk") return (FUNK_TILES.find((x: Tile) => x.id === id) || { title: id }).title;
-      if (path[2] === "geraet") return id === "modell" ? "Modell, Tasten & Tipps" : (ICOM_TASKS.find((x: { value: string }) => x.value === id) || { label: id }).label;
+      if (lvl === 1) return (LESSONS.find((x: Lesson) => x.id === id) || { title: id }).title;
+    }
+    if (a === "werkzeuge") {
+      if (lvl === 1) return (ERK.find((x: Tile) => x.id === id) || { title: id }).title;
+      if (path[1] === "funk") return (FUNK_TILES.find((x: Tile) => x.id === id) || { title: id }).title;
+      if (path[1] === "geraet") return id === "modell" ? "Modell, Tasten & Tipps" : (ICOM_TASKS.find((x: { value: string }) => x.value === id) || { label: id }).label;
     }
     if (a === "fragen") return id === "alle" ? "Alle Kapitel" : shortLabel((CHAPTERS.find((c: Chapter) => c.key === id) || { label: id }).label);
     if (a === "funkgeraet") {
@@ -4284,17 +4491,17 @@ export default function App() {
   const areaScreen = (): ReactNode => {
     const all = statsOf(certC, "alle");
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(240px, 100%), 1fr))", gridAutoRows: "1fr", gap: 14 }}>
-        {AREA_INFO.map((a: { id: Tab; title: string; sub: string; color: string }) => (
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "1fr", gap: 10 }}>
+        {AREA_INFO.map((a: { id: Tab; title: string; sub: string; color: string }, i: number) => (
           <button
             key={a.id}
             type="button"
             onClick={() => enter([a.id])}
-            style={{ textAlign: "left", cursor: "pointer", background: t.fill.accentSubtle, border: "2px solid " + a.color, borderRadius: t.radius.xl, padding: 20, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 8, fontFamily: fam, minHeight: 0 }}
+            style={{ textAlign: "left", cursor: "pointer", background: t.fill.accentSubtle, border: "2px solid " + a.color, borderRadius: t.radius.xl, padding: 14, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, fontFamily: fam, minHeight: 0, gridColumn: i === AREA_INFO.length - 1 ? "1 / -1" : "auto" }}
           >
             <div style={{ width: 44, height: 8, borderRadius: t.radius.full, background: a.color }} />
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontFamily: fam, fontSize: t.font.heading2.fontSize, lineHeight: t.font.heading2.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary }}>{a.title}</span>
+              <span style={{ fontFamily: fam, fontSize: t.font.heading3.fontSize, lineHeight: t.font.heading3.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary }}>{a.title}</span>
               <span style={txt("body2", t.text.secondary)}>{a.id === "fragen" ? a.sub + " · " + pctOf(all.done, all.total) + " % bearbeitet, " + pctOf(all.ok, all.total) + " % richtig" : a.sub}</span>
             </div>
           </button>
@@ -4434,23 +4641,25 @@ export default function App() {
       title = "Erklären · Lernpfad " + certC;
       sub = LESSONS.length + " aufbauende Lektionen – am besten der Reihe nach";
       body = courseHome();
-    } else if (path[1] !== "ref") {
+    } else {
       const l = LESSONS.find((x: Lesson) => x.id === path[1]) || LESSONS[0];
       title = LESSONS.indexOf(l) + 1 + ". " + l.title;
       body = lessonScreen(l);
-    } else if (path.length === 2) {
+    }
+  } else if (a0 === "werkzeuge") {
+    if (path.length === 1) {
       title = "Nachschlagen & Werkzeuge";
-      sub = "Alles kompakt zum schnellen Nachsehen";
-      body = tileGrid(ERK, 6, 260, open);
-    } else if (path[2] === "spelltrain") {
+      sub = "Buchstabier-Trainer, Tafeln, Quellen und Videos";
+      body = tileGrid(ERK, 6, 150, open);
+    } else if (path[1] === "spelltrain") {
       title = "Buchstabier-Trainer";
       sub = "Internationale Buchstabiertafel · 10er-Runden";
       body = spellScreen();
-    } else if (path[2] === "funk" && path.length === 3) {
+    } else if (path[1] === "funk" && path.length === 2) {
       title = "Funkverfahren";
       sub = "Rangfolge: Not vor Dringlichkeit vor Sicherheit vor Routine (SRC 85, UBI 110)";
       body = tileGrid(FUNK_TILES, 6, 260, open);
-    } else if (path[2] === "geraet" && path.length === 3) {
+    } else if (path[1] === "geraet" && path.length === 2) {
       title = "Gerät IC-M423";
       sub = "Ablauf wählen; jeder Schritt zeigt die passenden Tasten";
       body = tileGrid([{ id: "modell", title: "Modell, Tasten & Tipps", sub: "G/GE, Tastenübersicht, Praxis" }, ...myTasks.map((x: { value: string; label: string; steps: Steps }) => ({ id: x.value, title: x.label, sub: x.steps.length + " Schritte" }))], 6, 260, open);
@@ -4458,8 +4667,8 @@ export default function App() {
       const leaf = path[path.length - 1];
       title = labelOf(path.length - 1, leaf);
       let pages: ReactNode[] = [];
-      if (path[2] === "funk") pages = funkPages(leaf);
-      else if (path[2] === "geraet") pages = geraetPages(leaf);
+      if (path[1] === "funk") pages = funkPages(leaf);
+      else if (path[1] === "geraet") pages = geraetPages(leaf);
       else if (leaf === "trainer") pages = trainerPages();
       else pages = wissenPages(leaf);
       body = pager(pages);
