@@ -16,7 +16,7 @@ const base = {
 const light = {
   ...base,
   bg: { base: "#ffffff", elevated: "#ffffff", subtle: "#f3f5f8" },
-  text: { primary: "#14181f", secondary: "#4a5463", tertiary: "#7a8494", success: "#13804a", warning: "#a15c00", danger: "#c42b2b", accent: "#1f5fd6" },
+  text: { primary: "#14181f", secondary: "#4a5463", tertiary: "#5c6572", success: "#13804a", warning: "#a15c00", danger: "#c42b2b", accent: "#1f5fd6" },
   border: { subtle: "#e6e9ef", default: "#d3d8e0", strong: "#a9b1bd", focus: "#1f5fd6" },
   fill: { accentSubtle: "#eaf1fe", successSubtle: "#e8f6ee", dangerSubtle: "#fdecec", warningSubtle: "#fff4e0" },
   dataviz: { categorical: ["#2f6fe4", "#e0a800", "#17a7c4"], other: "#9aa3af", negative: "#d64545", singleSeriesRest: "#bcd0f7" },
@@ -47,14 +47,14 @@ export function useGrokTheme(): GrokTheme {
 }
 
 const lab = (t: GrokTheme): CSSProperties => ({ fontFamily: t.font.family, ...t.font.label, color: t.text.secondary });
-const field = (t: GrokTheme): CSSProperties => ({ fontFamily: t.font.family, ...t.font.body2, color: t.text.primary, background: t.bg.elevated, border: "1px solid " + t.border.default, borderRadius: t.radius.md, padding: "8px 10px", minWidth: 0, width: "100%", boxSizing: "border-box" });
+const field = (t: GrokTheme): CSSProperties => ({ fontFamily: t.font.family, ...t.font.body2, color: t.text.primary, background: t.bg.elevated, border: "1px solid " + t.border.default, borderRadius: t.radius.md, padding: "10px 12px", minHeight: 44, minWidth: 0, width: "100%", boxSizing: "border-box" });
 const wrap: CSSProperties = { display: "flex", flexDirection: "column", gap: 4, minWidth: 140, flex: "1 1 160px" };
 
 export function Button({ label, onClick, variant, disabled }: { label: string; onClick: () => void; variant?: "primary" | "quiet"; disabled?: boolean }) {
   const t = useGrokTheme();
   const p = variant === "primary";
   return (
-    <button type="button" onClick={onClick} disabled={disabled} style={{ fontFamily: t.font.family, ...t.font.body2, fontWeight: t.weight.semibold, padding: "8px 16px", borderRadius: t.radius.full, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.45 : 1, border: p ? "1px solid " + t.text.accent : variant === "quiet" ? "1px solid transparent" : "1px solid " + t.border.default, background: p ? t.text.accent : variant === "quiet" ? "transparent" : t.bg.elevated, color: p ? t.bg.base : t.text.primary }}>
+    <button type="button" onClick={onClick} disabled={disabled} style={{ fontFamily: t.font.family, ...t.font.body2, fontWeight: t.weight.semibold, padding: "10px 16px", minHeight: 44, boxSizing: "border-box", display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: t.radius.full, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.45 : 1, border: p ? "1px solid " + t.text.accent : variant === "quiet" ? "1px solid transparent" : "1px solid " + t.border.default, background: p ? t.text.accent : variant === "quiet" ? "transparent" : t.bg.elevated, color: p ? t.bg.base : t.text.primary }}>
       {label}
     </button>
   );
@@ -87,7 +87,7 @@ export function Select<T extends string = string>({ label, options, value, onCha
 export function Toggle({ label, value, onChange, disabled }: { label?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
   const t = useGrokTheme();
   return (
-    <button type="button" role="switch" aria-checked={value} disabled={disabled} onClick={() => onChange(!value)} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: 4, fontFamily: t.font.family, ...t.font.body2, color: t.text.primary }}>
+    <button type="button" role="switch" aria-checked={value} disabled={disabled} onClick={() => onChange(!value)} style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "transparent", border: "none", cursor: "pointer", padding: "10px 8px", minHeight: 44, boxSizing: "border-box", fontFamily: t.font.family, ...t.font.body2, color: t.text.primary }}>
       <span style={{ width: 36, height: 20, borderRadius: 10, background: value ? t.text.accent : t.border.default, position: "relative", transition: "background 150ms" }}>
         <span style={{ position: "absolute", top: 2, left: value ? 18 : 2, width: 16, height: 16, borderRadius: 8, background: "#fff", transition: "left 150ms" }} />
       </span>
@@ -142,7 +142,7 @@ export function Segmented<T extends string = string>({ options, value, onChange 
         const v = typeof o === "string" ? o : o.value;
         const on = v === value;
         return (
-          <button key={v} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)} style={{ border: "none", cursor: "pointer", padding: "6px 14px", borderRadius: t.radius.full, background: on ? t.bg.elevated : "transparent", boxShadow: on ? "0 1px 2px rgba(0,0,0,.15)" : "none", color: t.text.primary, fontFamily: t.font.family, ...t.font.subtext, fontWeight: on ? t.weight.semibold : t.weight.regular }}>
+          <button key={v} type="button" role="tab" aria-selected={on} onClick={() => onChange(v)} style={{ border: "none", cursor: "pointer", padding: "10px 14px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.full, background: on ? t.bg.elevated : "transparent", boxShadow: on ? "0 1px 2px rgba(0,0,0,.15)" : "none", color: t.text.primary, fontFamily: t.font.family, ...t.font.subtext, fontWeight: on ? t.weight.semibold : t.weight.regular }}>
             {typeof o === "string" ? o : o.label}
           </button>
         );

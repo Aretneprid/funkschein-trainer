@@ -1496,7 +1496,7 @@ export default function App() {
   const TABS: { value: Tab; icon: string; label: string }[] = [
     { value: "erklaeren", icon: "✎", label: "Erklären" },
     { value: "fragen", icon: "?", label: "Prüfungsfragen" },
-    { value: "pruefung", icon: "⏱", label: "Prüfung" },
+    { value: "pruefung", icon: "⏱", label: "Theorieprüfung" },
   ];
 
   function goTab(v: Tab) {
@@ -1616,7 +1616,13 @@ export default function App() {
         fontFamily: fam,
         fontSize: t.font.subtext.fontSize,
         lineHeight: t.font.subtext.lineHeight,
-        padding: "6px 12px",
+        padding: "10px 14px",
+        minHeight: 44,
+        minWidth: 44,
+        boxSizing: "border-box",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: t.radius.full,
         border: "1px solid " + (active ? accent : t.border.default),
         background: active ? t.fill.accentSubtle : "transparent",
@@ -1869,6 +1875,18 @@ export default function App() {
   /* ================= Bildschirm-App: eine Ebene pro Bildschirm, kein Scrollen ================= */
   const [path, setPath] = useState<string[]>([]);
   const [pg, setPg] = useState<number>(0);
+  const [uiNarrow, setUiNarrow] = useState<boolean>(typeof window !== "undefined" ? window.innerWidth < 720 : true);
+  const [uiShort, setUiShort] = useState<boolean>(typeof window !== "undefined" ? window.innerHeight < 520 : false);
+  const [ask, setAsk] = useState<{ title: string; body: string; ok: string; onOk: () => void } | null>(null);
+  const [examInfo, setExamInfo] = useState<boolean>(false);
+  useEffect(() => {
+    const fn = () => {
+      setUiNarrow(window.innerWidth < 720);
+      setUiShort(window.innerHeight < 520);
+    };
+    window.addEventListener("resize", fn);
+    return () => window.removeEventListener("resize", fn);
+  }, []);
 
   type Tile = { id: string; title: string; sub?: string; done?: number; ok?: number; total?: number };
   type Steps = { title: string; detail: string }[];
@@ -1902,12 +1920,32 @@ export default function App() {
     }
   }
   const open = (id: string) => enter([...path, id]);
+  const examRunning = (): boolean =>
+    (path[0] === "pruefung" && path.length >= 2 && !finished) ||
+    (path[0] === "funkgeraet" && path[1] === "exam" && examPhase !== "intro" && examPhase !== "done" && examIds.length > 0);
+  const requestNav = (fn: () => void) => {
+    if (!examRunning()) { fn(); return; }
+    setAsk({
+      title: "Prüfung verlassen?",
+      body: "Der laufende Versuch wird beendet. Dein übriger Lernfortschritt bleibt gespeichert.",
+      ok: "Verlassen",
+      onOk: () => {
+        if (path[0] === "pruefung") setMode("ueben");
+        if (path[0] === "funkgeraet" && path[1] === "exam") { setExamPhase("intro"); setExamIds([]); }
+        fn();
+      },
+    });
+  };
   function back() {
-    if (path.length === 0) {
-      setChosen(false);
-      return;
-    }
-    enter(path.slice(0, -1));
+    const go = () => {
+      if (path.length === 0) {
+        setChosen(false);
+        return;
+      }
+      if (path[0] === "pruefung" && path.length >= 2) setMode("ueben");
+      enter(path.slice(0, -1));
+    };
+    requestNav(go);
   }
 
   /* ---------- Bausteine ---------- */
@@ -1936,8 +1974,10 @@ export default function App() {
             type="button"
             aria-label={"Seite " + (i + 1)}
             onClick={() => setPg(i)}
-            style={{ width: i === pg ? 18 : 8, height: 8, borderRadius: t.radius.full, border: "none", padding: 0, cursor: "pointer", background: i === pg ? accent : t.border.default, transition: "width " + t.motion.hover + " " + t.motion.easing }}
-          />
+            style={{ width: 44, height: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", borderRadius: t.radius.full, border: "none", padding: 0, cursor: "pointer", background: "transparent" }}
+          >
+            <span style={{ width: i === pg ? 18 : 8, height: 8, borderRadius: t.radius.full, background: i === pg ? accent : t.border.default, display: "block" }} />
+          </button>
         ))}
       </div>
     ) : (
@@ -1953,7 +1993,7 @@ export default function App() {
         <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>{pages[p]}</div>
         {n > 1 ? (
           <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-            <Button label="‹ Zurück" onClick={() => setPg(Math.max(0, p - 1))} disabled={p === 0} />
+            <Button label="Vorherige" onClick={() => setPg(Math.max(0, p - 1))} disabled={p === 0} />
             {pageDots(n)}
             <Button label="Weiter ›" variant="primary" onClick={() => setPg(Math.min(n - 1, p + 1))} disabled={p >= n - 1} />
           </div>
@@ -3517,7 +3557,7 @@ export default function App() {
         <div style={{ fontFamily: fam, fontSize: t.font.heading2.fontSize, lineHeight: t.font.heading2.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary }}>Lektion abgeschlossen</div>
         <div style={txt("body2", t.text.secondary)}>{lessonsDone + " von " + LESSONS.length + " Lektionen geschafft"}</div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-          {nxt ? <Button label={"Nächste Lektion: " + nxt.title} variant="primary" onClick={() => enter(["erklaeren", nxt.id])} /> : <Button label="Zur Prüfung" variant="primary" onClick={() => enter(["pruefung"])} />}
+          {nxt ? <Button label={"Nächste Lektion: " + nxt.title} variant="primary" onClick={() => enter(["erklaeren", nxt.id])} /> : <Button label="Zur Theorieprüfung" variant="primary" onClick={() => enter(["pruefung"])} />}
           <Button label="Zum Lernpfad" onClick={() => enter(["erklaeren"])} />
         </div>
       </div>,
@@ -3548,7 +3588,7 @@ export default function App() {
         <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderRadius: t.radius.xl, padding: 18, boxShadow: "0 1px 3px " + t.border.subtle }}>{cards[p]}</div>
         {!last ? (
           <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "space-between", gap: 8 }}>
-            <Button label="‹ Zurück" onClick={() => setPg(Math.max(0, p - 1))} disabled={p === 0} />
+            <Button label="Vorherige" onClick={() => setPg(Math.max(0, p - 1))} disabled={p === 0} />
             <Button label={p === n - 2 ? "Lektion abschließen ✓" : "Weiter ›"} variant="primary" onClick={() => setPg(p + 1)} />
           </div>
         ) : null}
@@ -3593,7 +3633,7 @@ export default function App() {
           <div style={{ flex: "1 1 180px", minWidth: 0, display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={txt("label", t.text.secondary)}>{lessonsDone + " von " + LESSONS.length + " Lektionen abgeschlossen"}</span>
             {bar(lessonsDone, LESSONS.length, t.text.success)}
-            <span style={txt("body2", t.text.primary, t.weight.semibold)}>{lessonsDone === LESSONS.length ? "Kurs geschafft – jetzt Prüfung üben" : "Als Nächstes: " + (LESSONS.indexOf(nx) + 1) + ". " + nx.title}</span>
+            <span style={txt("body2", t.text.primary, t.weight.semibold)}>{lessonsDone === LESSONS.length ? "Kurs geschafft – als Nächstes die Theorieprüfung" : "Als Nächstes: " + (LESSONS.indexOf(nx) + 1) + ". " + nx.title}</span>
           </div>
           <Button label={lessonsDone === 0 ? "Kurs starten" : "Weiter lernen"} variant="primary" onClick={() => enter(["erklaeren", nx.id])} />
         </div>
@@ -4773,7 +4813,7 @@ export default function App() {
             <span style={{ ...txt("body2", t.text.primary), fontFamily: t.font.mono, flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{said || "…"}</span>
           </div>
         ) : null}
-        {helpOn && info ? <span style={{ ...txt("label", t.text.secondary), flex: "0 0 auto", lineHeight: 1.3 }}>{info}</span> : (helpOn && rigWide && !opts?.compact ? <span style={{ ...txt("label", t.text.secondary), flex: "0 0 auto", lineHeight: 1.3 }}>Taste halten: 1 s [16/C] Anrufkanal, 1 s Regler Ein/Aus, 3 s [DISTRESS]. Regler drehen oder Mausrad. PTT halten = senden.</span> : null)}
+        {info && helpOn ? <span style={{ ...txt("label", t.text.secondary), flex: "0 0 auto", lineHeight: 1.3 }}>{info}</span> : (helpOn || (opts && opts.compact) ? <span style={{ ...txt("label", t.text.secondary), flex: "0 0 auto", lineHeight: 1.3 }}>{opts && opts.compact ? "Halten: 16/C 1 s, DISTRESS 3 s. Drehen am Kanalregler. PTT halten = senden." : "Taste halten: 1 s [16/C] Anrufkanal, 1 s Regler Ein/Aus, 3 s [DISTRESS]. Regler drehen oder Mausrad. PTT halten = senden."}</span> : null)}
       </div>
     );
   };
@@ -4782,11 +4822,11 @@ export default function App() {
     return (
       <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-          <Button label={helpOn ? "Hilfe aus" : "Hilfe ein"} variant="quiet" onClick={() => setHelpOn(!helpOn)} />
+          <Button label={helpOn ? "Tipps ausblenden" : "Tipps einblenden"} variant="quiet" onClick={() => setHelpOn(!helpOn)} />
           <Button label="Gerät zurücksetzen" variant="quiet" onClick={() => setR2(R20)} />
           <Button label="Menüstruktur" variant="quiet" onClick={() => setShowMenuRef(!showMenuRef)} />
           {r2.scr === "iwait" ? <Button label="Gegenstelle bestätigt" onClick={() => press2("ack")} /> : null}
-          <Button label={micLang === "en-GB" ? "Sprache: EN" : "Sprache: DE"} variant="quiet" onClick={() => setMicLang(micLang === "en-GB" ? "de-DE" : "en-GB")} />
+          <Button label={micLang === "en-GB" ? "Mikrofon: Englisch" : "Mikrofon: Deutsch"} variant="quiet" onClick={() => setMicLang(micLang === "en-GB" ? "de-DE" : "en-GB")} />
         </div>
         {isUBI ? <span style={txt("label", t.text.secondary)}>Binnen: CHAN Group ATIS, DSC und DISTRESS gesperrt, Kanäle 10/15/17 automatisch 1 W, beim Loslassen von PTT ATIS-Kennung (RAINWAT / Handbuch Binnenschifffahrtsfunk, nicht aus dem Icom-Handbuch).</span> : null}
         {showMenuRef ? <div style={{ flex: "0 1 28%", minHeight: 0, overflowY: "auto" }}>{menuRef()}</div> : null}
@@ -5065,17 +5105,27 @@ export default function App() {
             <>
               <span style={txt("body1", t.text.primary, t.weight.semibold)}>Praxisprüfung {certC} – Übungssimulation</span>
               {isUBI ? (
-                <>
-                  <span style={txt("body2", t.text.primary)}>Laut der Amtsseite der ABVT (WSV) umfasst die praktische UBI-Prüfung drei Teile: Textaufnahme, Textabgabe und Gerätebedienung mit Fallbeispielen (Lage als Not, Dringlichkeit, Sicherheit oder Routine einordnen und die Nachricht am Gerät absetzen). Der DMYV beschreibt zusätzlich typische Aufgaben wie den Anruf einer oder aller Funkstellen und das Beantworten von Anrufen.</span>
-                  <span style={txt("label", t.text.warning)}>Bewertung: Ein Anlage-3-ähnliches amtliches Punkteraster für UBI wurde nicht gefunden. In dieser Übung gelten Textteile und alle Fallbeispiele (2–3, zufällig) mit je zwei Versuchen als bestanden, wenn Gerät und Spruchstruktur stimmen – angenommen, kenntlich gemacht.</span>
-                </>
+                <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6, ...txt("body2", t.text.primary) }}>
+                  <li>Drei Teile wie auf der ABVT-Amtsseite (WSV): Textaufnahme, Textabgabe und Gerätebedienung mit Fallbeispielen.</li>
+                  <li>Lage als Not, Dringlichkeit, Sicherheit oder Routine einordnen und den Spruch am virtuellen Gerät absetzen.</li>
+                  <li>Bewertung in dieser Übung: Textteile und Fallbeispiele mit je zwei Versuchen – angenommen, kenntlich gemacht (kein amtliches UBI-Punkteraster gefunden).</li>
+                </ul>
               ) : (
-                <>
-                  <span style={txt("body2", t.text.primary)}>Praktischer Teil nach den Durchführungsrichtlinien Funkbetriebszeugnisse, Anlage 3 (Fachstelle der WSV für den Seefunk, Koblenz, 04.03.2021; Protokollersatz 02.08.2018, WS23/62332.3/3), Quelle ELWIS: entweder Pflichtreihe 1.a–4.a oder 1.b–4.b, alle mindestens „ausreichend“, sonst zwei Versuche, sonst ist der praktische Teil nicht bestanden. Dazu höchstens drei sonstige Fertigkeiten, von denen mindestens zwei ausreichend sein müssen. Prüfungssprache: englischer GMDSS-Seefunk an zwei DSC-UKW-Geräten.</span>
-                  <span style={txt("body2", t.text.primary)}>Zusätzlich ein kurzer theoretischer Sprachteil zur Übung (Diktat/Übersetzung). Amtlich gehört dieser Teil zur Theorieprüfung (§ 5.2, Anlage 1 / Anlage 7), nicht zur Praxis nach Anlage 3 – in der Auswertung getrennt ausgewiesen. Die Übungstexte sind selbst formuliert, keine amtlichen Seefunktexte aus Anlage 7.</span>
-                </>
+                <ul style={{ margin: 0, padding: "0 0 0 18px", display: "flex", flexDirection: "column", gap: 6, ...txt("body2", t.text.primary) }}>
+                  <li>Praktischer Teil nach ELWIS Anlage 3: Pflichtreihe A oder B, alle mindestens „ausreichend“ (sonst zwei Versuche), dazu mindestens 2 von höchstens 3 sonstigen Fertigkeiten.</li>
+                  <li>Sprache der Praxis: englischer GMDSS-Seefunk am virtuellen Gerät.</li>
+                  <li>Zusätzlich ein kurzer theoretischer Sprachteil zur Übung – amtlich gehört er zur Theorie (§ 5.2), hier getrennt ausgewiesen. Texte selbst formuliert, nicht aus Anlage 7.</li>
+                </ul>
               )}
-              <span style={txt("label", t.text.secondary)}>Du arbeitest am virtuellen IC-M423. PTT hält das Mikrofon (oder Bausteine/Tippfeld, falls die Erkennung fehlt). Die Gegenstelle antwortet per Sprache.</span>
+              <span style={txt("body2", t.text.secondary)}>Am Gerät: 16 und C zwei Sekunden halten, DISTRESS drei Sekunden halten, Kanalregler drehen, PTT halten zum Sprechen.</span>
+              <button type="button" onClick={() => setExamInfo(!examInfo)} style={{ alignSelf: "flex-start", border: "none", background: "transparent", padding: "8px 0", minHeight: 44, cursor: "pointer", fontFamily: fam, color: t.text.accent, ...txt("body2", t.text.accent, t.weight.semibold) }}>{examInfo ? "Regeln und Quellen ausblenden" : "Regeln und Quellen anzeigen"}</button>
+              {examInfo ? (
+                <span style={txt("label", t.text.secondary)}>
+                  {isUBI
+                    ? "Quellen: ABVT (WSV) zur Prüfungsstruktur, ergänzend DMYV (Anruf einer oder aller Funkstellen). Bewertung in der App angenommen, kenntlich gemacht."
+                    : "Quelle: Durchführungsrichtlinien Funkbetriebszeugnisse, Anlage 3 (Fachstelle der WSV für den Seefunk, Koblenz, 04.03.2021; Protokollersatz 02.08.2018, WS23/62332.3/3), ELWIS. Sprachteil: § 5.2, Anlage 1 / Anlage 7 (Theorie, nicht Praxis)."}
+                </span>
+              ) : null}
               <div style={rowWrap}><Button label="Prüfungsfahrt starten" variant="primary" onClick={startExam} /></div>
             </>,
             { padding: 14, gap: 8 },
@@ -5158,7 +5208,7 @@ export default function App() {
   const AREA_INFO: { id: Tab; title: string; sub: string; color: string }[] = [
     { id: "erklaeren", title: "Erklären", sub: "Kurs mit aufbauenden Lektionen", color: accent },
     { id: "fragen", title: "Prüfungsfragen", sub: "Katalog üben mit Fortschritt", color: accent2 },
-    { id: "pruefung", title: "Prüfung", sub: "Amtliche Bögen 1–12 mit Zeit", color: accent3 },
+    { id: "pruefung", title: "Theorieprüfung", sub: "Amtliche Fragebögen unter Zeit", color: accent3 },
     { id: "funkgeraet", title: "Funkgerät", sub: "Virtuelles IC-M423, Funkverkehr, Praxisprüfung", color: accent },
     { id: "werkzeuge", title: "Nachschlagen & Werkzeuge", sub: "Buchstabier-Trainer, Kanäle, MMSI, Quellen", color: accent2 },
   ];
@@ -5214,22 +5264,37 @@ export default function App() {
   /* ---------- Bildschirme ---------- */
   const areaScreen = (): ReactNode => {
     const all = statsOf(certC, "alle");
+    const nx = nextLesson();
+    const rec = lessonsDone < LESSONS.length
+      ? { id: "erklaeren" as Tab, text: lessonsDone === 0 ? "Zum Einstieg: starte den Kurs Erklären." : "Weiter lernen: " + (LESSONS.indexOf(nx) + 1) + ". " + nx.title, cta: lessonsDone === 0 ? "Kurs starten" : "Weiter lernen", go: () => enter(["erklaeren", nx.id]) }
+      : all.done < all.total
+        ? { id: "fragen" as Tab, text: "Als Nächstes: Katalogfragen üben (" + pctOf(all.done, all.total) + " % bearbeitet).", cta: "Fragen üben", go: () => enter(["fragen"]) }
+        : { id: "pruefung" as Tab, text: "Kurs und Katalog sind durch – jetzt eine Theorieprüfung unter Zeit.", cta: "Bogen wählen", go: () => enter(["pruefung"]) };
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "1fr", gap: 10 }}>
-        {AREA_INFO.map((a: { id: Tab; title: string; sub: string; color: string }, i: number) => (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => enter([a.id])}
-            style={{ textAlign: "left", cursor: "pointer", background: t.fill.accentSubtle, border: "2px solid " + a.color, borderRadius: t.radius.xl, padding: 14, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, fontFamily: fam, minHeight: 0, gridColumn: i === AREA_INFO.length - 1 ? "1 / -1" : "auto" }}
-          >
-            <div style={{ width: 44, height: 8, borderRadius: t.radius.full, background: a.color }} />
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <span style={{ fontFamily: fam, fontSize: t.font.heading3.fontSize, lineHeight: t.font.heading3.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary }}>{a.title}</span>
-              <span style={txt("body2", t.text.secondary)}>{a.id === "fragen" ? a.sub + " · " + pctOf(all.done, all.total) + " % bearbeitet, " + pctOf(all.ok, all.total) + " % richtig" : a.sub}</span>
-            </div>
-          </button>
-        ))}
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: t.radius.xl, background: t.fill.accentSubtle, border: "1px solid " + accent }}>
+          <span style={{ ...txt("body2", t.text.primary, t.weight.semibold), flex: "1 1 160px", minWidth: 0 }}>{rec.text}</span>
+          <Button label={rec.cta} variant="primary" onClick={rec.go} />
+        </div>
+        <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gridAutoRows: "1fr", gap: 10 }}>
+          {AREA_INFO.map((a: { id: Tab; title: string; sub: string; color: string }, i: number) => (
+            <button
+              key={a.id}
+              type="button"
+              onClick={() => enter([a.id])}
+              style={{ textAlign: "left", cursor: "pointer", background: a.id === rec.id ? t.fill.accentSubtle : t.bg.elevated, border: "2px solid " + a.color, borderRadius: t.radius.xl, padding: 14, display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 6, fontFamily: fam, minHeight: 44, gridColumn: i === AREA_INFO.length - 1 ? "1 / -1" : "auto" }}
+            >
+              <div style={{ width: 36, height: 6, borderRadius: t.radius.full, background: a.color }} />
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <span style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 8 }}>
+                  <span style={{ fontFamily: fam, fontSize: t.font.heading3.fontSize, lineHeight: t.font.heading3.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary }}>{a.title}</span>
+                  {a.id === rec.id ? <span style={txt("label", t.text.accent)}>Empfohlen</span> : null}
+                </span>
+                <span style={txt("body2", t.text.secondary)}>{a.id === "fragen" ? a.sub + " · " + pctOf(all.done, all.total) + " % bearbeitet, " + pctOf(all.ok, all.total) + " % richtig" : a.sub}</span>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
     );
   };
@@ -5247,12 +5312,18 @@ export default function App() {
             label={"Fortschritt " + certC + " zurücksetzen"}
             variant="quiet"
             onClick={() =>
-              setProg((p: Record<string, number>) => {
-                const n: Record<string, number> = {};
-                Object.keys(p).forEach((k: string) => {
-                  if (k.indexOf(certC + "-") !== 0) n[k] = p[k];
-                });
-                return n;
+              setAsk({
+                title: "Fortschritt " + certC + " löschen?",
+                body: "Fragen, Kurs und gespeicherte Ergebnisse nur für " + certC + " werden zurückgesetzt. Das andere Zeugnis bleibt unberührt.",
+                ok: "Zurücksetzen",
+                onOk: () =>
+                  setProg((p: Record<string, number>) => {
+                    const n: Record<string, number> = {};
+                    Object.keys(p).forEach((k: string) => {
+                      if (k.indexOf(certC + "-") !== 0) n[k] = p[k];
+                    });
+                    return n;
+                  }),
               })
             }
           />
@@ -5454,38 +5525,54 @@ export default function App() {
     return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base }}>{chooser()}</div>;
   }
 
+  const lastCrumb = crumbs[crumbs.length - 1];
+  const titleInHeader = path.length > 0 && (title === lastCrumb || title.indexOf(lastCrumb) === 0);
+  const navBtn: CSSProperties = { flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, fontWeight: t.weight.semibold, cursor: "pointer" };
+  const crumbBtn = (current: boolean): CSSProperties => ({ border: "none", background: "transparent", padding: "10px 6px", minHeight: 44, minWidth: current ? 0 : 44, flexShrink: current ? 1 : 0, boxSizing: "border-box", cursor: current ? "default" : "pointer", fontFamily: fam, fontSize: t.font.body2.fontSize, color: current ? t.text.primary : t.text.secondary, fontWeight: current ? t.weight.semibold : t.weight.regular, overflow: current ? "hidden" : "visible", textOverflow: current ? "ellipsis" : "clip", whiteSpace: "nowrap", maxWidth: "100%" });
+
   return (
-    <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 1100, margin: "0 auto", height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box" }}>
-      <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderBottom: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
-        <button
-          type="button"
-          onClick={back}
-          style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: t.font.body1.fontSize, fontWeight: t.weight.semibold, cursor: "pointer" }}
-        >
-          ‹ Zurück
+    <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 1100, margin: "0 auto", height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box", position: "relative" }}>
+      <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
+        <button type="button" onClick={back} aria-label={path.length === 0 ? "‹ Zeugnisse" : "‹ Zurück"} style={navBtn}>
+          {path.length === 0 ? "‹ Zeugnisse" : "‹ Zurück"}
         </button>
-        {appIcon(30)}
-        <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 6, overflow: "hidden", whiteSpace: "nowrap" }}>
-          {crumbs.map((c: string, i: number) => (
-            <span key={i} style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-              {i > 0 ? <span style={txt("label", t.text.tertiary)}>›</span> : null}
-              <button
-                type="button"
-                onClick={() => (i === 0 ? enter([]) : enter(path.slice(0, i)))}
-                style={{ border: "none", background: "transparent", padding: 0, cursor: "pointer", fontFamily: fam, fontSize: t.font.subtext.fontSize, color: i === crumbs.length - 1 ? t.text.primary : t.text.secondary, fontWeight: i === crumbs.length - 1 ? t.weight.semibold : t.weight.regular, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: i === crumbs.length - 1 ? 240 : 120 }}
-              >
-                {c}
-              </button>
-            </span>
-          ))}
+        <button type="button" onClick={() => requestNav(() => enter([]))} aria-label="Zur Übersicht" style={{ flex: "0 0 auto", border: "none", background: "transparent", padding: 4, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", borderRadius: t.radius.md }}>
+          {appIcon(28)}
+        </button>
+        <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
+          {path.length === 0 ? (
+            <span style={{ ...txt("body2", t.text.primary, t.weight.semibold), padding: "10px 4px" }}>{certC + " · Übersicht"}</span>
+          ) : uiNarrow ? (
+            <span style={{ ...crumbBtn(true), minWidth: 0, flex: "1 1 auto" }} title={lastCrumb}>{lastCrumb}</span>
+          ) : (
+            crumbs.map((c: string, i: number) => (
+              <span key={i} style={{ display: "flex", alignItems: "center", gap: 4, minWidth: i === crumbs.length - 1 ? 0 : undefined, flex: i === crumbs.length - 1 ? "1 1 auto" : "0 1 auto", overflow: "hidden" }}>
+                {i > 0 ? <span style={txt("label", t.text.tertiary)}>›</span> : null}
+                <button type="button" onClick={() => requestNav(() => (i === 0 ? enter([]) : i === crumbs.length - 1 ? undefined : enter(path.slice(0, i))))} style={crumbBtn(i === crumbs.length - 1)}>{c}</button>
+              </span>
+            ))
+          )}
         </div>
-        <div style={{ flex: "0 0 auto", display: "flex", gap: 4 }}>{(["UBI", "SRC"] as Cert[]).map((c: Cert) => chip("cert-" + c, c, c === certC, () => (c === certC ? undefined : chooseCert(c))))}</div>
+        <div role="tablist" aria-label="Zeugnis" style={{ flex: "0 0 auto", display: "flex", gap: 4 }}>
+          {(["UBI", "SRC"] as Cert[]).map((c: Cert) => chip("cert-" + c, c, c === certC, () => (c === certC ? undefined : requestNav(() => chooseCert(c)))))}
+        </div>
       </div>
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 12, padding: "12px 12px 8px" }}>
-        {screenTitle(title, sub || undefined)}
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: uiShort ? 8 : 12, padding: uiShort ? "8px 10px 8px" : "12px 12px 8px" }}>
+        {titleInHeader ? (sub ? <div style={{ ...txt("label", t.text.secondary), flex: "0 0 auto" }}>{sub}</div> : null) : screenTitle(title, sub || undefined)}
         {body}
       </div>
-      <div style={{ flex: "0 0 auto", padding: "4px 12px 8px", textAlign: "center", ...txt("label", t.text.tertiary) }}>{saveNote()}</div>
+      {ask ? (
+        <div role="dialog" aria-modal="true" aria-labelledby="ask-title" style={{ position: "absolute", inset: 0, background: "rgba(15,18,22,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, padding: 16 }}>
+          <div style={{ background: t.bg.elevated, color: t.text.primary, borderRadius: t.radius.xl, border: "1px solid " + t.border.default, padding: 20, maxWidth: 400, width: "100%", display: "flex", flexDirection: "column", gap: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }}>
+            <span id="ask-title" style={txt("heading3", t.text.primary, t.weight.semibold)}>{ask.title}</span>
+            <span style={txt("body2", t.text.secondary)}>{ask.body}</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
+              <Button label="Weiter üben" onClick={() => setAsk(null)} />
+              <Button label={ask.ok} variant="primary" onClick={() => { const fn = ask.onOk; setAsk(null); fn(); }} />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
