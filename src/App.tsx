@@ -15,6 +15,8 @@ import {
   useGrokTheme,
 } from "./canvas";
 import type { CSSProperties, ReactNode } from "./canvas";
+import { StepAnim } from "./StepAnim";
+import type { StepKey } from "./StepAnim";
 
 type Theme = ReturnType<typeof useGrokTheme>;
 
@@ -1135,33 +1137,34 @@ export default function App() {
   });
 
   /* Icom-Aufgaben (aus der deutschen Bedienungsanleitung IC-M423/M423G/M423GE/M424/M424G) */
-  const ICOM_TASKS: { value: string; label: string; steps: { title: string; detail: string }[] }[] = [
+  type TaskStep = { title: string; detail: string; keys?: StepKey[]; lcd?: string };
+  const ICOM_TASKS: { value: string; label: string; steps: TaskStep[] }[] = [
     {
       value: "power",
       label: "Einschalten, Lautstärke & Squelch",
       steps: [
-        { title: "Einschalten", detail: "[VOL/SQL•PWR] 1 Sekunde drücken. Ausschalten ebenfalls 1 Sekunde." },
-        { title: "Einstellfenster wählen", detail: "[VOL/SQL] drehen oder so oft drücken, bis das Lautstärke- bzw. Squelch-Fenster erscheint." },
-        { title: "Squelch öffnen, Lautstärke einstellen", detail: "Zuerst Squelch öffnen (`OPEN`) und Lautstärke einstellen, dann Squelch hochdrehen, bis das Rauschen gerade verschwindet (11 Stufen: OPEN, 1 bis 10)." },
-        { title: "Übernehmen", detail: "[ENT] drücken. [CLEAR] bricht ab; ohne Bedienung wird die Einstellung nach 5 s übernommen." },
+        { title: "Einschalten", detail: "[VOL/SQL•PWR] 1 Sekunde drücken. Ausschalten ebenfalls 1 Sekunde.", keys: [{ id: "pwr", act: "hold1" }], lcd: "16" },
+        { title: "Einstellfenster wählen", detail: "[VOL/SQL] drehen oder so oft drücken, bis das Lautstärke- bzw. Squelch-Fenster erscheint.", keys: [{ id: "vol", act: "press" }, { id: "vol", act: "rotate" }], lcd: "VOL  8" },
+        { title: "Squelch öffnen, Lautstärke einstellen", detail: "Zuerst Squelch öffnen (`OPEN`) und Lautstärke einstellen, dann Squelch hochdrehen, bis das Rauschen gerade verschwindet (11 Stufen: OPEN, 1 bis 10).", keys: [{ id: "vol", act: "rotate" }], lcd: "SQL  3" },
+        { title: "Übernehmen", detail: "[ENT] drücken. [CLEAR] bricht ab; ohne Bedienung wird die Einstellung nach 5 s übernommen.", keys: [{ id: "ent", act: "press" }, { id: "clear", act: "press" }], lcd: "16" },
       ],
     },
     {
       value: "channel",
       label: "Kanalwahl & Kanal 16",
       steps: [
-        { title: "Kanal wählen", detail: "Mit [▲•CH]/[▼•CH] den Kanal wählen. Die Mikrofontasten [▲]/[▼] wählen nur TAG-Kanäle (Vorzugskanäle)." },
-        { title: "Kanal 16", detail: "[16/C] kurz drücken. Mit dem Softkey [CHAN] zurück zum vorherigen Arbeitskanal." },
-        { title: "Anrufkanal", detail: "[16/C] 1 Sekunde drücken; im Display erscheint `CALL`. [16/C] weitere 3 s halten, um den Anrufkanal neu zu programmieren." },
-        { title: "Senden", detail: "[PTT] am Mikrofon halten, 5 bis 10 cm Abstand, kurze Pause nach dem Drücken. Loslassen zum Hören. Kanal 70 ist nur für DSC nutzbar." },
+        { title: "Kanal wählen", detail: "Mit [▲•CH]/[▼•CH] den Kanal wählen. Die Mikrofontasten [▲]/[▼] wählen nur TAG-Kanäle (Vorzugskanäle).", keys: [{ id: "chup", act: "press" }, { id: "chdn", act: "press" }, { id: "micup", act: "press" }], lcd: "17" },
+        { title: "Kanal 16", detail: "[16/C] kurz drücken. Mit dem Softkey [CHAN] zurück zum vorherigen Arbeitskanal.", keys: [{ id: "16c", act: "press" }, { id: "chan", act: "press" }], lcd: "16" },
+        { title: "Anrufkanal", detail: "[16/C] 1 Sekunde drücken; im Display erscheint `CALL`. [16/C] weitere 3 s halten, um den Anrufkanal neu zu programmieren.", keys: [{ id: "16c", act: "hold1" }, { id: "16c", act: "hold3" }], lcd: "CALL" },
+        { title: "Senden", detail: "[PTT] am Mikrofon halten, 5 bis 10 cm Abstand, kurze Pause nach dem Drücken. Loslassen zum Hören. Kanal 70 ist nur für DSC nutzbar.", keys: [{ id: "ptt", act: "hold" }], lcd: "16\nTX" },
       ],
     },
     {
       value: "hilo",
       label: "Sendeleistung 25 W / 1 W",
       steps: [
-        { title: "Umschalten", detail: "IC-M423: Taste [HI/LO] am Gerät. IC-M423G/GE: Sendeleistungs-Softkey im Display. Zusätzlich [H/L] bzw. [HI/LO] am Mikrofon." },
-        { title: "Anzeige prüfen", detail: "`25W` = hohe, `1W` = niedrige Leistung." },
+        { title: "Umschalten", detail: "IC-M423: Taste [HI/LO] am Gerät. IC-M423G/GE: Sendeleistungs-Softkey im Display. Zusätzlich [H/L] bzw. [HI/LO] am Mikrofon.", keys: [{ id: "hilo", act: "press" }, { id: "michl", act: "press" }], lcd: "1W" },
+        { title: "Anzeige prüfen", detail: "`25W` = hohe, `1W` = niedrige Leistung.", lcd: "25W" },
         { title: "Gesperrte Kanäle beachten", detail: "Auf einigen Kanälen ist hohe Leistung nicht wählbar (feste niedrige Leistung). Binnen: Schiff – Schiff, Schiff – Hafenbehörde und Funkverkehr an Bord automatisch 0,5–1 W." },
         { title: "Faustregel Prüfung", detail: "Not-, Dringlichkeits- und Sicherheitsmeldungen mit hoher Leistung; Gesprächspartner in Sichtweite mit niedriger Leistung." },
       ],
@@ -1170,10 +1173,10 @@ export default function App() {
       value: "group",
       label: "Kanalgruppe INT / ATIS / DSC (Binnen ↔ See)",
       steps: [
-        { title: "Menü öffnen", detail: "[MENU] drücken." },
-        { title: "Radio Settings", detail: "Mit [VOL/SQL] oder [▲]/[▼] „Radio Settings“ wählen, [ENT]." },
-        { title: "CHAN Group", detail: "„CHAN Group“ wählen, [ENT]. Je nach Geräteversion sind INT, ATIS und/oder DSC wählbar." },
-        { title: "Gruppe wählen", detail: "Binnen: ATIS. See: DSC bzw. INT. Mit [ENT] übernehmen, [EXIT] beendet das Menü. Das Display zeigt die Gruppe (`INT`, `ATIS`, `DSC`)." },
+        { title: "Menü öffnen", detail: "[MENU] drücken.", keys: [{ id: "menu", act: "press" }], lcd: "MENU" },
+        { title: "Radio Settings", detail: "Mit [VOL/SQL] oder [▲]/[▼] „Radio Settings“ wählen, [ENT].", keys: [{ id: "vol", act: "rotate" }, { id: "chup", act: "press" }, { id: "ent", act: "press" }], lcd: "Radio Settings" },
+        { title: "CHAN Group", detail: "„CHAN Group“ wählen, [ENT]. Je nach Geräteversion sind INT, ATIS und/oder DSC wählbar.", keys: [{ id: "ent", act: "press" }], lcd: "CHAN Group" },
+        { title: "Gruppe wählen", detail: "Binnen: ATIS. See: DSC bzw. INT. Mit [ENT] übernehmen, [EXIT] beendet das Menü. Das Display zeigt die Gruppe (`INT`, `ATIS`, `DSC`).", keys: [{ id: "ent", act: "press" }, { id: "exit", act: "press" }], lcd: "ATIS" },
         { title: "Voraussetzung ATIS", detail: "ATIS ist versionsabhängig und erfordert eine Händlerfreischaltung sowie einen programmierten 10-stelligen ATIS-Code." },
       ],
     },
@@ -1181,10 +1184,10 @@ export default function App() {
       value: "dw",
       label: "Zwei-/Dreikanalwache",
       steps: [
-        { title: "Art festlegen", detail: "[MENU] → Radio Settings → Dual/Tri-Watch: Zwei- oder Dreikanalwache wählen (Werkseinstellung: Dualwatch)." },
-        { title: "Arbeitskanal wählen", detail: "Gewünschten Betriebskanal einstellen." },
-        { title: "Starten", detail: "Softkey [DW] drücken. Display: `DUAL 16` bzw. `TRI 16`. Kanal 16 hat Vorrang; bei Tri-Watch wird zusätzlich der Anrufkanal überwacht." },
-        { title: "Beenden", detail: "[DW] erneut drücken. Senden geht während der Wache auf dem eingestellten Kanal mit [PTT]." },
+        { title: "Art festlegen", detail: "[MENU] → Radio Settings → Dual/Tri-Watch: Zwei- oder Dreikanalwache wählen (Werkseinstellung: Dualwatch).", keys: [{ id: "menu", act: "press" }, { id: "ent", act: "press" }], lcd: "Dual/Tri-Watch" },
+        { title: "Arbeitskanal wählen", detail: "Gewünschten Betriebskanal einstellen.", keys: [{ id: "chup", act: "press" }, { id: "chdn", act: "press" }], lcd: "06" },
+        { title: "Starten", detail: "Softkey [DW] drücken. Display: `DUAL 16` bzw. `TRI 16`. Kanal 16 hat Vorrang; bei Tri-Watch wird zusätzlich der Anrufkanal überwacht.", keys: [{ id: "dw", act: "press" }], lcd: "DUAL 16" },
+        { title: "Beenden", detail: "[DW] erneut drücken. Senden geht während der Wache auf dem eingestellten Kanal mit [PTT].", keys: [{ id: "dw", act: "press" }, { id: "ptt", act: "hold" }], lcd: "06" },
         { title: "Achtung Binnen", detail: "Dual Watch hört nur zeitlich abwechselnd auf zwei Kanälen und ersetzt keine echte Hörbereitschaft auf zwei Kanälen (UBI 88)." },
       ],
     },
@@ -1192,10 +1195,10 @@ export default function App() {
       value: "position",
       label: "Position & UTC manuell eingeben",
       steps: [
-        { title: "Menü", detail: "[MENU] → DSC Settings → Position Input. Der Punkt erscheint nur, wenn keine GPS-Daten empfangen werden." },
-        { title: "Breite und Länge", detail: "Ziffern mit [VOL/SQL] oder Pfeiltasten wählen, [ENT] übernimmt; N/S und E/W an der jeweiligen Cursorposition setzen." },
-        { title: "UTC", detail: "Nach [ENT] folgt die UTC-Eingabe auf dieselbe Weise." },
-        { title: "Speichern", detail: "[ENT] bzw. [VOL/SQL] drücken; „DSC SETTING“ erscheint. Manuelle Daten bleiben 23,5 Stunden erhalten." },
+        { title: "Menü", detail: "[MENU] → DSC Settings → Position Input. Der Punkt erscheint nur, wenn keine GPS-Daten empfangen werden.", keys: [{ id: "menu", act: "press" }], lcd: "Position Input" },
+        { title: "Breite und Länge", detail: "Ziffern mit [VOL/SQL] oder Pfeiltasten wählen, [ENT] übernimmt; N/S und E/W an der jeweiligen Cursorposition setzen.", keys: [{ id: "vol", act: "rotate" }, { id: "ent", act: "press" }], lcd: "LAT 54°00 N" },
+        { title: "UTC", detail: "Nach [ENT] folgt die UTC-Eingabe auf dieselbe Weise.", keys: [{ id: "ent", act: "press" }, { id: "vol", act: "rotate" }], lcd: "UTC" },
+        { title: "Speichern", detail: "[ENT] bzw. [VOL/SQL] drücken; „DSC SETTING“ erscheint. Manuelle Daten bleiben 23,5 Stunden erhalten.", keys: [{ id: "ent", act: "press" }, { id: "vol", act: "press" }], lcd: "DSC SETTING" },
         { title: "Modellunterschied", detail: "IC-M423G/GE haben einen eingebauten GPS-Empfänger; beim IC-M423 GPS per NMEA 0183 anschließen oder manuell eingeben." },
       ],
     },
@@ -1203,53 +1206,53 @@ export default function App() {
       value: "distress",
       label: "DSC-Notalarm senden (mit Notfallart)",
       steps: [
-        { title: "Schnell (unbestimmter Notfall)", detail: "Schutzkappe anheben, [DISTRESS] 3 s halten: Countdown-Töne, Kanal 70 wird gewählt und der Alarm gesendet." },
-        { title: "Mit Notfallart", detail: "[MENU] → DSC Calls → Distress Call; Art wählen: Undesignated, Fire/Explosion, Flooding, Collision, Grounding, Capsizing, Sinking, Adrift, Abandoning ship, Piracy, Man Overboard. Die Wahl bleibt 10 min gespeichert." },
-        { title: "Position prüfen", detail: "Ohne GPS kann die manuell eingegebene Position mit [CHG] noch geändert werden." },
-        { title: "Senden", detail: "[DISTRESS] 3 s halten." },
-        { title: "Auf Bestätigung warten", detail: "Wiederholung automatisch alle 3,5 bis 4,5 min („Call repeat“). [RESEND] wiederholt manuell, [PAUSE]/[RESUME] stoppt bzw. setzt fort, [INFO] zeigt den Inhalt." },
-        { title: "Nach Bestätigung", detail: "[ALARM OFF] drücken, auf Kanal 16 die Notmeldung im Sprechfunk durchgeben." },
+        { title: "Schnell (unbestimmter Notfall)", detail: "Schutzkappe anheben, [DISTRESS] 3 s halten: Countdown-Töne, Kanal 70 wird gewählt und der Alarm gesendet.", keys: [{ id: "cap", act: "cap" }, { id: "distress", act: "hold3" }], lcd: "Distress\nCH 70" },
+        { title: "Mit Notfallart", detail: "[MENU] → DSC Calls → Distress Call; Art wählen: Undesignated, Fire/Explosion, Flooding, Collision, Grounding, Capsizing, Sinking, Adrift, Abandoning ship, Piracy, Man Overboard. Die Wahl bleibt 10 min gespeichert.", keys: [{ id: "menu", act: "press" }, { id: "chdn", act: "press" }, { id: "ent", act: "press" }], lcd: "Distress Call" },
+        { title: "Position prüfen", detail: "Ohne GPS kann die manuell eingegebene Position mit [CHG] noch geändert werden.", keys: [{ id: "chg", act: "press" }], lcd: "Position" },
+        { title: "Senden", detail: "[DISTRESS] 3 s halten.", keys: [{ id: "distress", act: "hold3" }], lcd: "Sending\nCH 70" },
+        { title: "Auf Bestätigung warten", detail: "Wiederholung automatisch alle 3,5 bis 4,5 min („Call repeat“). [RESEND] wiederholt manuell, [PAUSE]/[RESUME] stoppt bzw. setzt fort, [INFO] zeigt den Inhalt.", keys: [{ id: "resend", act: "press" }, { id: "pause", act: "press" }, { id: "info", act: "press" }], lcd: "Wait for ACK" },
+        { title: "Nach Bestätigung", detail: "[ALARM OFF] drücken, auf Kanal 16 die Notmeldung im Sprechfunk durchgeben.", keys: [{ id: "alarmoff", act: "press" }, { id: "ptt", act: "hold" }], lcd: "16" },
       ],
     },
     {
       value: "cancel",
       label: "Fehlalarm stornieren",
       steps: [
-        { title: "Stornieren", detail: "Während des Wartens auf die Bestätigung [CANCEL] drücken." },
-        { title: "Bestätigen", detail: "[CONTINUE], dann [FINISH]. [BACK] bzw. [EXIT] bricht die Stornierung ab." },
-        { title: "Kanal 16", detail: "Kanal 16 wird automatisch gewählt; der Alarm wird nicht mehr gesendet." },
-        { title: "Sprechfunk", detail: "Auf Kanal 16 an alle Funkstellen: Fehlalarm zurücknehmen (SRC 157). Muster im Funkspruch-Trainer unter „Fehlalarm aufheben“." },
+        { title: "Stornieren", detail: "Während des Wartens auf die Bestätigung [CANCEL] drücken.", keys: [{ id: "cancel", act: "press" }], lcd: "CANCEL" },
+        { title: "Bestätigen", detail: "[CONTINUE], dann [FINISH]. [BACK] bzw. [EXIT] bricht die Stornierung ab.", keys: [{ id: "continue", act: "press" }, { id: "finish", act: "press" }], lcd: "FINISH" },
+        { title: "Kanal 16", detail: "Kanal 16 wird automatisch gewählt; der Alarm wird nicht mehr gesendet.", lcd: "16" },
+        { title: "Sprechfunk", detail: "Auf Kanal 16 an alle Funkstellen: Fehlalarm zurücknehmen (SRC 157). Muster im Funkspruch-Trainer unter „Fehlalarm aufheben“.", keys: [{ id: "ptt", act: "hold" }], lcd: "16\nTX" },
       ],
     },
     {
       value: "individual",
       label: "DSC-Einzelruf (Individual Call)",
       steps: [
-        { title: "Menü", detail: "[MENU] → DSC Calls → Individual Call." },
-        { title: "Adresse", detail: "Gespeicherte ID oder „Manual Input“ wählen und die 9-stellige MMSI eingeben. Küstenfunkstellen beginnen mit 00, Gruppen-IDs mit 0." },
-        { title: "Arbeitskanal", detail: "Intership-Kanal für das Gespräch wählen. Bei einer Küstenfunkstelle entfällt der Schritt, sie legt den Kanal fest." },
-        { title: "Senden", detail: "Eingaben prüfen, [CALL] drücken. Ist Kanal 70 belegt, wartet das Gerät." },
-        { title: "Antwort", detail: "Bei „Able to comply“ [ALARM OFF]: Das Gerät wechselt auf den Arbeitskanal, dann per Mikrofon sprechen. Bei „Unable to comply“ [ALARM OFF], dann [EXIT]." },
+        { title: "Menü", detail: "[MENU] → DSC Calls → Individual Call.", keys: [{ id: "menu", act: "press" }], lcd: "Individual Call" },
+        { title: "Adresse", detail: "Gespeicherte ID oder „Manual Input“ wählen und die 9-stellige MMSI eingeben. Küstenfunkstellen beginnen mit 00, Gruppen-IDs mit 0.", keys: [{ id: "vol", act: "rotate" }, { id: "ent", act: "press" }], lcd: "MMSI" },
+        { title: "Arbeitskanal", detail: "Intership-Kanal für das Gespräch wählen. Bei einer Küstenfunkstelle entfällt der Schritt, sie legt den Kanal fest.", keys: [{ id: "chup", act: "press" }, { id: "ent", act: "press" }], lcd: "CH  06" },
+        { title: "Senden", detail: "Eingaben prüfen, [CALL] drücken. Ist Kanal 70 belegt, wartet das Gerät.", keys: [{ id: "call", act: "press" }], lcd: "Calling" },
+        { title: "Antwort", detail: "Bei „Able to comply“ [ALARM OFF]: Das Gerät wechselt auf den Arbeitskanal, dann per Mikrofon sprechen. Bei „Unable to comply“ [ALARM OFF], dann [EXIT].", keys: [{ id: "alarmoff", act: "press" }, { id: "ptt", act: "hold" }, { id: "exit", act: "press" }], lcd: "06" },
       ],
     },
     {
       value: "allships",
       label: "Anruf an alle Schiffe (Urgency / Safety)",
       steps: [
-        { title: "Menü", detail: "[MENU] → DSC Calls → All Ships Call." },
-        { title: "Kategorie", detail: "Dringlichkeit (Urgency) oder Sicherheit (Safety) wählen, [ENT]." },
-        { title: "Verkehrskanal", detail: "Kanal für die Sprechfunkmeldung wählen, [ENT]." },
-        { title: "Senden", detail: "Anzeige prüfen, [CALL]. Danach die Meldung per Mikrofon durchgeben, abschließend [EXIT]." },
+        { title: "Menü", detail: "[MENU] → DSC Calls → All Ships Call.", keys: [{ id: "menu", act: "press" }], lcd: "All Ships Call" },
+        { title: "Kategorie", detail: "Dringlichkeit (Urgency) oder Sicherheit (Safety) wählen, [ENT].", keys: [{ id: "chdn", act: "press" }, { id: "ent", act: "press" }], lcd: "Urgency" },
+        { title: "Verkehrskanal", detail: "Kanal für die Sprechfunkmeldung wählen, [ENT].", keys: [{ id: "chup", act: "press" }, { id: "ent", act: "press" }], lcd: "CH  16" },
+        { title: "Senden", detail: "Anzeige prüfen, [CALL]. Danach die Meldung per Mikrofon durchgeben, abschließend [EXIT].", keys: [{ id: "call", act: "press" }, { id: "ptt", act: "hold" }, { id: "exit", act: "press" }], lcd: "16" },
       ],
     },
     {
       value: "ids",
       label: "MMSI & ATIS-Code programmieren",
       steps: [
-        { title: "MMSI", detail: "Beim ersten Einschalten (bei gedrücktem [VOL/SQL]) die 9-stellige MMSI eingeben und bestätigen. Nur einmal möglich, Änderungen nur durch Händler." },
-        { title: "ATIS-Aufforderung", detail: "Danach erscheint „Push [ENT] to Register Your ATIS“; [ENT] drücken ([CLEAR] bricht ab, ATIS ist dann nicht verfügbar)." },
-        { title: "10 Stellen eingeben", detail: "Ziffern mit [VOL/SQL] oder Pfeiltasten wählen, [ENT] übernimmt. Nach der 10. Stelle „FINISH“ bestätigen." },
-        { title: "Bestätigen", detail: "„ATIS CONFIRMATION“: Code ein zweites Mal eingeben. Prüfen lässt er sich später im Menü (MMSI/GPS Info)." },
+        { title: "MMSI", detail: "Beim ersten Einschalten (bei gedrücktem [VOL/SQL]) die 9-stellige MMSI eingeben und bestätigen. Nur einmal möglich, Änderungen nur durch Händler.", keys: [{ id: "pwr", act: "hold1" }, { id: "vol", act: "rotate" }, { id: "ent", act: "press" }], lcd: "MMSI" },
+        { title: "ATIS-Aufforderung", detail: "Danach erscheint „Push [ENT] to Register Your ATIS“; [ENT] drücken ([CLEAR] bricht ab, ATIS ist dann nicht verfügbar).", keys: [{ id: "ent", act: "press" }, { id: "clear", act: "press" }], lcd: "Register ATIS" },
+        { title: "10 Stellen eingeben", detail: "Ziffern mit [VOL/SQL] oder Pfeiltasten wählen, [ENT] übernimmt. Nach der 10. Stelle „FINISH“ bestätigen.", keys: [{ id: "vol", act: "rotate" }, { id: "ent", act: "press" }, { id: "finish", act: "press" }], lcd: "ATIS" },
+        { title: "Bestätigen", detail: "„ATIS CONFIRMATION“: Code ein zweites Mal eingeben. Prüfen lässt er sich später im Menü (MMSI/GPS Info).", keys: [{ id: "vol", act: "rotate" }, { id: "ent", act: "press" }], lcd: "ATIS CONFIRM" },
       ],
     },
   ];
@@ -2483,20 +2486,17 @@ export default function App() {
     }
     const task = ICOM_TASKS.find((x: { value: string }) => x.value === id);
     if (!task) return [];
-    return task.steps.map((s: { title: string; detail: string }, i: number) => {
-      const src = s.title + " " + s.detail;
-      const used = KEYS.filter((k: { tokens: string[] }) => k.tokens.some((tok: string) => src.indexOf(tok) >= 0));
+    return task.steps.map((s: TaskStep, i: number) => {
       return stack(
         <>
-          <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: 16, borderRadius: t.radius.lg, border: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-start", padding: "12px 14px", borderRadius: t.radius.lg, border: "1px solid " + t.border.subtle, background: t.bg.elevated, flex: "0 0 auto" }}>
             <div style={{ flex: "0 0 34px", height: 34, borderRadius: t.radius.full, border: "2px solid " + accent, display: "flex", alignItems: "center", justifyContent: "center", ...txt("body1", t.text.primary, t.weight.semibold) }}>{i + 1}</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 0 }}>
               <div style={txt("body1", t.text.primary, t.weight.semibold)}>{s.title}</div>
               <div style={txt("body2", t.text.secondary)}>{s.detail}</div>
             </div>
           </div>
-          {used.length > 0 ? <span style={txt("label", t.text.secondary)}>Tasten in diesem Schritt</span> : null}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(200px, 100%), 1fr))", gap: 8 }}>{used.map((k: { id: string; label: string; desc: string }) => keyChip(k))}</div>
+          <StepAnim keys={s.keys || []} lcd={s.lcd} accent={accent} dark={t.bg.base === "#0f1216"} fam={fam} />
         </>,
       );
     });
@@ -3474,15 +3474,7 @@ export default function App() {
 
   const toolCard = (tool: string): ReactNode => {
     if (tool === "order") return orderTool();
-    if (tool === "spell")
-      return stack(
-        <>
-          {wissenPages("nato")[0]}
-          <div style={rowWrap}>
-            <Button label="Buchstabier-Trainer öffnen" variant="primary" onClick={() => enter(["erklaeren", "ref", "spelltrain"])} />
-          </div>
-        </>,
-      );
+    if (tool === "spell") return wissenPages("nato")[0];
     if (tool === "mmsi") return wissenPages("mmsi")[certC === "UBI" ? 1 : 0];
     if (tool === "atis") return wissenPages("mmsi")[0];
     return stack(
@@ -4691,10 +4683,10 @@ export default function App() {
           <g fontFamily={"ui-monospace, SFMono-Regular, Menlo, " + (t.font.mono || "monospace")} filter="url(#lcdGlow)">
             {r2.scr === "main" ? (
               <>
-                <text x={112} y={88} fontSize={42} fontWeight={700} fill={lcdFg}>{d[0]}</text>
-                <text x={210} y={62} fontSize={10} fill={lcdDim}>{d[1]}</text>
-                <text x={210} y={96} fontSize={11} fill={lcdFg}>{d[2]}</text>
-                {r2.tx ? <text x={292} y={62} fontSize={11} fontWeight={700} fill="#ff5a3a">TX</text> : <text x={292} y={62} fontSize={9} fill={lcdDim}>RX</text>}
+                <text x={112} y={88} fontSize={50} fontWeight={700} fill={lcdFg}>{d[0]}</text>
+                <text x={210} y={62} fontSize={13} fill={lcdDim}>{d[1]}</text>
+                <text x={210} y={96} fontSize={14} fill={lcdFg}>{d[2]}</text>
+                {r2.tx ? <text x={292} y={62} fontSize={14} fontWeight={700} fill="#ff5a3a">TX</text> : <text x={292} y={62} fontSize={13} fill={lcdDim}>RX</text>}
               </>
             ) : (
               d.map((line: string, i: number) => (
@@ -4702,9 +4694,9 @@ export default function App() {
               ))
             )}
           </g>
-        ) : <text x={210} y={86} textAnchor="middle" fontSize={10} fontFamily={fam} fill="#1a2a1c">OFF</text>}
+        ) : <text x={210} y={86} textAnchor="middle" fontSize={14} fontFamily={fam} fill="#1a2a1c">OFF</text>}
         {sl.map((lab: string, i: number) => (
-          <text key={"sl" + i} x={128 + i * 54} y={136} textAnchor="middle" fontSize={7.5} fontFamily={fam} fontWeight={700} fill="#d0d5dc">{lab || ""}</text>
+          <text key={"sl" + i} x={128 + i * 54} y={136} textAnchor="middle" fontSize={10} fontFamily={fam} fontWeight={700} fill="#d0d5dc">{lab || ""}</text>
         ))}
         {[0, 1, 2, 3].map((i: number) => keyCap("s" + (i + 1), 110 + i * 54, 142, 36, 16, "●", "tap", "#2b3038", "#d8dde4", 8))}
         {/* DISTRESS sits under the spring cap; cap is painted last so it receives the click when closed */}
@@ -4786,7 +4778,7 @@ export default function App() {
         <rect x={4} y={8} width={352} height={76} rx={16} fill="#2e333b" stroke="#0a0c0e" strokeWidth={2} />
         <g {...bind("ptt", "ptt")}>
           <rect x={14} y={18} width={70} height={56} rx={10} fill={r2.tx ? "#c62828" : "#1e3a5f"} stroke="#0a0c0e" strokeWidth={1.3} />
-          <text x={49} y={51} textAnchor="middle" fontSize={14} fontFamily={fam} fontWeight={800} fill="#fff">{r2.tx ? "● TX" : "PTT"}</text>
+          <text x={49} y={51} textAnchor="middle" fontSize={16} fontFamily={fam} fontWeight={800} fill="#fff">{r2.tx ? "● TX" : "PTT"}</text>
         </g>
         <rect x={96} y={22} width={40} height={28} rx={6} fill="#16181c" />
         {Array.from({ length: 3 }).map((_: unknown, r: number) =>
@@ -5519,7 +5511,7 @@ export default function App() {
     }
   }
 
-  const crumbs = [certC, ...path.map((id: string, i: number) => labelOf(i, id))];
+  const crumbs = ["Start", ...path.map((id: string, i: number) => labelOf(i, id))];
 
   if (!chosen) {
     return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base }}>{chooser()}</div>;

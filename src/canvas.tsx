@@ -6,9 +6,24 @@ export type { ReactNode, CSSProperties } from "react";
 
 const fontStack = 'Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
 const mono = 'ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace';
-const fs = (size: number, lh: number) => ({ fontSize: size, lineHeight: lh + "px" });
+const fs = (min: number, vh: number, max: number, lhMin: number, lhMax: number) => ({
+  fontSize: `clamp(${min}px, ${vh}vh, ${max}px)`,
+  lineHeight: `clamp(${lhMin}px, ${vh * 1.35}vh, ${lhMax}px)`,
+});
 const base = {
-  font: { family: fontStack, mono, heading1: fs(30, 38), heading2: fs(22, 30), heading3: fs(18, 26), body1: fs(15, 22), body2: fs(14, 20), subtext: fs(13, 18), label: fs(12, 16), code: fs(13, 18), metric: fs(28, 34) },
+  font: {
+    family: fontStack,
+    mono,
+    heading1: fs(24, 4.0, 34, 30, 42),
+    heading2: fs(20, 3.3, 26, 26, 34),
+    heading3: fs(18, 2.9, 22, 24, 30),
+    body1: fs(16, 2.45, 18, 22, 26),
+    body2: fs(15, 2.3, 17, 21, 24),
+    subtext: fs(14, 2.15, 16, 20, 22),
+    label: fs(13, 1.95, 15, 18, 20),
+    code: fs(14, 2.15, 16, 20, 22),
+    metric: fs(26, 4.0, 36, 32, 42),
+  },
   weight: { regular: 400, medium: 500, semibold: 600, bold: 700 },
   radius: { sm: 6, md: 8, lg: 12, xl: 16, full: 9999 },
   motion: { hover: "150ms", easing: "cubic-bezier(.2,.8,.2,1)" },
