@@ -1526,6 +1526,12 @@ export default function App() {
     setTopic("ueberblick");
     setShowAll(false);
     setTab("erklaeren");
+    setOrd([]);
+    setOrdPhase("play");
+    setOrdShown(0);
+    setOrdHint(-1);
+    setOrdSolved(false);
+    setOrdMix([]);
     setPath([]);
     setPg(0);
     setChosen(true);
@@ -2750,7 +2756,13 @@ export default function App() {
   type Lesson = { id: string; title: string; min: number; cards: LCard[] };
 
   const [chk, setChk] = useState<Record<string, number>>({});
+  const [chkReveal, setChkReveal] = useState<Record<string, boolean>>({});
   const [ord, setOrd] = useState<number[]>([]);
+  const [ordMix, setOrdMix] = useState<number[]>([]);
+  const [ordPhase, setOrdPhase] = useState<"play" | "revealed">("play");
+  const [ordShown, setOrdShown] = useState(0);
+  const [ordHint, setOrdHint] = useState(-1);
+  const [ordSolved, setOrdSolved] = useState(false);
 
   const exB = (scen: Scen, extra?: Partial<SP>): string[] => buildSpruch({ ...EX_SEE, rev: "binnen", scen, ...extra }).de;
   const exE = (scen: Scen, extra?: Partial<SP>): string[] => buildSpruch({ ...EX_SEE, scen, ...extra }).en || [];
@@ -3402,33 +3414,153 @@ export default function App() {
   };
 
   /* ---------- Übungen ---------- */
-  const ORDER_SRC = ["MAYDAY MAYDAY MAYDAY", "THIS IS – Name 3× – Rufzeichen – MMSI", "MAYDAY – Name – Rufzeichen – MMSI", "Position (mit UTC)", "Art des Notfalls", "Erbetene Hilfe", "Personen an Bord, weitere Angaben", "OVER"];
-  const ORDER_UBI = ["MAYDAY MAYDAY MAYDAY", "THIS IS – Name 3× – Rufzeichen", "MAYDAY – Name – Rufzeichen", "Position (z. B. Rhein-km)", "Art des Notfalls", "Erbetene Hilfe", "BITTE KOMMEN"];
+  type OrderBlock = { label: string; hint: string; ex: string };
+  const ORDER_SRC: OrderBlock[] = [
+    { label: "MAYDAY MAYDAY MAYDAY", hint: "Notanruf: Notzeichen dreimal.", ex: "MAYDAY MAYDAY MAYDAY" },
+    { label: "THIS IS", hint: "Verfahrenswort, nicht übersetzen.", ex: "THIS IS" },
+    { label: "Name 3×", hint: "Im Notanruf dreimal.", ex: "Seeadler Seeadler Seeadler" },
+    { label: "Rufzeichen", hint: "Im Notanruf einmal, ggf. buchstabieren.", ex: "DA5005" },
+    { label: "MMSI", hint: "Im Notanruf, nur nach DSC-Notalarm.", ex: "MMSI 211234567" },
+    { label: "MAYDAY", hint: "Beginn der Notmeldung, ohne THIS IS.", ex: "MAYDAY" },
+    { label: "Name – Rufzeichen – MMSI", hint: "In der Notmeldung je einmal; MMSI nur nach DSC.", ex: "Seeadler DA5005 MMSI 211234567" },
+    { label: "Position (mit UTC)", hint: "Letzte Position, möglichst mit UTC.", ex: "POSITION 54°20'N 010°10'E AT 1430 UTC" },
+    { label: "Art des Notfalls", hint: "Was ist geschehen.", ex: "SINKING" },
+    { label: "Erbetene Hilfe", hint: "Welche Hilfe wird gebraucht.", ex: "REQUIRE IMMEDIATE ASSISTANCE" },
+    { label: "Weitere Angaben", hint: "Z. B. Personen an Bord.", ex: "4 PERSONS ON BOARD" },
+    { label: "OVER", hint: "Abschluss: Aufforderung zur Antwort.", ex: "OVER" },
+  ];
+  const ORDER_UBI: OrderBlock[] = [
+    { label: "MAYDAY MAYDAY MAYDAY", hint: "Notanruf: Notzeichen dreimal.", ex: "MAYDAY MAYDAY MAYDAY" },
+    { label: "THIS IS", hint: "Verfahrenswort, nicht übersetzen.", ex: "THIS IS" },
+    { label: "Name 3×", hint: "Im Notanruf dreimal.", ex: "Seeadler Seeadler Seeadler" },
+    { label: "Rufzeichen", hint: "Im Notanruf einmal.", ex: "DA5005" },
+    { label: "MAYDAY", hint: "Beginn der Notmeldung, ohne THIS IS.", ex: "MAYDAY" },
+    { label: "Name – Rufzeichen", hint: "In der Notmeldung je einmal, ohne MMSI.", ex: "Seeadler DA5005" },
+    { label: "Position (z. B. Rhein-km)", hint: "Z. B. Wasserstraße und Kilometer.", ex: "POSITION RHEIN-KILOMETER 550" },
+    { label: "Art des Notfalls", hint: "Was ist geschehen.", ex: "WASSEREINBRUCH, SCHIFF SINKT" },
+    { label: "Erbetene Hilfe", hint: "Welche Hilfe wird gebraucht.", ex: "BITTE UM SOFORTIGE HILFE" },
+    { label: "Weitere Angaben", hint: "Z. B. Personen an Bord.", ex: "4 PERSONEN AN BORD" },
+    { label: "BITTE KOMMEN", hint: "Abschluss: Aufforderung zur Antwort.", ex: "BITTE KOMMEN" },
+  ];
+  const shuffleIdx = (n: number): number[] => {
+    const a = Array.from({ length: n }, (_: unknown, i: number) => i);
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = a[i];
+      a[i] = a[j];
+      a[j] = tmp;
+    }
+    return a;
+  };
+  const orderBlocks = (): OrderBlock[] => (certC === "SRC" ? ORDER_SRC : ORDER_UBI);
+  useEffect(() => {
+    if (!document.getElementById("fs-ord-css")) {
+      const s = document.createElement("style");
+      s.id = "fs-ord-css";
+      s.textContent = "@keyframes fsOrdIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }";
+      document.head.appendChild(s);
+    }
+    const n = orderBlocks().length;
+    setOrd([]);
+    setOrdPhase("play");
+    setOrdShown(0);
+    setOrdHint(-1);
+    setOrdSolved(false);
+    setOrdMix(shuffleIdx(n));
+  }, [certC]);
+  useEffect(() => {
+    if (ordPhase !== "revealed") return;
+    setOrdShown(1);
+    const n = orderBlocks().length;
+    const id = window.setInterval(() => {
+      setOrdShown((s: number) => {
+        if (s + 1 >= n) {
+          window.clearInterval(id);
+          return n;
+        }
+        return s + 1;
+      });
+    }, 320);
+    return () => window.clearInterval(id);
+  }, [ordPhase, certC]);
+  const resetOrder = () => {
+    setOrd([]);
+    setOrdPhase("play");
+    setOrdShown(0);
+    setOrdHint(-1);
+    setOrdSolved(false);
+    setOrdMix(shuffleIdx(orderBlocks().length));
+  };
   const orderTool = (): ReactNode => {
-    const blocks = certC === "SRC" ? ORDER_SRC : ORDER_UBI;
-    const mix = blocks.map((_: string, i: number) => i).sort((a: number, b: number) => ((a * 5 + 3) % 7) - ((b * 5 + 3) % 7));
+    const blocks = orderBlocks();
+    const mix = (ordMix.length === blocks.length ? ordMix : blocks.map((_: OrderBlock, i: number) => i));
     const ok = ord.every((v: number, i: number) => v === i);
     const doneAll = ord.length === blocks.length;
-    return stack(
-      <>
-        {screenTitle("Übung: Baue die Notmeldung", "Tippe die Bausteine in der richtigen Reihenfolge an")}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {ord.map((v: number, i: number) => (
-            <div key={i} style={{ padding: "6px 10px", borderRadius: t.radius.md, border: "1px solid " + (v === i ? t.text.success : t.text.danger), background: v === i ? t.fill.successSubtle : "transparent", ...txt("body2", t.text.primary) }}>{i + 1 + ". " + blocks[v]}</div>
-          ))}
+    const prefixOk = ok;
+    const revealed = ordPhase === "revealed";
+    const shown = revealed ? blocks.slice(0, ordShown) : [];
+    const nextIdx = prefixOk ? ord.length : -1;
+    return (
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
+        {screenTitle("Übung: Baue die Notmeldung", revealed ? "Lösung – zählt nicht als selbst gelöst" : "Tippe die Bausteine in der richtigen Reihenfolge an")}
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
+          {revealed
+            ? shown.map((b: OrderBlock, i: number) => (
+                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "6px 8px", borderRadius: t.radius.md, border: "1px solid " + t.text.success, background: t.fill.successSubtle, animation: "fsOrdIn 280ms ease-out" }}>
+                  <span style={{ flex: "0 0 26px", height: 26, borderRadius: t.radius.full, background: accent, color: t.bg.base, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: t.weight.semibold, ...txt("label", t.bg.base, t.weight.semibold) }}>{i + 1}</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                    <span style={txt("body1", t.text.primary, t.weight.semibold)}>{b.label}</span>
+                    <span style={txt("subtext", t.text.secondary)}>{b.hint}</span>
+                    <span style={{ fontFamily: t.font.mono, ...txt("subtext", t.text.primary) }}>{b.ex}</span>
+                  </div>
+                </div>
+              ))
+            : (
+              <>
+                {ord.map((v: number, i: number) => (
+                  <div key={i} style={{ padding: "8px 10px", borderRadius: t.radius.md, border: "1px solid " + (v === i ? t.text.success : t.text.danger), background: v === i ? t.fill.successSubtle : t.fill.dangerSubtle, ...txt("body1", t.text.primary) }}>{i + 1 + ". " + blocks[v].label}</div>
+                ))}
+                {!doneAll ? (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {mix
+                      .filter((i: number) => ord.indexOf(i) < 0)
+                      .map((i: number) => (
+                        <button
+                          key={"o" + i}
+                          type="button"
+                          onClick={() => {
+                            setOrdHint(-1);
+                            const next = ord.concat([i]);
+                            setOrd(next);
+                            if (next.length === blocks.length && next.every((v: number, j: number) => v === j)) setOrdSolved(true);
+                          }}
+                          style={{
+                            fontFamily: fam,
+                            ...txt("body2", t.text.primary, t.weight.semibold),
+                            padding: "10px 14px",
+                            minHeight: 44,
+                            borderRadius: t.radius.full,
+                            border: "2px solid " + (ordHint === i ? t.text.warning : t.border.default),
+                            background: ordHint === i ? t.fill.warningSubtle : t.bg.elevated,
+                            boxShadow: ordHint === i ? "0 0 0 3px " + t.fill.warningSubtle : "none",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {blocks[i].label}
+                        </button>
+                      ))}
+                  </div>
+                ) : null}
+              </>
+            )}
         </div>
-        {!doneAll ? (
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {mix
-              .filter((i: number) => ord.indexOf(i) < 0)
-              .map((i: number) => chip("o" + i, blocks[i], false, () => setOrd(ord.concat([i]))))}
-          </div>
-        ) : null}
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-          {doneAll ? (ok ? <Status tone="success">Perfekt – richtige Reihenfolge</Status> : <Status tone="danger">Rote Bausteine stehen falsch</Status>) : null}
-          {ord.length > 0 ? <Button label="Neu ordnen" variant="quiet" onClick={() => setOrd([])} /> : null}
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: "0 0 auto", background: t.bg.elevated, paddingTop: 6 }}>
+          {revealed ? (ordSolved ? <Status tone="success">Selbst gelöst</Status> : <Status tone="accent">Nicht selbst gelöst</Status>) : doneAll ? (ok ? <Status tone="success">Perfekt – richtige Reihenfolge</Status> : <Status tone="danger">Rote Bausteine stehen falsch</Status>) : ordHint === -2 ? <Status tone="warning">Erst neu ordnen oder Lösung zeigen</Status> : null}
+          {!revealed && !doneAll ? <Button label="Tipp" variant="quiet" onClick={() => (nextIdx >= 0 ? setOrdHint(nextIdx) : setOrdHint(-2))} /> : null}
+          {!revealed ? <Button label="Lösung zeigen" variant="primary" onClick={() => setOrdPhase("revealed")} /> : null}
+          {revealed || ord.length > 0 ? <Button label={revealed ? "Nochmal üben" : "Neu ordnen"} onClick={resetOrder} /> : null}
         </div>
-      </>,
+      </div>
     );
   };
 
@@ -3439,36 +3571,43 @@ export default function App() {
     const key = certC + "-" + n;
     const perm = [0, 1, 2, 3].map((i: number) => (i + n) % 4);
     const pick = chk[key];
+    const revealed = !!chkReveal[key];
     const answered = pick !== undefined;
-    return stack(
-      <>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <Status tone="accent">Mini-Check</Status>
-          <span style={txt("label", t.text.tertiary)}>{"Katalogfrage " + certC + " " + n}</span>
+    const locked = answered || revealed;
+    return (
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
+        <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <Status tone="accent">Mini-Check</Status>
+            <span style={txt("label", t.text.tertiary)}>{"Katalogfrage " + certC + " " + n}</span>
+          </div>
+          <div style={{ ...txt("body1", t.text.primary, t.weight.semibold), overflowWrap: "break-word" }}>{it.q}</div>
         </div>
-        <div style={txt("body1", t.text.primary, t.weight.semibold)}>{it.q}</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
           {perm.map((pi: number, i: number) => {
             const right = pi === 0;
-            const border = answered ? (right ? t.text.success : i === pick ? t.text.danger : t.border.subtle) : t.border.default;
+            const border = revealed || answered ? (right ? t.text.success : !revealed && i === pick ? t.text.danger : t.border.subtle) : t.border.default;
             return (
               <button
                 key={i}
                 type="button"
-                disabled={answered}
+                disabled={locked}
                 onClick={() => {
                   setChk((c: Record<string, number>) => ({ ...c, [key]: i }));
                   setProg((p: Record<string, number>) => ({ ...p, [key]: right ? 1 : 2 }));
                 }}
-                style={{ textAlign: "left", padding: "8px 12px", borderRadius: t.radius.lg, border: "2px solid " + border, background: answered && right ? t.fill.successSubtle : t.bg.elevated, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, lineHeight: t.font.body2.lineHeight, cursor: answered ? "default" : "pointer" }}
+                style={{ textAlign: "left", padding: "8px 12px", borderRadius: t.radius.lg, border: "2px solid " + border, background: locked && right ? t.fill.successSubtle : t.bg.elevated, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, lineHeight: t.font.body2.lineHeight, cursor: locked ? "default" : "pointer" }}
               >
                 {it.a[pi]}
               </button>
             );
           })}
         </div>
-        {pick !== undefined ? (perm[pick] === 0 ? <Status tone="success">Richtig!</Status> : <Status tone="danger">Nicht ganz – grün ist richtig</Status>) : null}
-      </>,
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: "0 0 auto", background: t.bg.elevated, paddingTop: 6 }}>
+          {revealed ? <Status tone="accent">Nicht selbst gelöst</Status> : pick !== undefined ? (perm[pick] === 0 ? <Status tone="success">Richtig!</Status> : <Status tone="danger">Nicht ganz – grün ist richtig</Status>) : null}
+          {!locked ? <Button label="Lösung zeigen" variant="primary" onClick={() => setChkReveal((c: Record<string, boolean>) => ({ ...c, [key]: true }))} /> : <Button label="Nochmal üben" onClick={() => { setChk((c: Record<string, number>) => { const n2 = { ...c }; delete n2[key]; return n2; }); setChkReveal((c: Record<string, boolean>) => { const n2 = { ...c }; delete n2[key]; return n2; }); }} />}
+        </div>
+      </div>
     );
   };
 
