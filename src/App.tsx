@@ -2748,7 +2748,7 @@ export default function App() {
     | { k: "text"; h: string; body?: string; fact?: string; items?: string[] }
     | { k: "svg"; h: string; d: string; cap: string }
     | { k: "ex"; h: string; lines: () => string[] }
-    | { k: "tool"; tool: "order" | "spell" | "mmsi" | "atis" | "trainer" }
+    | { k: "tool"; tool: "order" | "spell" | "mmsi" | "atis" | "trainer"; id?: string }
     | { k: "merke"; items: string[] }
     | { k: "check"; n: number }
     | { k: "fig"; ids: PhotoId[]; h: string; cap: string }
@@ -2872,10 +2872,14 @@ export default function App() {
       cards: [
         { k: "goal", items: ["Wann ein Notfall vorliegt", "Notanruf und Notmeldung in der richtigen Reihenfolge", "Bestätigen, weiterleiten, Funkstille, Fehlalarm"] },
         { k: "text", h: "Wann Mayday?", body: "Wenn ein Schiff oder eine Person von einer ernsten und unmittelbaren Gefahr bedroht ist und sofortige Hilfe benötigt (SRC 135). Das Aussenden veranlasst der Fahrzeugführer (SRC 131). Notverkehr findet vorzugsweise auf Kanal 16 statt (SRC 138).", fact: "Person in Lebensgefahr → Priorität Notfall (SRC 136)." },
-        { k: "tool", tool: "order" },
+        { k: "tool", tool: "order", id: "mayday" },
         { k: "ex", h: "Beispiel Notmeldung (Englisch, wie in der Prüfung)", lines: () => exE("mayday") },
         { k: "text", h: "Notalarm empfangen", items: ["Bestätigen nur, wenn du Hilfe leisten kannst (SRC 142).", "Erst nach Bestätigung durch eine Küstenfunkstelle oder nach einer angemessenen Wartefrist (üblich: etwa 5 Minuten Hörwache auf Kanal 16). Danach auf Kanal 16 im Sprechfunk (SRC 143, 144).", "Für ein anderes Schiff in Not: MAYDAY RELAY, grundsätzlich an die nächste Küstenfunkstelle (SRC 141)."], fact: "Die 5 Minuten: IMO MSC.1/Circ.1657/Rev.1 (Hörwache auf Kanal 16). SRC 143 nennt keine Minutenzahl." },
+        { k: "tool", tool: "order", id: "ack" },
+        { k: "tool", tool: "order", id: "relay" },
         { k: "text", h: "Funkstille und Ende", body: "SILENCE MAYDAY: Die Funkstelle, die den Notverkehr leitet, gebietet störenden Funkstellen Funkstille (SRC 145, 146). SILENCE FINI: Der Notverkehr ist beendet (SRC 178)." },
+        { k: "tool", tool: "order", id: "silence" },
+        { k: "tool", tool: "order", id: "fini" },
         { k: "text", h: "Fehlalarm ausgelöst?", body: "a) Gerät sofort zurücksetzen, b) wenn möglich per DSC zurücknehmen, c) auf Kanal 16 „An alle Funkstellen“ den Fehlalarm aufheben (SRC 157).", fact: "Am IC-M423: [CANCEL] → [CONTINUE] → [FINISH], das Gerät wechselt auf Kanal 16." },
         { k: "ex", h: "Fehlalarm aufheben (Englisch)", lines: () => exE("cancel") },
         { k: "merke", items: ["MAYDAY ×3 – THIS IS – Name ×3 – Rufzeichen – MMSI", "MAYDAY – Name – Position – Notfall – Hilfe – OVER", "Bestätigen nur, wenn du helfen kannst – nach der Küstenfunkstelle oder nach angemessener Wartefrist (üblich: etwa 5 Minuten)", "Fehlalarm: zurücksetzen, DSC-Storno, Kanal 16"] },
@@ -2893,7 +2897,9 @@ export default function App() {
         { k: "goal", items: ["Pan Pan richtig einsetzen und aufheben", "Sécurité-Meldungen", "NAVTEX für Warnungen und Wetter"] },
         { k: "text", h: "PAN PAN – Dringlichkeit", body: "Sehr dringende Meldung zur Sicherheit eines Fahrzeugs oder einer Person (SRC 93, 94). Ankündigung per DSC auf Kanal 70, Meldung im Sprechfunk auf Kanal 16 (SRC 96). An alle oder an eine bestimmte Funkstelle (SRC 98). Eine Meldung an alle muss nach Erledigung aufgehoben werden (SRC 99)." },
         { k: "ex", h: "Beispiel Pan Pan (Englisch)", lines: () => exE("panpan") },
+        { k: "tool", tool: "order", id: "pan" },
         { k: "text", h: "SECURITE – Sicherheit", body: "Leitet eine Sicherheitsmeldung ein (SRC 100, 101): wichtige nautische Warnnachricht oder wichtige Wetterwarnung (SRC 102). Auf Kanal 16 wird sie nur angekündigt (SRC 139)." },
+        { k: "tool", tool: "order", id: "securite" },
         { k: "text", h: "NAVTEX", body: "Nautische Warnnachrichten im Funktelexverfahren (SRC 116) für MSI, Reichweite ca. 600 sm (SRC 119). Navigationswarnungen, Wetterwarnungen und SAR-Meldungen lassen sich nicht unterdrücken (SRC 121).", fact: "Deutscher NAVTEX-Sender: regelmäßig alle 4 Stunden (SRC 123). WX = Wetterbericht, NX = nautische Warnnachricht (SRC 17, 18)." },
         { k: "fig", ids: ["navtex", "navareas"], h: "NAVTEX und NAVAREAs", cap: "NAVTEX empfängt MSI im Funktelex; die Weltmeere sind dafür in NAVAREAs eingeteilt." },
         { k: "merke", items: ["Pan Pan: DSC 70 ankündigen, Meldung auf 16", "Pan Pan an alle → später aufheben", "Sécurité: nautische Warnung oder Wetterwarnung", "NAVTEX ≈ 600 sm, alle 4 h"] },
@@ -2911,6 +2917,7 @@ export default function App() {
         { k: "text", h: "Revier- und Hafenfunk", body: "Dient Nachrichten, die das Führen, die Fahrt und die Sicherheit von Schiffen im Revier oder Hafen betreffen (SRC 88). Rufname: Ortsname, Art des Dienstes, z. B. „Warnemünde Traffic“ (SRC 91, 92). Das ist nichtöffentlicher Funkverkehr (SRC 87).", fact: "Öffentlicher Funkverkehr (z. B. Gespräche über eine Küstenfunkstelle) braucht einen Vertrag mit einer Abrechnungsgesellschaft (SRC 9)." },
         { k: "text", h: "So rufst du an", body: "Küstenfunkstelle mit DSC: auf Kanal 70 oder dem Arbeitskanal (SRC 113). Ohne DSC: auf dem Arbeitskanal (SRC 114). Die Küstenfunkstelle bestimmt, wo es weitergeht (SRC 90)." },
         { k: "ex", h: "Beispiel Routineanruf (Englisch)", lines: () => exE("routine") },
+        { k: "tool", tool: "order", id: "routine" },
         { k: "tool", tool: "trainer" },
         { k: "merke", items: ["Revierfunk: Ort + Dienst, z. B. „… Traffic“", "Arbeitskanal legt die Küstenfunkstelle fest", "Vorher hören, nicht stören"] },
         { k: "check", n: 88 },
@@ -3010,10 +3017,14 @@ export default function App() {
       cards: [
         { k: "goal", items: ["Wann Notverkehr eingeleitet wird", "Notmeldung nach Sprechfunktafel", "Bestätigung, Relay, Funkstille"] },
         { k: "text", h: "Wann Mayday?", body: "Bei unmittelbarer Gefährdung von Mensch oder Schiff (UBI 112): z. B. lebensgefährlich verletzte Person, Mensch über Bord, Kentergefahr (UBI 113–115). Über die Art der Meldung entscheidet der Schiffsführer (UBI 130).", fact: "Zur Einleitung von Rettungsmaßnahmen vorzugsweise die Revierzentralen anrufen (UBI 109)." },
-        { k: "tool", tool: "order" },
+        { k: "tool", tool: "order", id: "mayday" },
         { k: "ex", h: "Beispiel Notmeldung Binnen", lines: () => exB("mayday") },
         { k: "text", h: "Bestätigen und weiterleiten", body: "Im NIF bestätigt die zuständige Schleuse oder Revierzentrale (UBI 116), im Verkehrskreis Schiff – Schiff eine Schiffsfunkstelle in der Nähe (UBI 117). MAYDAY RELAY: Notmeldung durch eine Funkstelle, die selbst nicht in Not ist (UBI 118)." },
+        { k: "tool", tool: "order", id: "ack" },
+        { k: "tool", tool: "order", id: "relay" },
         { k: "text", h: "Funkstille und Ende", body: "SILENCE MAYDAY: Die Funkstelle in Not gebietet allen anderen Funkstille (UBI 120). SILENCE FINI: Der Notverkehr ist beendet (UBI 119)." },
+        { k: "tool", tool: "order", id: "silence" },
+        { k: "tool", tool: "order", id: "fini" },
         { k: "merke", items: ["Unmittelbare Gefahr → Notverkehr", "Vorzugsweise Revierzentrale rufen", "Bestätigung: Schleuse/Revierzentrale oder Schiff in der Nähe", "SILENCE MAYDAY / SILENCE FINI"] },
         { k: "svg", h: "Aufbau der Notmeldung", d: "mayday", cap: "Binnen nach Sprechfunktafel: Notanruf, dann Notmeldung mit Position (z. B. Rhein-km), Art des Notfalls und erbetener Hilfe, Abschluss BITTE KOMMEN." },
         { k: "check", n: 112 },
@@ -3029,8 +3040,10 @@ export default function App() {
         { k: "goal", items: ["Pan Pan richtig einsetzen und aufheben", "Sécurité-Meldungen erkennen"] },
         { k: "text", h: "PAN PAN – Dringlichkeit", body: "Dringende Nachrichten über Besatzung oder Schiff ohne unmittelbare Gefahr (UBI 121, 122), z. B. nicht lebensbedrohliche Krankheit oder Schaden ohne unmittelbare Gefahr (UBI 123, 124). Aufheben mit demselben Anrufschema, Uhrzeit der Aussendung und Hinweis auf die Rücknahme (UBI 125)." },
         { k: "ex", h: "Beispiel Pan Pan Binnen", lines: () => exB("panpan", { pan: "engine" }) },
+        { k: "tool", tool: "order", id: "pan" },
         { k: "text", h: "SECURITE – Sicherheit", body: "Kündigt sicherheitsrelevante Nachrichten an: wichtige nautische Warnung oder wichtige Wetterwarnung (UBI 126, 127). Beispiele: treibender Baumstamm, vertriebene Tonne (UBI 128, 129)." },
         { k: "ex", h: "Beispiel Sécurité Binnen", lines: () => exB("securite", { sec: "tree" }) },
+        { k: "tool", tool: "order", id: "securite" },
         { k: "merke", items: ["Pan Pan: dringend, aber keine unmittelbare Gefahr", "Aufheben: gleiches Schema + Uhrzeit + Rücknahme", "Sécurité: Treibgut, vertriebene Tonne, Wetter"] },
         { k: "check", n: 124 },
         { k: "check", n: 125 },
@@ -3047,6 +3060,7 @@ export default function App() {
         { k: "fig", ids: ["zentrale"], h: "Revierzentrale", cap: "Eine Revierzentrale ist eine Landfunkstelle des Verkehrskreises Nautische Information (UBI 5), hier Oberwesel am Rhein." },
         { k: "text", h: "Routineanruf", body: "Beispiel Bunkerboot: Anruf auf Kanal 10 mit der Bitte, auf einen Kanal für Nachrichten sozialer Art zu wechseln (UBI 93), also 72 oder 77 (UBI 94). Anweisungen der NIF-Funkstellen sind zu befolgen (UBI 99)." },
         { k: "ex", h: "Beispiel Routineanruf Binnen", lines: () => exB("routine") },
+        { k: "tool", tool: "order", id: "routine" },
         { k: "tool", tool: "trainer" },
         { k: "merke", items: ["5 Revierzentralen: Duisburg, Oberwesel, Minden, Magdeburg, Gösselthal", "Kanal 10 anrufen, dann wechseln", "NIF-Anweisungen befolgen"] },
         { k: "check", n: 71 },
@@ -3415,33 +3429,198 @@ export default function App() {
 
   /* ---------- Übungen ---------- */
   type OrderBlock = { label: string; hint: string; ex: string };
-  const ORDER_SRC: OrderBlock[] = [
-    { label: "MAYDAY MAYDAY MAYDAY", hint: "Notanruf: Notzeichen dreimal.", ex: "MAYDAY MAYDAY MAYDAY" },
-    { label: "THIS IS", hint: "Verfahrenswort, nicht übersetzen.", ex: "THIS IS" },
-    { label: "Name 3×", hint: "Im Notanruf dreimal.", ex: "Seeadler Seeadler Seeadler" },
-    { label: "Rufzeichen", hint: "Im Notanruf einmal, ggf. buchstabieren.", ex: "DA5005" },
-    { label: "MMSI", hint: "Im Notanruf, nur nach DSC-Notalarm.", ex: "MMSI 211234567" },
-    { label: "MAYDAY", hint: "Beginn der Notmeldung, ohne THIS IS.", ex: "MAYDAY" },
-    { label: "Name – Rufzeichen – MMSI", hint: "In der Notmeldung je einmal; MMSI nur nach DSC.", ex: "Seeadler DA5005 MMSI 211234567" },
-    { label: "Position (mit UTC)", hint: "Letzte Position, möglichst mit UTC.", ex: "POSITION 54°20'N 010°10'E AT 1430 UTC" },
-    { label: "Art des Notfalls", hint: "Was ist geschehen.", ex: "SINKING" },
-    { label: "Erbetene Hilfe", hint: "Welche Hilfe wird gebraucht.", ex: "REQUIRE IMMEDIATE ASSISTANCE" },
-    { label: "Weitere Angaben", hint: "Z. B. Personen an Bord.", ex: "4 PERSONS ON BOARD" },
-    { label: "OVER", hint: "Abschluss: Aufforderung zur Antwort.", ex: "OVER" },
+  type OrderDrill = { id: string; title: string; short: string; blocks: OrderBlock[] };
+  const b = (label: string, hint: string, ex: string): OrderBlock => ({ label, hint, ex });
+  const ORDER_DRILLS_SRC: OrderDrill[] = [
+    { id: "mayday", title: "Übung: Baue die Notmeldung", short: "Notanruf und Notmeldung", blocks: [
+      b("MAYDAY MAYDAY MAYDAY", "Notanruf: Notzeichen dreimal.", "MAYDAY MAYDAY MAYDAY"),
+      b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
+      b("Name 3×", "Im Notanruf dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Im Notanruf einmal, ggf. buchstabieren.", "DA5005"),
+      b("MMSI", "Im Notanruf, nur nach DSC-Notalarm.", "MMSI 211234567"),
+      b("MAYDAY", "Beginn der Notmeldung, ohne THIS IS.", "MAYDAY"),
+      b("Name – Rufzeichen – MMSI", "In der Notmeldung je einmal; MMSI nur nach DSC.", "Seeadler DA5005 MMSI 211234567"),
+      b("Position (mit UTC)", "Letzte Position, möglichst mit UTC.", "POSITION 54°20'N 010°10'E AT 1430 UTC"),
+      b("Art des Notfalls", "Was ist geschehen.", "SINKING"),
+      b("Erbetene Hilfe", "Welche Hilfe wird gebraucht.", "REQUIRE IMMEDIATE ASSISTANCE"),
+      b("Weitere Angaben", "Z. B. Personen an Bord.", "4 PERSONS ON BOARD"),
+      b("OVER", "Abschluss: Aufforderung zur Antwort.", "OVER"),
+    ]},
+    { id: "ack", title: "Übung: Bestätigung (RECEIVED MAYDAY)", short: "Bestätigung einer Notmeldung", blocks: [
+      b("MAYDAY", "Einleitung: einmal, weil es Notverkehr ist.", "MAYDAY"),
+      b("Name des Schiffs in Not", "Einmal, oder MMSI bzw. andere Kennung.", "YACHT MOEWE"),
+      b("THIS IS", "Danach folgt die eigene Kennung.", "THIS IS"),
+      b("Eigener Name", "In der Bestätigung einmal.", "Seeadler"),
+      b("Rufzeichen", "Eigenes Rufzeichen einmal.", "DA5005"),
+      b("MMSI", "Eigene MMSI, falls vorhanden.", "MMSI 211234567"),
+      b("RECEIVED MAYDAY", "Vorgeschriebene Bestätigungsformel.", "RECEIVED MAYDAY"),
+      b("OVER", "Üblich, wenn eine Antwort erwartet wird.", "OVER"),
+    ]},
+    { id: "relay", title: "Übung: Baue den MAYDAY RELAY", short: "Weiterleitung einer Notmeldung", blocks: [
+      b("MAYDAY RELAY 3×", "Notanruf für ein anderes Schiff, dreimal.", "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY"),
+      b("Gerufene Funkstelle 3×", "Grundsätzlich nächste Küstenfunkstelle, sonst ALL STATIONS.", "BREMEN RESCUE BREMEN RESCUE BREMEN RESCUE"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS"),
+      b("Name 3×", "Eigener Name im Anruf dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Eigenes Rufzeichen einmal. MMSI nur nach DSC-Relay.", "DA5005"),
+      b("MAYDAY", "Beginn der weitergeleiteten Notmeldung.", "MAYDAY"),
+      b("Schiff in Not", "Name und Rufzeichen des Havaristen.", "YACHT MOEWE DB1234"),
+      b("Position (mit UTC)", "Angegebene oder beobachtete Position.", "POSITION 54°30'N 010°40'E"),
+      b("Art des Notfalls / Hilfe", "Beobachtete oder empfangene Notsituation.", "FIRE ON BOARD, REQUIRE IMMEDIATE ASSISTANCE"),
+      b("OVER", "Antwort der gerufenen Stelle abwarten.", "OVER"),
+    ]},
+    { id: "silence", title: "Übung: Funkstille gebieten (SILENCE MAYDAY)", short: "SILENCE MAYDAY", blocks: [
+      b("MAYDAY", "Einleitung, weil es Notverkehr ist.", "MAYDAY"),
+      b("ALL STATIONS (oder Störer)", "An alle oder den Namen der störenden Funkstelle.", "ALL STATIONS"),
+      b("SILENCE MAYDAY", "Gebot der Funkstille. Gesprochen „SEELONCE MAYDAY“.", "SILENCE MAYDAY"),
+    ]},
+    { id: "fini", title: "Übung: Notverkehr beenden (SILENCE FINI)", short: "SILENCE FINI", blocks: [
+      b("MAYDAY", "Einleitung der Beendigung.", "MAYDAY"),
+      b("ALL STATIONS 3×", "An alle Funkstellen, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS"),
+      b("THIS IS", "Danach die leitende Funkstelle.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Eigenes Rufzeichen einmal.", "DA5005"),
+      b("MMSI", "Falls vorhanden, z. B. nach DSC.", "MMSI 211234567"),
+      b("Uhrzeit UTC", "Zeitpunkt der Beendigung.", "1430 UTC"),
+      b("Schiff in Not", "Name und Rufzeichen des Havaristen.", "YACHT MOEWE DB1234"),
+      b("SILENCE FINI", "Ende des Notverkehrs. Gesprochen „SEELONCE FEENEE“.", "SILENCE FINI"),
+      b("OVER", "Abschluss der Meldung.", "OVER"),
+    ]},
+    { id: "pan", title: "Übung: Baue die Dringlichkeitsmeldung", short: "PAN PAN", blocks: [
+      b("PAN PAN 3×", "Dringlichkeitszeichen dreimal (insgesamt sechs Wörter PAN).", "PAN PAN PAN PAN PAN PAN"),
+      b("ALL STATIONS 3×", "An alle oder an eine bestimmte Funkstelle, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Einmal, ggf. buchstabieren.", "DA5005"),
+      b("MMSI", "Nur wenn zuvor ein DSC-Urgency-Anruf gesendet wurde.", "MMSI 211234567"),
+      b("Position (mit UTC)", "Standort, möglichst mit Uhrzeit.", "POSITION 3 MILES NORTH OF FEHMARN"),
+      b("Sachverhalt / Hilfe", "Was vorliegt und welche Hilfe gebraucht wird.", "ENGINE FAILURE, REQUIRE TOW"),
+      b("OVER", "Antwort erwartet.", "OVER"),
+    ]},
+    { id: "securite", title: "Übung: Baue die Sicherheitsmeldung", short: "SECURITE", blocks: [
+      b("SECURITE 3×", "Sicherheitszeichen dreimal. Gesprochen „SAY-CURE-I-TAY“.", "SECURITE SECURITE SECURITE"),
+      b("ALL STATIONS 3×", "An alle oder an eine bestimmte Funkstelle, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Einmal, ggf. buchstabieren.", "DA5005"),
+      b("MMSI", "Nur wenn zuvor ein DSC-Safety-Anruf gesendet wurde.", "MMSI 211234567"),
+      b("Position (mit UTC)", "Ort der Gefahr, möglichst mit Uhrzeit.", "POSITION 54°20'N 011°05'E"),
+      b("Beschreibung der Gefahr", "Z. B. treibender Container.", "DRIFTING CONTAINER, DANGER TO NAVIGATION"),
+      b("OUT", "An alle: in der Regel keine Antwort erwartet.", "OUT"),
+    ]},
+    { id: "routine", title: "Übung: Routineanruf mit Kanalwechsel", short: "Routineanruf", blocks: [
+      b("Gerufene Funkstelle (1–3×)", "Name des gerufenen Schiffes oder der Küstenfunkstelle.", "ALBATROS ALBATROS"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS"),
+      b("Eigener Name (1–3×)", "Eigener Name, höchstens dreimal.", "Seeadler Seeadler"),
+      b("Rufzeichen", "Eigenes Rufzeichen einmal.", "DA5005"),
+      b("Arbeitskanal", "Vorschlag oder zugewiesener Kanal.", "CHANNEL 72 PLEASE"),
+      b("OVER", "Antwort erwarten, dann auf den Arbeitskanal wechseln.", "OVER"),
+    ]},
   ];
-  const ORDER_UBI: OrderBlock[] = [
-    { label: "MAYDAY MAYDAY MAYDAY", hint: "Notanruf: Notzeichen dreimal.", ex: "MAYDAY MAYDAY MAYDAY" },
-    { label: "THIS IS", hint: "Verfahrenswort, nicht übersetzen.", ex: "THIS IS" },
-    { label: "Name 3×", hint: "Im Notanruf dreimal.", ex: "Seeadler Seeadler Seeadler" },
-    { label: "Rufzeichen", hint: "Im Notanruf einmal.", ex: "DA5005" },
-    { label: "MAYDAY", hint: "Beginn der Notmeldung, ohne THIS IS.", ex: "MAYDAY" },
-    { label: "Name – Rufzeichen", hint: "In der Notmeldung je einmal, ohne MMSI.", ex: "Seeadler DA5005" },
-    { label: "Position (z. B. Rhein-km)", hint: "Z. B. Wasserstraße und Kilometer.", ex: "POSITION RHEIN-KILOMETER 550" },
-    { label: "Art des Notfalls", hint: "Was ist geschehen.", ex: "WASSEREINBRUCH, SCHIFF SINKT" },
-    { label: "Erbetene Hilfe", hint: "Welche Hilfe wird gebraucht.", ex: "BITTE UM SOFORTIGE HILFE" },
-    { label: "Weitere Angaben", hint: "Z. B. Personen an Bord.", ex: "4 PERSONEN AN BORD" },
-    { label: "BITTE KOMMEN", hint: "Abschluss: Aufforderung zur Antwort.", ex: "BITTE KOMMEN" },
+  const ORDER_DRILLS_UBI: OrderDrill[] = [
+    { id: "mayday", title: "Übung: Baue die Notmeldung", short: "Notanruf und Notmeldung", blocks: [
+      b("MAYDAY MAYDAY MAYDAY", "Notanruf: Notzeichen dreimal.", "MAYDAY MAYDAY MAYDAY"),
+      b("THIS IS", "Verfahrenswort, auch binnen nicht übersetzen.", "THIS IS"),
+      b("Name 3×", "Im Notanruf dreimal, laut Tafel Schiffstyp und Name.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Im Notanruf einmal.", "DA5005"),
+      b("MAYDAY", "Beginn der Notmeldung, ohne THIS IS.", "MAYDAY"),
+      b("Name – Rufzeichen", "In der Notmeldung je einmal, ohne MMSI.", "Seeadler DA5005"),
+      b("Position (z. B. Rhein-km)", "Z. B. Wasserstraße und Kilometer.", "POSITION RHEIN-KILOMETER 550"),
+      b("Art des Notfalls", "Was ist geschehen.", "WASSEREINBRUCH, SCHIFF SINKT"),
+      b("Erbetene Hilfe", "Welche Hilfe wird gebraucht.", "BITTE UM SOFORTIGE HILFE"),
+      b("Weitere Angaben", "Z. B. Personen an Bord.", "4 PERSONEN AN BORD"),
+      b("BITTE KOMMEN", "Abschluss: Aufforderung zur Antwort.", "BITTE KOMMEN"),
+    ]},
+    { id: "ack", title: "Übung: Bestätigung (RECEIVED MAYDAY)", short: "Bestätigung einer Notmeldung", blocks: [
+      b("MAYDAY", "Einleitung, weil es Notverkehr ist.", "MAYDAY"),
+      b("Name des Fahrzeugs in Not", "Kennung des Havaristen.", "MS RHEINSTERN"),
+      b("THIS IS", "Danach die eigene Funkstelle.", "THIS IS"),
+      b("Eigener Name", "Eigener Name einmal.", "Seeadler"),
+      b("Rufzeichen", "Eigenes Rufzeichen einmal. Keine MMSI (kein DSC).", "DA5005"),
+      b("RECEIVED MAYDAY", "Vorgeschriebene Bestätigungsformel, nur wenn du helfen kannst.", "RECEIVED MAYDAY"),
+    ]},
+    { id: "relay", title: "Übung: Baue den MAYDAY RELAY", short: "Weiterleitung einer Notmeldung", blocks: [
+      b("MAYDAY RELAY 3×", "Weiterleitung, dreimal.", "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY"),
+      b("Gerufene Funkstelle 3×", "Vorzugsweise Revierzentrale bzw. NIF.", "OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE"),
+      b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Einmal, ohne MMSI.", "DA5005"),
+      b("Position / Beobachtung", "Wo, bzw. „folgende Meldung um … Uhr erhalten“.", "POSITION RHEIN-KILOMETER 552"),
+      b("Notsituation eines Dritten", "Beobachtete Lage oder Wiedergabe der empfangenen Notmeldung.", "MS RHEINSTERN, WASSEREINBRUCH, BITTE UM SOFORTIGE HILFE"),
+      b("BITTE KOMMEN", "Antwort der gerufenen Stelle abwarten.", "BITTE KOMMEN"),
+    ]},
+    { id: "silence", title: "Übung: Funkstille gebieten (SILENCE MAYDAY)", short: "SILENCE MAYDAY", blocks: [
+      b("MAYDAY", "Im Notverkehr der Meldung voranstellen.", "MAYDAY"),
+      b("ALL STATIONS (oder Störer)", "An alle oder den Namen der störenden Funkstelle.", "ALL STATIONS"),
+      b("SILENCE MAYDAY", "Gebot der Funkstille. Binnen gebietet die Funkstelle in Not.", "SILENCE MAYDAY"),
+    ]},
+    { id: "fini", title: "Übung: Notverkehr beenden (SILENCE FINI)", short: "SILENCE FINI", blocks: [
+      b("MAYDAY", "Einleitung der Beendigung.", "MAYDAY"),
+      b("ALL STATIONS 3×", "In dem Verkehrskreis, in dem der Notverkehr lief.", "ALL STATIONS ALL STATIONS ALL STATIONS"),
+      b("THIS IS", "Danach die leitende Funkstelle.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Einmal, ohne MMSI.", "DA5005"),
+      b("Aktuelle Uhrzeit", "Uhrzeit dieser Meldung.", "1430 UHR"),
+      b("Name des Fahrzeugs in Not", "Für welches Fahrzeug der Notverkehr beendet wird.", "MS RHEINSTERN"),
+      b("SILENCE FINI", "Der Notverkehr ist beendet. Gesprochen „SEELONCE FEENEE“.", "SILENCE FINI"),
+    ]},
+    { id: "pan", title: "Übung: Baue die Dringlichkeitsmeldung", short: "PAN PAN", blocks: [
+      b("PAN PAN 3×", "Dringlichkeitszeichen dreimal.", "PAN PAN PAN PAN PAN PAN"),
+      b("Gerufene Funkstelle 3×", "Vorzugsweise NIF, sonst an alle oder eine bestimmte Stelle.", "OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE"),
+      b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Einmal, ohne MMSI.", "DA5005"),
+      b("Position (z. B. Rhein-km)", "Standort auf der Wasserstraße.", "POSITION RHEIN-KILOMETER 550"),
+      b("Sachverhalt / Hilfe", "Dringender Fall ohne unmittelbare Lebensgefahr.", "MOTORSCHADEN, BITTE UM ABSCHLEPPHILFE"),
+      b("BITTE KOMMEN", "Antwort erwarten.", "BITTE KOMMEN"),
+    ]},
+    { id: "securite", title: "Übung: Baue die Sicherheitsmeldung", short: "SECURITÉ", blocks: [
+      b("SECURITÉ 3×", "Sicherheitszeichen dreimal.", "SECURITÉ SECURITÉ SECURITÉ"),
+      b("Gerufene Funkstelle 3×", "Vorzugsweise NIF, sonst an alle.", "OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE"),
+      b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Einmal, ohne MMSI.", "DA5005"),
+      b("Position (z. B. Rhein-km)", "Ort der Gefahr.", "POSITION RHEIN-KILOMETER 548"),
+      b("Beschreibung des Sachverhalts", "Z. B. treibender Baumstamm oder vertriebene Tonne.", "TREIBENDER BAUMSTAMM, GEFAHR FÜR DIE SCHIFFFAHRT"),
+      b("ENDE", "Tafel: BITTE KOMMEN bzw. ENDE. An alle oft ohne Antwort.", "ENDE"),
+    ]},
+    { id: "routine", title: "Übung: Routineanruf", short: "Routineanruf", blocks: [
+      b("Gerufene Funkstelle (max. 3×)", "Schiff, Schleuse oder Revierzentrale.", "IFFEZHEIM SCHLEUSE IFFEZHEIM SCHLEUSE"),
+      b("HIER IST", "Binnen üblich „Hier ist“; die Tafel erlaubt auch THIS IS.", "HIER IST"),
+      b("Eigener Name (max. 3×)", "Eigener Name, höchstens dreimal.", "Seeadler"),
+      b("Rufzeichen", "Einmal, ohne MMSI.", "DA5005"),
+      b("Position / Sachverhalt", "Z. B. Kilometer, Begegnung oder Schleusungswunsch.", "POSITION RHEIN-KILOMETER 334, ICH ERBITTE SCHLEUSUNG ZU BERG"),
+      b("BITTE KOMMEN", "Oder ENDE, wenn keine Antwort erwartet wird.", "BITTE KOMMEN"),
+    ]},
   ];
+  const orderDrills = (): OrderDrill[] => (certC === "SRC" ? ORDER_DRILLS_SRC : ORDER_DRILLS_UBI);
+  const okey = (id: string): string => "O-" + certC + "-" + id;
+  const orderDone = (id: string): boolean => (prog[okey(id)] || 0) === 1;
+  const peekOrderId = (): string | null => {
+    if (path[0] === "werkzeuge" && path[1] === "spruchbau" && path[2]) return path[2];
+    if (path[0] === "erklaeren" && path.length === 2 && path[1] !== "ref") {
+      const l = LESSONS.find((x: Lesson) => x.id === path[1]);
+      if (!l) return null;
+      let idx = 0;
+      for (let ci = 0; ci < l.cards.length; ci++) {
+        const c = l.cards[ci];
+        if (c.k === "task") {
+          const task = ICOM_TASKS.find((x: { value: string }) => x.value === c.id);
+          const n = task ? task.steps.length : 1;
+          if (pg >= idx && pg < idx + n) return null;
+          idx += n;
+        } else {
+          if (pg === idx) return c.k === "tool" && c.tool === "order" ? c.id || "mayday" : null;
+          idx += 1;
+        }
+      }
+    }
+    return null;
+  };
+  const visibleOrderId = peekOrderId();
+  const orderDrill = (id?: string): OrderDrill => {
+    const drills = orderDrills();
+    return drills.find((d: OrderDrill) => d.id === (id || visibleOrderId || "mayday")) || drills[0];
+  };
   const shuffleIdx = (n: number): number[] => {
     const a = Array.from({ length: n }, (_: unknown, i: number) => i);
     for (let i = a.length - 1; i > 0; i--) {
@@ -3452,7 +3631,6 @@ export default function App() {
     }
     return a;
   };
-  const orderBlocks = (): OrderBlock[] => (certC === "SRC" ? ORDER_SRC : ORDER_UBI);
   useEffect(() => {
     if (!document.getElementById("fs-ord-css")) {
       const s = document.createElement("style");
@@ -3460,18 +3638,18 @@ export default function App() {
       s.textContent = "@keyframes fsOrdIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }";
       document.head.appendChild(s);
     }
-    const n = orderBlocks().length;
+    if (!visibleOrderId) return;
     setOrd([]);
     setOrdPhase("play");
     setOrdShown(0);
     setOrdHint(-1);
     setOrdSolved(false);
-    setOrdMix(shuffleIdx(n));
-  }, [certC]);
+    setOrdMix(shuffleIdx(orderDrill(visibleOrderId).blocks.length));
+  }, [certC, visibleOrderId]);
   useEffect(() => {
     if (ordPhase !== "revealed") return;
     setOrdShown(1);
-    const n = orderBlocks().length;
+    const n = orderDrill(visibleOrderId || undefined).blocks.length;
     const id = window.setInterval(() => {
       setOrdShown((s: number) => {
         if (s + 1 >= n) {
@@ -3482,57 +3660,84 @@ export default function App() {
       });
     }, 320);
     return () => window.clearInterval(id);
-  }, [ordPhase, certC]);
+  }, [ordPhase, certC, visibleOrderId]);
   const resetOrder = () => {
+    const d = orderDrill(visibleOrderId || undefined);
     setOrd([]);
     setOrdPhase("play");
     setOrdShown(0);
     setOrdHint(-1);
     setOrdSolved(false);
-    setOrdMix(shuffleIdx(orderBlocks().length));
+    setOrdMix(shuffleIdx(d.blocks.length));
   };
-  const orderTool = (): ReactNode => {
-    const blocks = orderBlocks();
-    const mix = (ordMix.length === blocks.length ? ordMix : blocks.map((_: OrderBlock, i: number) => i));
-    const ok = ord.every((v: number, i: number) => v === i);
-    const doneAll = ord.length === blocks.length;
+  const markOrderSolved = (id: string) => {
+    setOrdSolved(true);
+    setProg((p: Record<string, number>) => (p[okey(id)] === 1 ? p : { ...p, [okey(id)]: 1 }));
+  };
+  const undoLast = () => {
+    setOrdHint(-1);
+    setOrdSolved(false);
+    setOrd((o: number[]) => o.slice(0, -1));
+  };
+  const undoFrom = (i: number) => {
+    setOrdHint(-1);
+    setOrdSolved(false);
+    setOrd((o: number[]) => o.slice(0, i));
+  };
+  const orderTool = (id?: string): ReactNode => {
+    const drill = orderDrill(id);
+    const blocks = drill.blocks;
+    const mix = (ordMix.length === blocks.length ? ordMix : blocks.map((_: OrderBlock, i: number) => i)).filter((i: number) => i >= 0 && i < blocks.length);
+    const cur = ord.filter((v: number) => v >= 0 && v < blocks.length);
+    const stale = cur.length !== ord.length;
+    const ordUse = stale ? [] : cur;
+    const ok = ordUse.every((v: number, i: number) => v === i);
+    const doneAll = !stale && ordUse.length === blocks.length;
     const prefixOk = ok;
     const revealed = ordPhase === "revealed";
-    const shown = revealed ? blocks.slice(0, ordShown) : [];
-    const nextIdx = prefixOk ? ord.length : -1;
+    const shown = revealed ? blocks.slice(0, Math.min(ordShown, blocks.length)) : [];
+    const nextIdx = prefixOk ? ordUse.length : -1;
     return (
       <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
-        {screenTitle("Übung: Baue die Notmeldung", revealed ? "Lösung – zählt nicht als selbst gelöst" : "Tippe die Bausteine in der richtigen Reihenfolge an")}
+        {screenTitle(drill.title, revealed ? "Lösung – zählt nicht als selbst gelöst" : "Tippe die Bausteine in der richtigen Reihenfolge an")}
         <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
           {revealed
-            ? shown.map((b: OrderBlock, i: number) => (
+            ? shown.map((bl: OrderBlock, i: number) => (
                 <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "6px 8px", borderRadius: t.radius.md, border: "1px solid " + t.text.success, background: t.fill.successSubtle, animation: "fsOrdIn 280ms ease-out" }}>
                   <span style={{ flex: "0 0 26px", height: 26, borderRadius: t.radius.full, background: accent, color: t.bg.base, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: t.weight.semibold, ...txt("label", t.bg.base, t.weight.semibold) }}>{i + 1}</span>
                   <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                    <span style={txt("body1", t.text.primary, t.weight.semibold)}>{b.label}</span>
-                    <span style={txt("subtext", t.text.secondary)}>{b.hint}</span>
-                    <span style={{ fontFamily: t.font.mono, ...txt("subtext", t.text.primary) }}>{b.ex}</span>
+                    <span style={txt("body1", t.text.primary, t.weight.semibold)}>{bl.label}</span>
+                    <span style={txt("subtext", t.text.secondary)}>{bl.hint}</span>
+                    <span style={{ fontFamily: t.font.mono, ...txt("subtext", t.text.primary) }}>{bl.ex}</span>
                   </div>
                 </div>
               ))
             : (
               <>
-                {ord.map((v: number, i: number) => (
-                  <div key={i} style={{ padding: "8px 10px", borderRadius: t.radius.md, border: "1px solid " + (v === i ? t.text.success : t.text.danger), background: v === i ? t.fill.successSubtle : t.fill.dangerSubtle, ...txt("body1", t.text.primary) }}>{i + 1 + ". " + blocks[v].label}</div>
+                {ordUse.map((v: number, i: number) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => undoFrom(i)}
+                    aria-label={(i + 1) + ". " + blocks[v].label + " – diesen und folgende zurücknehmen"}
+                    style={{ textAlign: "left", padding: "10px 12px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.md, border: "1px solid " + (v === i ? t.text.success : t.text.danger), background: v === i ? t.fill.successSubtle : t.fill.dangerSubtle, color: t.text.primary, fontFamily: fam, ...txt("body1", t.text.primary), cursor: "pointer" }}
+                  >
+                    {i + 1 + ". " + blocks[v].label}
+                  </button>
                 ))}
                 {!doneAll ? (
                   <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                     {mix
-                      .filter((i: number) => ord.indexOf(i) < 0)
+                      .filter((i: number) => ordUse.indexOf(i) < 0)
                       .map((i: number) => (
                         <button
                           key={"o" + i}
                           type="button"
                           onClick={() => {
                             setOrdHint(-1);
-                            const next = ord.concat([i]);
+                            const next = ordUse.concat([i]);
                             setOrd(next);
-                            if (next.length === blocks.length && next.every((v: number, j: number) => v === j)) setOrdSolved(true);
+                            if (next.length === blocks.length && next.every((v: number, j: number) => v === j)) markOrderSolved(drill.id);
                           }}
                           style={{
                             fontFamily: fam,
@@ -3555,10 +3760,21 @@ export default function App() {
             )}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: "0 0 auto", background: t.bg.elevated, paddingTop: 6 }}>
-          {revealed ? (ordSolved ? <Status tone="success">Selbst gelöst</Status> : <Status tone="accent">Nicht selbst gelöst</Status>) : doneAll ? (ok ? <Status tone="success">Perfekt – richtige Reihenfolge</Status> : <Status tone="danger">Rote Bausteine stehen falsch</Status>) : ordHint === -2 ? <Status tone="warning">Erst neu ordnen oder Lösung zeigen</Status> : null}
+          {revealed ? (ordSolved || orderDone(drill.id) ? <Status tone="success">Selbst gelöst</Status> : <Status tone="accent">Nicht selbst gelöst</Status>) : doneAll ? (ok ? <Status tone="success">Perfekt – richtige Reihenfolge</Status> : <Status tone="danger">Rote Bausteine stehen falsch</Status>) : ordHint === -2 ? <Status tone="warning">Erst neu ordnen oder Lösung zeigen</Status> : null}
+          {!revealed && ordUse.length > 0 ? (
+            <button
+              type="button"
+              onClick={undoLast}
+              aria-label="Letzten zurück"
+              style={{ fontFamily: fam, ...txt("body2", t.text.primary, t.weight.semibold), padding: "10px 14px", minHeight: 44, minWidth: 44, boxSizing: "border-box", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, cursor: "pointer" }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H13"/></svg>
+              Letzten zurück
+            </button>
+          ) : null}
           {!revealed && !doneAll ? <Button label="Tipp" variant="quiet" onClick={() => (nextIdx >= 0 ? setOrdHint(nextIdx) : setOrdHint(-2))} /> : null}
           {!revealed ? <Button label="Lösung zeigen" variant="primary" onClick={() => setOrdPhase("revealed")} /> : null}
-          {revealed || ord.length > 0 ? <Button label={revealed ? "Nochmal üben" : "Neu ordnen"} onClick={resetOrder} /> : null}
+          {revealed || ordUse.length > 0 ? <Button label={revealed ? "Nochmal üben" : "Neu ordnen"} onClick={resetOrder} /> : null}
         </div>
       </div>
     );
@@ -3611,8 +3827,37 @@ export default function App() {
     );
   };
 
-  const toolCard = (tool: string): ReactNode => {
-    if (tool === "order") return orderTool();
+  const spruchbauHome = (): ReactNode => {
+    const drills = orderDrills();
+    const done = drills.filter((d: OrderDrill) => orderDone(d.id)).length;
+    return (
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 10, overflow: "hidden" }}>
+        <div style={txt("body2", t.text.secondary)}>{done + " von " + drills.length + " selbst gelöst. „Lösung zeigen“ zählt nicht."}</div>
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+          {drills.map((d: OrderDrill) => {
+            const ok = orderDone(d.id);
+            return (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => enter(["werkzeuge", "spruchbau", d.id])}
+                style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", width: "100%", minHeight: 44, boxSizing: "border-box", padding: "10px 14px", borderRadius: t.radius.lg, border: "1px solid " + (ok ? t.text.success : t.border.subtle), background: ok ? t.fill.successSubtle : t.bg.elevated, color: t.text.primary, fontFamily: fam, cursor: "pointer" }}
+              >
+                <span style={{ flex: "0 0 22px", height: 22, borderRadius: t.radius.full, border: "2px solid " + (ok ? t.text.success : t.border.default), background: ok ? t.text.success : "transparent", color: t.bg.base, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: t.weight.semibold }}>{ok ? "✓" : ""}</span>
+                <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+                  <span style={txt("body1", t.text.primary, t.weight.semibold)}>{d.short}</span>
+                  <span style={txt("label", t.text.secondary)}>{ok ? "Selbst gelöst" : "Noch offen"}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  const toolCard = (tool: string, id?: string): ReactNode => {
+    if (tool === "order") return orderTool(id);
     if (tool === "spell") return wissenPages("nato")[0];
     if (tool === "mmsi") return wissenPages("mmsi")[certC === "UBI" ? 1 : 0];
     if (tool === "atis") return wissenPages("mmsi")[0];
@@ -3665,7 +3910,7 @@ export default function App() {
         );
       else if (c.k === "svg") out.push(stack(<>{screenTitle(c.h)}{diagram(c.d)}<div style={txt("body2", t.text.secondary)}>{c.cap}</div></>));
       else if (c.k === "ex") out.push(stack(<>{screenTitle("Beispiel", c.h)}{spruchBox(t, certC === "SRC" ? "Funkspruch" : "Funkspruch (Sprechfunktafel)", c.lines())}</>));
-      else if (c.k === "tool") out.push(toolCard(c.tool));
+      else if (c.k === "tool") out.push(toolCard(c.tool, c.id));
       else if (c.k === "merke")
         out.push(
           stack(
@@ -5355,6 +5600,7 @@ export default function App() {
     { id: "spelltrain", title: "Buchstabier-Trainer", sub: "10er-Runden: Hören, Sprechen, schwache Buchstaben" },
     { id: "nato", title: "Buchstabiertafel", sub: "Werkzeug und Tafel" },
     { id: "funk", title: "Funkverfahren", sub: "Mayday, Pan Pan, Sécurité, Routine" + (certC === "SRC" ? ", Fehlalarm" : "") },
+    { id: "spruchbau", title: "Funksprüche bauen", sub: "Bausteine in die richtige Reihenfolge" },
     { id: "trainer", title: "Funkspruch-Trainer", sub: "Eigenen Funkspruch bauen" },
     { id: "geraet", title: "Gerät IC-M423", sub: myTasks.length + " Abläufe · Tasten · Tipps" },
     { id: "kanaele", title: "Kanäle & Leistung", sub: certC === "SRC" ? "Seefunk" : "Binnenfunk, Verkehrskreise" },
@@ -5386,6 +5632,7 @@ export default function App() {
     }
     if (a === "werkzeuge") {
       if (lvl === 1) return (ERK.find((x: Tile) => x.id === id) || { title: id }).title;
+      if (path[1] === "spruchbau") return (orderDrills().find((d: OrderDrill) => d.id === id) || { short: id }).short;
       if (path[1] === "funk") return (FUNK_TILES.find((x: Tile) => x.id === id) || { title: id }).title;
       if (path[1] === "geraet") return id === "modell" ? "Modell, Tasten & Tipps" : (ICOM_TASKS.find((x: { value: string }) => x.value === id) || { label: id }).label;
     }
@@ -5585,10 +5832,17 @@ export default function App() {
       title = "Nachschlagen & Werkzeuge";
       sub = "Buchstabier-Trainer, Tafeln, Quellen und Videos";
       body = tileGrid(ERK, 6, 150, open);
-    } else if (path[1] === "spelltrain") {
-      title = "Buchstabier-Trainer";
-      sub = "Internationale Buchstabiertafel · 10er-Runden";
-      body = spellScreen();
+    } else if (path[1] === "spruchbau") {
+      if (path.length === 2) {
+        title = "Funksprüche bauen";
+        sub = certC === "SRC" ? "Seefunk: Bausteine in der prüfungsüblichen Reihenfolge" : "Binnenfunk: Bausteine nach Sprechfunktafel";
+        body = spruchbauHome();
+      } else {
+        const d = orderDrill(path[2]);
+        title = d.title;
+        sub = d.short;
+        body = orderTool(path[2]);
+      }
     } else if (path[1] === "funk" && path.length === 2) {
       title = "Funkverfahren";
       sub = "Rangfolge: Not vor Dringlichkeit vor Sicherheit vor Routine (SRC 85, UBI 110)";
