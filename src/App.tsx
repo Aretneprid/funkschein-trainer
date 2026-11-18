@@ -840,14 +840,14 @@ function buildSpruch(p: SP): Spruch {
       return {
         de: clean(["SECURITE, SECURITE, SECURITE", called3De, "HIER IST", own3De, "RUFZEICHEN " + cs, "MMSI " + mm, posDe, sec.value === "custom" ? xDe : sec.de, sec.value === "custom" ? "" : xDe, "BITTE KOMMEN"]),
         en: clean(["SECURITE, SECURITE, SECURITE", called3En, "THIS IS", own3En, "CALL SIGN " + cs, "MMSI " + mm, posEn, sec.value === "custom" ? xEn : sec.en, sec.value === "custom" ? "" : xEn, "OVER"]),
-        hint: "DSC-Anruf Kategorie „Safety“ an alle Schiffe auf Kanal 70. Kanal 16 dient der Ankündigung einer Sicherheitsmeldung (SRC 108); während Notverkehr auf 16 Ankündigung in einer Pause, Aussendung auf einem Schiff-Schiff-Kanal (SRC 156).",
+        hint: "DSC-Anruf Kategorie „Safety“ an alle Schiffe auf Kanal 70. Auf Kanal 16 nur die Ankündigung (SRC 139), die Meldung selbst auf dem Arbeitskanal. Während Notverkehr auf 16 Ankündigung in einer Pause, Aussendung auf einem Schiff-Schiff-Kanal (SRC 156).",
       };
     }
     if (p.scen === "relay") {
       return {
-        de: clean(["MAYDAY RELAY, MAYDAY RELAY, MAYDAY RELAY", called3De, "HIER IST", own3De, "RUFZEICHEN " + cs, "MAYDAY", dN + dCs, posDe, natDe, hlp.de, persons ? persons + " PERSONEN AN BORD" : "", extraDe, "BITTE KOMMEN"]),
-        en: clean(["MAYDAY RELAY, MAYDAY RELAY, MAYDAY RELAY", called3En, "THIS IS", own3En, "CALL SIGN " + cs, "MAYDAY", dN + dCs, posEn, natEn, hlp.en, persons ? persons + " PERSONS ON BOARD" : "", extraEn, "OVER"]),
-        hint: "Notalarm für ein anderes Schiff grundsätzlich an die nächstgelegene Küstenfunkstelle, sonst an alle Funkstellen richten (SRC 141). Beim Anruf an eine Landstation erst deren Antwort abwarten, dann die Meldung durchgeben. Die eigene MMSI entfällt, wenn kein DSC-Relay gesendet wurde (BAKOM-Leitfaden).",
+        de: clean(["MAYDAY RELAY, MAYDAY RELAY, MAYDAY RELAY", called3De, "HIER IST", own3De, "RUFZEICHEN " + cs, "MMSI " + mm, "FOLGENDE MELDUNG AUF KANAL 16 EMPFANGEN", "MAYDAY", dN + dCs, posDe, natDe, hlp.de, persons ? persons + " PERSONEN AN BORD" : "", extraDe, "BITTE KOMMEN"]),
+        en: clean(["MAYDAY RELAY, MAYDAY RELAY, MAYDAY RELAY", called3En, "THIS IS", own3En, "CALL SIGN " + cs, "MMSI " + mm, "FOLLOWING RECEIVED ON CHANNEL 16", "MAYDAY", dN + dCs, posEn, natEn, hlp.en, persons ? persons + " PERSONS ON BOARD" : "", extraEn, "OVER"]),
+        hint: "Notalarm für ein anderes Schiff grundsätzlich an die nächstgelegene Küstenfunkstelle, sonst an alle Funkstellen richten (SRC 141). Klasse-D ohne DISTRESS RELAY: INDIVIDUAL CALL mit Priorität DISTRESS. Beim Anruf an eine Landstation erst deren Antwort abwarten, dann die Meldung durchgeben. Die eigene MMSI entfällt, wenn kein DSC-Relay gesendet wurde (BAKOM-Leitfaden).",
       };
     }
     if (p.scen === "fini") {
@@ -860,8 +860,8 @@ function buildSpruch(p: SP): Spruch {
     if (p.scen === "cancel") {
       const ct = p.time.trim() || "…";
       return {
-        de: clean(["AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN", "HIER IST", own3De, "RUFZEICHEN " + cs, "MMSI " + mm, "BITTE MEINEN NOTALARM VON " + ct + " UTC AUFHEBEN", "BITTE KOMMEN"]),
-        en: clean(["ALL STATIONS, ALL STATIONS, ALL STATIONS", "THIS IS", own3En, "CALL SIGN " + cs, "MMSI " + mm, "PLEASE CANCEL MY DISTRESS ALERT OF " + ct + " UTC", "OVER"]),
+        de: clean(["AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN", "HIER IST", own3De, "RUFZEICHEN " + cs, "MMSI " + mm, "BITTE MEINEN FALSCHEN NOTALARM VON HEUTE " + ct + " UTC AUFHEBEN", "BITTE KOMMEN"]),
+        en: clean(["ALL STATIONS, ALL STATIONS, ALL STATIONS", "THIS IS", own3En, "CALL SIGN " + cs, "MMSI " + mm, "CANCEL MY FALSE DISTRESS ALERT OF TODAY " + ct + " UTC", "OVER"]),
         hint: "Am Gerät: [CANCEL] → [CONTINUE] → [FINISH]; Kanal 16 wird automatisch gewählt. Dann Fehlalarm auf Kanal 16 an alle Funkstellen zurücknehmen (SRC 157) und Kanal 16 mindestens 5 Minuten weiter abhören (BAKOM-Leitfaden).",
       };
     }
@@ -3212,6 +3212,7 @@ export default function App() {
         { k: "tool", tool: "order", id: "fini" },
         { k: "text", h: "Fehlalarm ausgelöst?", body: "a) Gerät sofort zurücksetzen, b) wenn möglich per DSC zurücknehmen, c) auf Kanal 16 „An alle Funkstellen“ den Fehlalarm aufheben (SRC 157).", fact: "Am IC-M423: [CANCEL] → [CONTINUE] → [FINISH], das Gerät wechselt auf Kanal 16." },
         { k: "ex", h: "Fehlalarm aufheben (Englisch)", lines: () => exE("cancel"), deLines: () => exDeLines("cancel") },
+        { k: "tool", tool: "order", id: "cancel" },
         { k: "merke", items: ["MAYDAY ×3 – THIS IS – Name ×3 – Rufzeichen – MMSI", "MAYDAY – Name – Position – Notfall – Hilfe – OVER", "Bestätigen nur, wenn du helfen kannst – nach der Küstenfunkstelle oder nach angemessener Wartefrist (üblich: etwa 5 Minuten)", "Fehlalarm: zurücksetzen, DSC-Storno, Kanal 16"] },
         { k: "svg", h: "Aufbau der Notmeldung", d: "mayday", cap: "Erst der Notanruf, dann die Notmeldung mit Position, Art des Notfalls und der erbetenen Hilfe (SRC 135 ff.)." },
         { k: "check", n: 135 },
@@ -3228,11 +3229,14 @@ export default function App() {
         { k: "text", h: "PAN PAN – Dringlichkeit", body: "Sehr dringende Meldung zur Sicherheit eines Fahrzeugs oder einer Person (SRC 93, 94). Ankündigung per DSC auf Kanal 70, Meldung im Sprechfunk auf Kanal 16 (SRC 96). An alle oder an eine bestimmte Funkstelle (SRC 98). Eine Meldung an alle muss nach Erledigung aufgehoben werden (SRC 99)." },
         { k: "ex", h: "Beispiel Pan Pan (Englisch)", lines: () => exE("panpan"), deLines: () => exDeLines("panpan") },
         { k: "tool", tool: "order", id: "pan" },
-        { k: "text", h: "SECURITE – Sicherheit", body: "Leitet eine Sicherheitsmeldung ein (SRC 100, 101): wichtige nautische Warnnachricht oder wichtige Wetterwarnung (SRC 102). Auf Kanal 16 wird sie nur angekündigt (SRC 139)." },
+        { k: "tool", tool: "order", id: "pancancel" },
+        { k: "text", h: "SECURITE – Sicherheit", body: "Leitet eine Sicherheitsmeldung ein (SRC 100, 101): wichtige nautische Warnnachricht oder wichtige Wetterwarnung (SRC 102). Auf Kanal 16 wird sie nur angekündigt (SRC 139); die Meldung selbst folgt auf dem Arbeitskanal. Erledigte Sicherheitsmeldungen werden dort mit demselben Anrufschema aufgehoben." },
+        { k: "tool", tool: "order", id: "secann" },
         { k: "tool", tool: "order", id: "securite" },
+        { k: "tool", tool: "order", id: "seccancel" },
         { k: "text", h: "NAVTEX", body: "Nautische Warnnachrichten im Funktelexverfahren (SRC 116) für MSI, Reichweite ca. 600 sm (SRC 119). Navigationswarnungen, Wetterwarnungen und SAR-Meldungen lassen sich nicht unterdrücken (SRC 121).", fact: "Deutscher NAVTEX-Sender: regelmäßig alle 4 Stunden (SRC 123). WX = Wetterbericht, NX = nautische Warnnachricht (SRC 17, 18)." },
         { k: "fig", ids: ["navtex", "navareas"], h: "NAVTEX und NAVAREAs", cap: "NAVTEX empfängt MSI im Funktelex; die Weltmeere sind dafür in NAVAREAs eingeteilt." },
-        { k: "merke", items: ["Pan Pan: DSC 70 ankündigen, Meldung auf 16", "Pan Pan an alle → später aufheben", "Sécurité: nautische Warnung oder Wetterwarnung", "NAVTEX ≈ 600 sm, alle 4 h"] },
+        { k: "merke", items: ["Pan Pan: DSC 70 ankündigen, Meldung auf 16", "Pan Pan an alle → später aufheben", "Sécurité: auf 16 nur ankündigen, Meldung auf dem Arbeitskanal", "NAVTEX ≈ 600 sm, alle 4 h"] },
         { k: "check", n: 96 },
         { k: "check", n: 99 },
         { k: "check", n: 119 },
@@ -3371,6 +3375,7 @@ export default function App() {
         { k: "text", h: "PAN PAN – Dringlichkeit", body: "Dringende Nachrichten über Besatzung oder Schiff ohne unmittelbare Gefahr (UBI 121, 122), z. B. nicht lebensbedrohliche Krankheit oder Schaden ohne unmittelbare Gefahr (UBI 123, 124). Aufheben mit demselben Anrufschema, Uhrzeit der Aussendung und Hinweis auf die Rücknahme (UBI 125)." },
         { k: "ex", h: "Beispiel Pan Pan Binnen", lines: () => exB("panpan", { pan: "engine" }) },
         { k: "tool", tool: "order", id: "pan" },
+        { k: "tool", tool: "order", id: "pancancel" },
         { k: "text", h: "SECURITE – Sicherheit", body: "Kündigt sicherheitsrelevante Nachrichten an: wichtige nautische Warnung oder wichtige Wetterwarnung (UBI 126, 127). Beispiele: treibender Baumstamm, vertriebene Tonne (UBI 128, 129)." },
         { k: "ex", h: "Beispiel Sécurité Binnen", lines: () => exB("securite", { sec: "tree" }) },
         { k: "tool", tool: "order", id: "securite" },
@@ -3758,12 +3763,21 @@ export default function App() {
   };
 
   /* ---------- Übungen ---------- */
+  type OrderGroup = "not" | "urgency" | "safety" | "routine";
   type OrderBlock = { label: string; hint: string; ex: string; exDe?: string };
-  type OrderDrill = { id: string; title: string; short: string; blocks: OrderBlock[] };
+  type OrderDrill = { id: string; title: string; short: string; group: OrderGroup; dsc?: string; note?: string; blocks: OrderBlock[] };
   const b = (label: string, hint: string, ex: string, exDe?: string): OrderBlock => ({ label, hint, ex, exDe });
+  const ORDER_GROUPS: { id: OrderGroup; label: string }[] = [
+    { id: "not", label: "Notverkehr" },
+    { id: "urgency", label: "Dringlichkeit" },
+    { id: "safety", label: "Sicherheit" },
+    { id: "routine", label: "Routine" },
+  ];
   const ORDER_DRILLS_SRC: OrderDrill[] = [
-    { id: "mayday", title: "Übung: Baue die Notmeldung", short: "Notanruf und Notmeldung", blocks: [
-      b("MAYDAY MAYDAY MAYDAY", "Notanruf: Notzeichen dreimal.", "MAYDAY MAYDAY MAYDAY", "MAYDAY MAYDAY MAYDAY"),
+    { id: "mayday", title: "Übung: Baue den Notanruf und die Notmeldung", short: "Notanruf und Notmeldung", group: "not",
+      dsc: "Zuerst DISTRESS ALERT auf Kanal 70, danach Sprechfunk auf Kanal 16.",
+      blocks: [
+      b("MAYDAY MAYDAY MAYDAY", "Notanruf: Notzeichen dreimal. Kein Adressat.", "MAYDAY MAYDAY MAYDAY", "MAYDAY MAYDAY MAYDAY"),
       b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS", "HIER IST"),
       b("Name 3×", "Im Notanruf dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
       b("Call sign", "Im Notanruf einmal, ggf. buchstabieren.", "DA5005", "RUFZEICHEN DA5005"),
@@ -3776,46 +3790,68 @@ export default function App() {
       b("Further information", "Z. B. Personen an Bord.", "4 PERSONS ON BOARD", "4 PERSONEN AN BORD"),
       b("OVER", "Abschluss: Aufforderung zur Antwort.", "OVER", "BITTE KOMMEN"),
     ]},
-    { id: "ack", title: "Übung: Bestätigung (RECEIVED MAYDAY)", short: "Bestätigung einer Notmeldung", blocks: [
-      b("MAYDAY", "Einleitung: einmal, weil es Notverkehr ist.", "MAYDAY", "MAYDAY"),
-      b("Name of vessel in distress", "Einmal, oder MMSI bzw. andere Kennung.", "YACHT MOEWE", "YACHT MOEWE"),
-      b("THIS IS", "Danach folgt die eigene Kennung.", "THIS IS", "HIER IST"),
-      b("Own name", "In der Bestätigung einmal.", "Seeadler", "Seeadler"),
+    { id: "relay", title: "Übung: Baue den MAYDAY RELAY", short: "Weiterleitung einer Notmeldung", group: "not",
+      dsc: "DSC: DISTRESS RELAY. Klasse-D-Controller ohne RELAY: INDIVIDUAL CALL mit Priorität DISTRESS. Danach Arbeitskanal der Küstenfunkstelle oder des RCC.",
+      note: "Adressat ist die Küstenfunkstelle bzw. das RCC (z. B. Bremen Rescue). „An alle Funkstellen“ nur in der absoluten Ausnahme (SRC 141).",
+      blocks: [
+      b("MAYDAY RELAY 3×", "Notanruf für ein anderes Schiff, dreimal.", "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY", "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY"),
+      b("Called station 3×", "Grundsätzlich nächste Küstenfunkstelle oder RCC, sonst ALL STATIONS.", "BREMEN RESCUE BREMEN RESCUE BREMEN RESCUE", "BREMEN RESCUE BREMEN RESCUE BREMEN RESCUE"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
+      b("Name 3×", "Eigener Name im Anruf dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
       b("Call sign", "Eigenes Rufzeichen einmal.", "DA5005", "RUFZEICHEN DA5005"),
-      b("MMSI", "Eigene MMSI, falls vorhanden.", "MMSI 211234567", "MMSI 211234567"),
+      b("MMSI", "Eigene MMSI, nach DSC-Relay.", "MMSI 211234567", "MMSI 211234567"),
+      b("Following / received", "Eingeleitet mit FOLLOWING; empfangene Meldung: RECEIVED ON CHANNEL …", "FOLLOWING RECEIVED ON CHANNEL 16", "FOLGENDE MELDUNG AUF KANAL 16 EMPFANGEN"),
+      b("Observed / time", "Falls selbst beobachtet: OBSERVED ON POSITION … AT … UTC.", "OBSERVED ON POSITION 54°30'N 010°40'E AT 0820 UTC", "BEOBACHTET AN POSITION 54°30'N 010°40'E UM 0820 UTC"),
+      b("MAYDAY", "Beginn der weitergeleiteten Notmeldung des Havaristen.", "MAYDAY", "MAYDAY"),
+      b("Vessel in distress", "Name, Rufzeichen und MMSI des Havaristen.", "YACHT MOEWE DB1234 MMSI 211000111", "YACHT MOEWE DB1234 MMSI 211000111"),
+      b("Position", "Position des Havaristen.", "POSITION 54°30'N 010°40'E", "POSITION 54°30'N 010°40'E"),
+      b("Nature / assistance", "Beobachtete oder empfangene Notsituation und erbetene Hilfe.", "FIRE ON BOARD, REQUIRE IMMEDIATE ASSISTANCE", "FEUER AN BORD, ICH BENÖTIGE SOFORTIGE HILFE"),
+      b("OVER", "Antwort der gerufenen Stelle abwarten.", "OVER", "BITTE KOMMEN"),
+    ]},
+    { id: "ack", title: "Übung: Bestätigung (RECEIVED MAYDAY)", short: "Bestätigung einer Notmeldung", group: "not",
+      note: "Laut Ablaufschema nur 1× Schiffsname und 1× Rufzeichen, ohne eigene MMSI. Der Adressat ist der Havarist: 1× Name oder 1× MMSI oder 1× Rufzeichen.",
+      blocks: [
+      b("MAYDAY", "Einleitung: einmal, weil es Notverkehr ist.", "MAYDAY", "MAYDAY"),
+      b("Name of vessel in distress", "Einmal Name, oder 1× MMSI bzw. 1× Rufzeichen des Havaristen.", "YACHT MOEWE", "YACHT MOEWE"),
+      b("THIS IS", "Danach folgt die eigene Kennung.", "THIS IS", "HIER IST"),
+      b("Own name", "In der Bestätigung einmal, ohne MMSI.", "Seeadler", "Seeadler"),
+      b("Call sign", "Eigenes Rufzeichen einmal.", "DA5005", "RUFZEICHEN DA5005"),
       b("RECEIVED MAYDAY", "Vorgeschriebene Bestätigungsformel.", "RECEIVED MAYDAY", "RECEIVED MAYDAY"),
       b("OVER", "Üblich, wenn eine Antwort erwartet wird.", "OVER", "BITTE KOMMEN"),
     ]},
-    { id: "relay", title: "Übung: Baue den MAYDAY RELAY", short: "Weiterleitung einer Notmeldung", blocks: [
-      b("MAYDAY RELAY 3×", "Notanruf für ein anderes Schiff, dreimal.", "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY", "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY"),
-      b("Called station 3×", "Grundsätzlich nächste Küstenfunkstelle, sonst ALL STATIONS.", "BREMEN RESCUE BREMEN RESCUE BREMEN RESCUE", "BREMEN RESCUE BREMEN RESCUE BREMEN RESCUE"),
-      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
-      b("Name 3×", "Eigener Name im Anruf dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
-      b("Call sign", "Eigenes Rufzeichen einmal. MMSI nur nach DSC-Relay.", "DA5005", "RUFZEICHEN DA5005"),
-      b("MAYDAY", "Beginn der weitergeleiteten Notmeldung.", "MAYDAY", "MAYDAY"),
-      b("Vessel in distress", "Name und Rufzeichen des Havaristen.", "YACHT MOEWE DB1234", "YACHT MOEWE DB1234"),
-      b("Position (with UTC)", "Angegebene oder beobachtete Position.", "POSITION 54°30'N 010°40'E", "POSITION 54°30'N 010°40'E"),
-      b("Nature / assistance", "Beobachtete oder empfangene Notsituation.", "FIRE ON BOARD, REQUIRE IMMEDIATE ASSISTANCE", "FEUER AN BORD, ICH BENÖTIGE SOFORTIGE HILFE"),
-      b("OVER", "Antwort der gerufenen Stelle abwarten.", "OVER", "BITTE KOMMEN"),
-    ]},
-    { id: "silence", title: "Übung: Funkstille gebieten (SILENCE MAYDAY)", short: "SILENCE MAYDAY", blocks: [
-      b("MAYDAY", "Einleitung, weil es Notverkehr ist.", "MAYDAY", "MAYDAY"),
-      b("ALL STATIONS (or interfering station)", "An alle oder den Namen der störenden Funkstelle.", "ALL STATIONS", "AN ALLE FUNKSTELLEN"),
+    { id: "silence", title: "Übung: Funkstille gebieten (SILENCE MAYDAY)", short: "SILENCE MAYDAY", group: "not",
+      note: "Das Ablaufschema hat keine Ankündigung, keinen Absender und kein Spruchende. SRC 145 und 146 nennen nur das Verfahrenswort SILENCE MAYDAY; die Übung folgt dem Schema.",
+      blocks: [
+      b("ALL STATIONS (or interfering station)", "1× an alle oder 1× den Namen der störenden Funkstelle.", "ALL STATIONS", "AN ALLE FUNKSTELLEN"),
       b("SILENCE MAYDAY", "Gebot der Funkstille. Gesprochen „SEELONCE MAYDAY“.", "SILENCE MAYDAY", "SILENCE MAYDAY"),
     ]},
-    { id: "fini", title: "Übung: Notverkehr beenden (SILENCE FINI)", short: "SILENCE FINI", blocks: [
-      b("MAYDAY", "Einleitung der Beendigung.", "MAYDAY", "MAYDAY"),
+    { id: "fini", title: "Übung: Notverkehr beenden (SILENCE FINI)", short: "SILENCE FINI", group: "not",
+      note: "Das Ablaufschema hat kein Spruchende (kein OVER). SRC 178 nennt nur das Verfahrenswort SILENCE FINI.",
+      blocks: [
+      b("MAYDAY", "Einleitung der Beendigung, einmal.", "MAYDAY", "MAYDAY"),
       b("ALL STATIONS 3×", "An alle Funkstellen, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS", "AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN"),
       b("THIS IS", "Danach die leitende Funkstelle.", "THIS IS", "HIER IST"),
       b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
       b("Call sign", "Eigenes Rufzeichen einmal.", "DA5005", "RUFZEICHEN DA5005"),
       b("MMSI", "Falls vorhanden, z. B. nach DSC.", "MMSI 211234567", "MMSI 211234567"),
-      b("Time UTC", "Zeitpunkt der Beendigung.", "1430 UTC", "1430 UTC"),
+      b("Time UTC", "Zeitpunkt der Beendigung: AT … UTC.", "AT 1430 UTC", "UM 1430 UTC"),
       b("Vessel in distress", "Name und Rufzeichen des Havaristen.", "YACHT MOEWE DB1234", "YACHT MOEWE DB1234"),
       b("SILENCE FINI", "Ende des Notverkehrs. Gesprochen „SEELONCE FEENEE“.", "SILENCE FINI", "SILENCE FINI"),
-      b("OVER", "Abschluss der Meldung.", "OVER", "BITTE KOMMEN"),
     ]},
-    { id: "pan", title: "Übung: Baue die Dringlichkeitsmeldung", short: "PAN PAN", blocks: [
+    { id: "cancel", title: "Übung: Baue den Fehlalarm-Widerruf", short: "Fehlalarm-Widerruf", group: "not",
+      dsc: "Amtlich (SRC 157): a) Gerät umgehend zurücksetzen, b) wenn möglich den Fehlalarm per DSC zurücknehmen, c) danach diese Sprechfunkmeldung auf Kanal 16. Das Ablaufschema zeigt nur den Sprechfunkteil.",
+      blocks: [
+      b("ALL STATIONS 3×", "Auf Kanal 16 an alle Funkstellen, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS", "AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
+      b("Call sign", "Eigenes Rufzeichen einmal.", "DA5005", "RUFZEICHEN DA5005"),
+      b("MMSI", "Eigene MMSI einmal.", "MMSI 211234567", "MMSI 211234567"),
+      b("Cancel false distress alert", "Widerruf mit Datum/Uhrzeit des Fehlalarms.", "CANCEL MY FALSE DISTRESS ALERT OF TODAY 0820 UTC", "BITTE MEINEN FALSCHEN NOTALARM VON HEUTE 0820 UTC AUFHEBEN"),
+      b("OVER", "Abschluss. Anlage 3 akzeptiert OVER oder OUT.", "OVER", "BITTE KOMMEN"),
+    ]},
+    { id: "pan", title: "Übung: Baue die Dringlichkeitsmeldung", short: "PAN PAN", group: "urgency",
+      dsc: "DSC-Priorität URGENCY auf Kanal 70, danach Sprechfunk auf Kanal 16 (im Notfall anderer Kanal) (SRC 96).",
+      blocks: [
       b("PAN PAN 3×", "Dringlichkeitszeichen dreimal (insgesamt sechs Wörter PAN).", "PAN PAN PAN PAN PAN PAN", "PAN PAN, PAN PAN, PAN PAN"),
       b("ALL STATIONS 3×", "An alle oder an eine bestimmte Funkstelle, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS", "AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN"),
       b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
@@ -3826,7 +3862,33 @@ export default function App() {
       b("Situation / assistance", "Was vorliegt und welche Hilfe gebraucht wird.", "ENGINE FAILURE, REQUIRE TOW", "MASCHINENAUSFALL, ICH BENÖTIGE SCHLEPPHILFE"),
       b("OVER", "Antwort erwartet.", "OVER", "BITTE KOMMEN"),
     ]},
-    { id: "securite", title: "Übung: Baue die Sicherheitsmeldung", short: "SECURITE", blocks: [
+    { id: "pancancel", title: "Übung: Hebe die Dringlichkeitsmeldung auf", short: "PAN PAN aufheben", group: "urgency",
+      note: "Kein DSC. Dieselbe Anrufstruktur wie die Dringlichkeitsmeldung; eine Meldung an alle muss aufgehoben werden (SRC 99).",
+      blocks: [
+      b("PAN PAN 3×", "Dringlichkeitszeichen dreimal, wie bei der Ankündigung.", "PAN PAN PAN PAN PAN PAN", "PAN PAN, PAN PAN, PAN PAN"),
+      b("ALL STATIONS 3×", "An alle oder an dieselbe Funkstelle wie zuvor, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS", "AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
+      b("Call sign", "Einmal, ggf. buchstabieren.", "DA5005", "RUFZEICHEN DA5005"),
+      b("MMSI", "Wie in der ursprünglichen Dringlichkeitsmeldung, falls nach DSC.", "MMSI 211234567", "MMSI 211234567"),
+      b("Cancel urgency message", "Uhrzeit der ursprünglichen Aussendung und Hinweis der Rücknahme.", "CANCEL MY URGENCY MESSAGE OF TODAY 0820 UTC", "BITTE MEINE DRINGLICHKEITSMELDUNG VON HEUTE 0820 UTC AUFHEBEN"),
+      b("OVER", "Abschluss. Anlage 3 akzeptiert OVER oder OUT.", "OVER", "BITTE KOMMEN"),
+    ]},
+    { id: "secann", title: "Übung: Kündige die Sicherheitsmeldung an", short: "SECURITE Ankündigung", group: "safety",
+      note: "Auf Kanal 16 nur die Ankündigung (SRC 139), ohne MMSI. Im Notfall anderer Kanal. Kein DSC in diesem Schritt.",
+      blocks: [
+      b("SECURITE 3×", "Sicherheitszeichen dreimal. Gesprochen „SAY-CURE-I-TAY“.", "SECURITE SECURITE SECURITE", "SECURITE SECURITE SECURITE"),
+      b("ALL STATIONS 3×", "An alle oder an eine bestimmte Funkstelle, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS", "AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
+      b("Call sign", "Einmal, ohne MMSI.", "DA5005", "RUFZEICHEN DA5005"),
+      b("Safety message on working channel", "Hinweis auf den Arbeitskanal, z. B. 06.", "I HAVE A SAFETY MESSAGE ON CHANNEL 06", "ICH HABE EINE SICHERHEITSMELDUNG AUF KANAL 06"),
+      b("OVER", "Danach auf den Arbeitskanal wechseln.", "OVER", "BITTE KOMMEN"),
+    ]},
+    { id: "securite", title: "Übung: Baue die Sicherheitsmeldung", short: "SECURITE Meldung", group: "safety",
+      dsc: "DSC-Priorität SAFETY. Die Meldung selbst auf dem Arbeitskanal (z. B. 06), nicht auf Kanal 16 (SRC 139).",
+      note: "Das Ablaufschema (BSH Yachtfunkdienst 2011) setzt OVER. Amtliche SRC-Fragen schreiben das Spruchende hier nicht vor; Anlage 3 akzeptiert OVER oder OUT. Wir folgen dem Schema und setzen OVER (ITU: OUT, wenn keine Antwort erwartet wird).",
+      blocks: [
       b("SECURITE 3×", "Sicherheitszeichen dreimal. Gesprochen „SAY-CURE-I-TAY“.", "SECURITE SECURITE SECURITE", "SECURITE SECURITE SECURITE"),
       b("ALL STATIONS 3×", "An alle oder an eine bestimmte Funkstelle, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS", "AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN"),
       b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
@@ -3835,19 +3897,34 @@ export default function App() {
       b("MMSI", "Nur wenn zuvor ein DSC-Safety-Anruf gesendet wurde.", "MMSI 211234567", "MMSI 211234567"),
       b("Position (with UTC)", "Ort der Gefahr, möglichst mit Uhrzeit.", "POSITION 54°20'N 011°05'E", "POSITION 54°20'N 011°05'E"),
       b("Description of the danger", "Z. B. treibender Container.", "DRIFTING CONTAINER, DANGER TO NAVIGATION", "TREIBENDER CONTAINER, GEFAHR FÜR DIE SCHIFFFAHRT"),
-      b("OUT", "An alle: in der Regel keine Antwort erwartet.", "OUT", "ENDE"),
+      b("OVER", "Abschluss laut Ablaufschema. OUT ist üblich, wenn keine Antwort erwartet wird.", "OVER", "BITTE KOMMEN"),
     ]},
-    { id: "routine", title: "Übung: Routineanruf mit Kanalwechsel", short: "Routineanruf", blocks: [
-      b("Called station (1–3×)", "Name des gerufenen Schiffes oder der Küstenfunkstelle.", "ALBATROS ALBATROS", "ALBATROS ALBATROS"),
+    { id: "seccancel", title: "Übung: Hebe die Sicherheitsmeldung auf", short: "SECURITE aufheben", group: "safety",
+      note: "Kein DSC. Auf dem Arbeitskanal, mit demselben Anrufschema wie die Sicherheitsmeldung.",
+      blocks: [
+      b("SECURITE 3×", "Sicherheitszeichen dreimal, wie bei der Meldung.", "SECURITE SECURITE SECURITE", "SECURITE SECURITE SECURITE"),
+      b("ALL STATIONS 3×", "An alle oder an dieselbe Funkstelle wie zuvor, dreimal.", "ALL STATIONS ALL STATIONS ALL STATIONS", "AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN, AN ALLE FUNKSTELLEN"),
       b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
-      b("Own name (1–3×)", "Eigener Name, höchstens dreimal.", "Seeadler Seeadler", "Seeadler Seeadler"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
+      b("Call sign", "Einmal, ggf. buchstabieren.", "DA5005", "RUFZEICHEN DA5005"),
+      b("MMSI", "Wie in der ursprünglichen Sicherheitsmeldung, falls nach DSC.", "MMSI 211234567", "MMSI 211234567"),
+      b("Cancel safety message", "Uhrzeit der ursprünglichen Aussendung und Hinweis der Rücknahme.", "CANCEL MY SAFETY MESSAGE OF TODAY 0820 UTC", "BITTE MEINE SICHERHEITSMELDUNG VON HEUTE 0820 UTC AUFHEBEN"),
+      b("OVER", "Abschluss laut Ablaufschema.", "OVER", "BITTE KOMMEN"),
+    ]},
+    { id: "routine", title: "Übung: Routineanruf mit Kanalwechsel", short: "Routineanruf", group: "routine",
+      dsc: "DSC-Priorität ROUTINE, danach auf dem Arbeitskanal.",
+      blocks: [
+      b("Called station 3×", "Name des gerufenen Schiffes oder der Küstenfunkstelle, dreimal.", "ALBATROS ALBATROS ALBATROS", "ALBATROS ALBATROS ALBATROS"),
+      b("THIS IS", "Verfahrenswort vor der eigenen Kennung.", "THIS IS", "HIER IST"),
+      b("Own name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler", "Seeadler Seeadler Seeadler"),
       b("Call sign", "Eigenes Rufzeichen einmal.", "DA5005", "RUFZEICHEN DA5005"),
-      b("Working channel", "Vorschlag oder zugewiesener Kanal.", "CHANNEL 72 PLEASE", "BITTE KANAL 72"),
+      b("MMSI", "Eigene MMSI, nach DSC-Routine-Anruf.", "MMSI 211234567", "MMSI 211234567"),
+      b("Working channel", "Vorschlag oder zugewiesener Kanal bzw. die Meldung selbst.", "CHANNEL 72 PLEASE", "BITTE KANAL 72"),
       b("OVER", "Antwort erwarten, dann auf den Arbeitskanal wechseln.", "OVER", "BITTE KOMMEN"),
     ]},
   ];
   const ORDER_DRILLS_UBI: OrderDrill[] = [
-    { id: "mayday", title: "Übung: Baue die Notmeldung", short: "Notanruf und Notmeldung", blocks: [
+    { id: "mayday", title: "Übung: Baue die Notmeldung", short: "Notanruf und Notmeldung", group: "not", blocks: [
       b("MAYDAY MAYDAY MAYDAY", "Notanruf: Notzeichen dreimal.", "MAYDAY MAYDAY MAYDAY"),
       b("THIS IS", "Verfahrenswort, auch binnen nicht übersetzen.", "THIS IS"),
       b("Name 3×", "Im Notanruf dreimal, laut Tafel Schiffstyp und Name.", "Seeadler Seeadler Seeadler"),
@@ -3860,15 +3937,7 @@ export default function App() {
       b("Weitere Angaben", "Z. B. Personen an Bord.", "4 PERSONEN AN BORD"),
       b("BITTE KOMMEN", "Abschluss: Aufforderung zur Antwort.", "BITTE KOMMEN"),
     ]},
-    { id: "ack", title: "Übung: Bestätigung (RECEIVED MAYDAY)", short: "Bestätigung einer Notmeldung", blocks: [
-      b("MAYDAY", "Einleitung, weil es Notverkehr ist.", "MAYDAY"),
-      b("Name des Fahrzeugs in Not", "Kennung des Havaristen.", "MS RHEINSTERN"),
-      b("THIS IS", "Danach die eigene Funkstelle.", "THIS IS"),
-      b("Eigener Name", "Eigener Name einmal.", "Seeadler"),
-      b("Rufzeichen", "Eigenes Rufzeichen einmal. Keine MMSI (kein DSC).", "DA5005"),
-      b("RECEIVED MAYDAY", "Vorgeschriebene Bestätigungsformel, nur wenn du helfen kannst.", "RECEIVED MAYDAY"),
-    ]},
-    { id: "relay", title: "Übung: Baue den MAYDAY RELAY", short: "Weiterleitung einer Notmeldung", blocks: [
+    { id: "relay", title: "Übung: Baue den MAYDAY RELAY", short: "Weiterleitung einer Notmeldung", group: "not", blocks: [
       b("MAYDAY RELAY 3×", "Weiterleitung, dreimal.", "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY"),
       b("Gerufene Funkstelle 3×", "Vorzugsweise Revierzentrale bzw. NIF.", "OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE"),
       b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
@@ -3878,12 +3947,20 @@ export default function App() {
       b("Notsituation eines Dritten", "Beobachtete Lage oder Wiedergabe der empfangenen Notmeldung.", "MS RHEINSTERN, WASSEREINBRUCH, BITTE UM SOFORTIGE HILFE"),
       b("BITTE KOMMEN", "Antwort der gerufenen Stelle abwarten.", "BITTE KOMMEN"),
     ]},
-    { id: "silence", title: "Übung: Funkstille gebieten (SILENCE MAYDAY)", short: "SILENCE MAYDAY", blocks: [
+    { id: "ack", title: "Übung: Bestätigung (RECEIVED MAYDAY)", short: "Bestätigung einer Notmeldung", group: "not", blocks: [
+      b("MAYDAY", "Einleitung, weil es Notverkehr ist.", "MAYDAY"),
+      b("Name des Fahrzeugs in Not", "Kennung des Havaristen.", "MS RHEINSTERN"),
+      b("THIS IS", "Danach die eigene Funkstelle.", "THIS IS"),
+      b("Eigener Name", "Eigener Name einmal.", "Seeadler"),
+      b("Rufzeichen", "Eigenes Rufzeichen einmal. Keine MMSI (kein DSC).", "DA5005"),
+      b("RECEIVED MAYDAY", "Vorgeschriebene Bestätigungsformel, nur wenn du helfen kannst.", "RECEIVED MAYDAY"),
+    ]},
+    { id: "silence", title: "Übung: Funkstille gebieten (SILENCE MAYDAY)", short: "SILENCE MAYDAY", group: "not", blocks: [
       b("MAYDAY", "Im Notverkehr der Meldung voranstellen.", "MAYDAY"),
       b("ALL STATIONS (oder Störer)", "An alle oder den Namen der störenden Funkstelle.", "ALL STATIONS"),
       b("SILENCE MAYDAY", "Gebot der Funkstille. Binnen gebietet die Funkstelle in Not.", "SILENCE MAYDAY"),
     ]},
-    { id: "fini", title: "Übung: Notverkehr beenden (SILENCE FINI)", short: "SILENCE FINI", blocks: [
+    { id: "fini", title: "Übung: Notverkehr beenden (SILENCE FINI)", short: "SILENCE FINI", group: "not", blocks: [
       b("MAYDAY", "Einleitung der Beendigung.", "MAYDAY"),
       b("ALL STATIONS 3×", "In dem Verkehrskreis, in dem der Notverkehr lief.", "ALL STATIONS ALL STATIONS ALL STATIONS"),
       b("THIS IS", "Danach die leitende Funkstelle.", "THIS IS"),
@@ -3893,7 +3970,7 @@ export default function App() {
       b("Name des Fahrzeugs in Not", "Für welches Fahrzeug der Notverkehr beendet wird.", "MS RHEINSTERN"),
       b("SILENCE FINI", "Der Notverkehr ist beendet. Gesprochen „SEELONCE FEENEE“.", "SILENCE FINI"),
     ]},
-    { id: "pan", title: "Übung: Baue die Dringlichkeitsmeldung", short: "PAN PAN", blocks: [
+    { id: "pan", title: "Übung: Baue die Dringlichkeitsmeldung", short: "PAN PAN", group: "urgency", blocks: [
       b("PAN PAN 3×", "Dringlichkeitszeichen dreimal.", "PAN PAN PAN PAN PAN PAN"),
       b("Gerufene Funkstelle 3×", "Vorzugsweise NIF, sonst an alle oder eine bestimmte Stelle.", "OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE"),
       b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
@@ -3903,7 +3980,18 @@ export default function App() {
       b("Sachverhalt / Hilfe", "Dringender Fall ohne unmittelbare Lebensgefahr.", "MOTORSCHADEN, BITTE UM ABSCHLEPPHILFE"),
       b("BITTE KOMMEN", "Antwort erwarten.", "BITTE KOMMEN"),
     ]},
-    { id: "securite", title: "Übung: Baue die Sicherheitsmeldung", short: "SECURITÉ", blocks: [
+    { id: "pancancel", title: "Übung: Hebe die Dringlichkeitsmeldung auf", short: "PAN PAN aufheben", group: "urgency",
+      note: "Kein DSC (UBI 102). Aufheben mit demselben Anrufschema, der Uhrzeit der Aussendung und dem Hinweis der Rücknahme (UBI 125).",
+      blocks: [
+      b("PAN PAN 3×", "Dringlichkeitszeichen dreimal, wie bei der Ankündigung.", "PAN PAN PAN PAN PAN PAN"),
+      b("Gerufene Funkstelle 3×", "Dieselbe Stelle wie zuvor, oder an alle.", "OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE"),
+      b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
+      b("Name 3×", "Eigener Name dreimal.", "Seeadler Seeadler Seeadler"),
+      b("Rufzeichen", "Einmal, ohne MMSI.", "DA5005"),
+      b("RÜCKNAHME MEINER DRINGLICHKEITSMELDUNG VON 1430 UHR", "Uhrzeit der ursprünglichen Aussendung und Hinweis der Rücknahme (UBI 125).", "RÜCKNAHME MEINER DRINGLICHKEITSMELDUNG VON 1430 UHR"),
+      b("ENDE", "Tafel: BITTE KOMMEN bzw. ENDE. An alle oft ohne Antwort.", "ENDE"),
+    ]},
+    { id: "securite", title: "Übung: Baue die Sicherheitsmeldung", short: "SECURITÉ", group: "safety", blocks: [
       b("SECURITÉ 3×", "Sicherheitszeichen dreimal.", "SECURITÉ SECURITÉ SECURITÉ"),
       b("Gerufene Funkstelle 3×", "Vorzugsweise NIF, sonst an alle.", "OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE OBERWESEL REVIERZENTRALE"),
       b("THIS IS", "Verfahrenswort, nicht übersetzen.", "THIS IS"),
@@ -3913,7 +4001,7 @@ export default function App() {
       b("Beschreibung des Sachverhalts", "Z. B. treibender Baumstamm oder vertriebene Tonne.", "TREIBENDER BAUMSTAMM, GEFAHR FÜR DIE SCHIFFFAHRT"),
       b("ENDE", "Tafel: BITTE KOMMEN bzw. ENDE. An alle oft ohne Antwort.", "ENDE"),
     ]},
-    { id: "routine", title: "Übung: Routineanruf", short: "Routineanruf", blocks: [
+    { id: "routine", title: "Übung: Routineanruf", short: "Routineanruf", group: "routine", blocks: [
       b("Gerufene Funkstelle (max. 3×)", "Schiff, Schleuse oder Revierzentrale.", "IFFEZHEIM SCHLEUSE IFFEZHEIM SCHLEUSE"),
       b("HIER IST", "Binnen üblich „Hier ist“; die Tafel erlaubt auch THIS IS.", "HIER IST"),
       b("Eigener Name (max. 3×)", "Eigener Name, höchstens dreimal.", "Seeadler"),
@@ -4016,7 +4104,7 @@ export default function App() {
     setOrdSolved(false);
     setOrd((o: number[]) => o.slice(0, i));
   };
-  const orderTool = (id?: string): ReactNode => {
+  const orderTool = (id?: string, hideTitle?: boolean): ReactNode => {
     const drill = orderDrill(id);
     const blocks = drill.blocks;
     const mix = (ordMix.length === blocks.length ? ordMix : blocks.map((_: OrderBlock, i: number) => i)).filter((i: number) => i >= 0 && i < blocks.length);
@@ -4036,7 +4124,12 @@ export default function App() {
     };
     return (
       <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
-        {screenTitle(drill.title, revealed ? (srcEn ? (holdDe ? "Lösung auf Deutsch (prüfen in Englisch)" : "Lösung – englischer Prüfungstext, zählt nicht als selbst gelöst") : "Lösung – zählt nicht als selbst gelöst") : (srcEn ? "Tippe die englischen Bausteine in der richtigen Reihenfolge an" : "Tippe die Bausteine in der richtigen Reihenfolge an"))}
+        {(() => {
+          const instr = revealed ? (srcEn ? (holdDe ? "Lösung auf Deutsch (prüfen in Englisch)" : "Lösung – englischer Prüfungstext, zählt nicht als selbst gelöst") : "Lösung – zählt nicht als selbst gelöst") : (srcEn ? "Tippe die englischen Bausteine in der richtigen Reihenfolge an" : "Tippe die Bausteine in der richtigen Reihenfolge an");
+          return hideTitle ? <div style={txt("body2", t.text.secondary)}>{instr}</div> : screenTitle(drill.title, instr);
+        })()}
+        {drill.dsc ? <div style={txt("subtext", t.text.secondary)}>{drill.dsc}</div> : null}
+        {drill.note ? <div style={txt("subtext", t.text.secondary)}>{drill.note}</div> : null}
         <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
           {revealed
             ? shown.map((bl: OrderBlock, i: number) => (
@@ -4168,24 +4261,30 @@ export default function App() {
     const drills = orderDrills();
     const done = drills.filter((d: OrderDrill) => orderDone(d.id)).length;
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 10, overflow: "hidden" }}>
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
         <div style={txt("body2", t.text.secondary)}>{done + " von " + drills.length + " selbst gelöst. „Lösung zeigen“ zählt nicht."}</div>
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
-          {drills.map((d: OrderDrill) => {
-            const ok = orderDone(d.id);
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+          {ORDER_GROUPS.map((g: { id: OrderGroup; label: string }) => {
+            const items = drills.filter((d: OrderDrill) => d.group === g.id);
+            if (!items.length) return null;
             return (
-              <button
-                key={d.id}
-                type="button"
-                onClick={() => enter(["werkzeuge", "spruchbau", d.id])}
-                style={{ display: "flex", alignItems: "center", gap: 12, textAlign: "left", width: "100%", minHeight: 44, boxSizing: "border-box", padding: "10px 14px", borderRadius: t.radius.lg, border: "1px solid " + (ok ? t.text.success : t.border.subtle), background: ok ? t.fill.successSubtle : t.bg.elevated, color: t.text.primary, fontFamily: fam, cursor: "pointer" }}
-              >
-                <span style={{ flex: "0 0 22px", height: 22, borderRadius: t.radius.full, border: "2px solid " + (ok ? t.text.success : t.border.default), background: ok ? t.text.success : "transparent", color: t.bg.base, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: t.weight.semibold }}>{ok ? "✓" : ""}</span>
-                <span style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
-                  <span style={txt("body1", t.text.primary, t.weight.semibold)}>{d.short}</span>
-                  <span style={txt("label", t.text.secondary)}>{ok ? "Selbst gelöst" : "Noch offen"}</span>
-                </span>
-              </button>
+              <div key={g.id} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <div style={{ ...txt("label", t.text.secondary, t.weight.semibold), padding: "6px 2px 0" }}>{g.label}</div>
+                {items.map((d: OrderDrill) => {
+                  const ok = orderDone(d.id);
+                  return (
+                    <button
+                      key={d.id}
+                      type="button"
+                      onClick={() => enter(["werkzeuge", "spruchbau", d.id])}
+                      style={{ display: "flex", alignItems: "center", gap: 10, textAlign: "left", width: "100%", minHeight: 40, boxSizing: "border-box", padding: "8px 12px", borderRadius: t.radius.lg, border: "1px solid " + (ok ? t.text.success : t.border.subtle), background: ok ? t.fill.successSubtle : t.bg.elevated, color: t.text.primary, fontFamily: fam, cursor: "pointer" }}
+                    >
+                      <span style={{ flex: "0 0 20px", height: 20, borderRadius: t.radius.full, border: "2px solid " + (ok ? t.text.success : t.border.default), background: ok ? t.text.success : "transparent", color: t.bg.base, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: t.weight.semibold }}>{ok ? "✓" : ""}</span>
+                      <span style={{ ...txt("body2", t.text.primary, t.weight.semibold), minWidth: 0 }}>{d.short}</span>
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </div>
@@ -6200,7 +6299,7 @@ export default function App() {
         const d = orderDrill(path[2]);
         title = d.title;
         sub = d.short;
-        body = orderTool(path[2]);
+        body = orderTool(path[2], true);
       }
     } else if (path[1] === "funk" && path.length === 2) {
       title = "Funkverfahren";
