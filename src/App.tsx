@@ -512,17 +512,33 @@ function speechAvailable(): boolean {
   return typeof window !== "undefined" && !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === "function";
 }
 
-function pickEnglishVoice(voices?: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+function normVoiceLang(lang: string): string {
+  return (lang || "").toLowerCase().replace(/_/g, "-");
+}
+
+function isEnglishVoiceLang(lang: string, name?: string): boolean {
+  const l = normVoiceLang(lang);
+  if (l === "en" || l.startsWith("en-") || l.startsWith("eng")) return true;
+  return /\benglish\b/i.test(name || "");
+}
+
+function pickVoiceForLang(want: string, voices?: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
   const list = voices || (speechAvailable() ? window.speechSynthesis.getVoices() : []);
+  const need = normVoiceLang(want || "en-GB");
+  const prefix = need.slice(0, 2);
   let best: SpeechSynthesisVoice | undefined;
   let score = 0;
   for (const v of list) {
-    const lang = v.lang || "";
+    const lang = normVoiceLang(v.lang);
     const name = v.name || "";
     let s = 0;
-    if (/^en-GB\b/i.test(lang) || /\bGB\b|UK English|British/i.test(name)) s = 3;
-    else if (/^en-US\b/i.test(lang) || /US English|American/i.test(name)) s = 2;
-    else if (/^en\b/i.test(lang)) s = 1;
+    if (prefix === "en" && isEnglishVoiceLang(v.lang, name)) {
+      if (lang === "en-gb" || /uk english|british|\bgb\b/i.test(name)) s = 3;
+      else if (lang === "en-us" || /us english|american/i.test(name)) s = 2;
+      else s = 1;
+    } else if (lang === need) s = 3;
+    else if (lang.startsWith(prefix + "-") || lang === prefix) s = 2;
+    else if (lang.startsWith(prefix)) s = 1;
     if (s > score) {
       best = v;
       score = s;
@@ -531,15 +547,172 @@ function pickEnglishVoice(voices?: SpeechSynthesisVoice[]): SpeechSynthesisVoice
   return best;
 }
 
-function applyEnglishVoice(u: SpeechSynthesisUtterance): SpeechSynthesisVoice | undefined {
-  const v = pickEnglishVoice();
+function pickEnglishVoice(voices?: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  return pickVoiceForLang("en-GB", voices);
+}
+
+function applyVoice(u: SpeechSynthesisUtterance, langWanted: string): SpeechSynthesisVoice | undefined {
+  const v = pickVoiceForLang(langWanted);
+  u.lang = langWanted || "en-GB";
   if (v) {
     u.voice = v;
-    u.lang = /^en-GB\b/i.test(v.lang) ? "en-GB" : /^en-US\b/i.test(v.lang) ? "en-US" : v.lang || "en-GB";
-  } else {
-    u.lang = "en-GB";
+    const lang = normVoiceLang(v.lang);
+    if (lang) u.lang = lang === "en-gb" ? "en-GB" : lang === "en-us" ? "en-US" : v.lang || langWanted;
   }
   return v;
+}
+
+function applyEnglishVoice(u: SpeechSynthesisUtterance): SpeechSynthesisVoice | undefined {
+  return applyVoice(u, "en-GB");
+}
+
+function spellClipUrl(file: string): string {
+  const base = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) ? String(import.meta.env.BASE_URL) : "./";
+  const prefix = base.endsWith("/") ? base : base + "/";
+  return new URL(prefix + "media/spell/" + file, typeof document !== "undefined" ? document.baseURI : prefix).href;
+}
+
+function tafelClipFile(id: string, mode: "itu" | "plain"): string | null {
+  if (/^L-[A-Z]$/.test(id)) return "l-" + id.slice(2).toLowerCase() + ".mp3";
+  if (/^D-[0-9]$/.test(id)) return (mode === "plain" ? "p-" : "d-") + id.slice(2) + ".mp3";
+  if (id === "M-.") return "m-decimal.mp3";
+  if (id === "M--") return "m-hyphen.mp3";
+  return null;
+}
+
+function seqClipFiles(seq: string): string[] {
+  const files: string[] = [];
+  for (const ch of seq.toUpperCase().split("")) {
+    if (NATO[ch]) files.push("l-" + ch.toLowerCase() + ".mp3");
+    else if (ch >= "0" && ch <= "9") files.push("p-" + ch + ".mp3");
+    else if (ch === "." || ch === ",") files.push("m-decimal.mp3");
+    else if (ch === "-") files.push("m-hyphen.mp3");
+  }
+  return files;
+}
+
+let clipAudio: HTMLAudioElement | null = null;
+let clipOnEnd: (() => void) | null = null;
+let clipSeqTimer: number | null = null;
+let audioUnlocked = false;
+
+function getClipAudio(): HTMLAudioElement | null {
+  if (typeof document === "undefined") return null;
+  if (clipAudio && clipAudio.isConnected) return clipAudio;
+  const a = document.createElement("audio");
+  a.setAttribute("data-spell-audio", "1");
+  a.preload = "auto";
+  (a as any).playsInline = true;
+  a.style.display = "none";
+  document.body.appendChild(a);
+  clipAudio = a;
+  return a;
+}
+
+function stopClip(): void {
+  if (clipSeqTimer != null) {
+    window.clearTimeout(clipSeqTimer);
+    clipSeqTimer = null;
+  }
+  clipOnEnd = null;
+  if (!clipAudio) return;
+  try {
+    clipAudio.onended = null;
+    clipAudio.onerror = null;
+    clipAudio.pause();
+    clipAudio.removeAttribute("src");
+    clipAudio.load();
+  } catch (_e) {
+    /* */
+  }
+}
+
+function stopSpeechOutput(): void {
+  stopClip();
+  if (speechAvailable()) {
+    try { window.speechSynthesis.cancel(); } catch (_e) { /* */ }
+  }
+}
+
+function unlockAudio(): void {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  const a = getClipAudio();
+  if (!a) return;
+  try {
+    const unlockSrc = spellClipUrl("p-6.mp3");
+    a.muted = true;
+    a.src = unlockSrc;
+    const finish = () => {
+      if (a.muted && (a.getAttribute("src") === unlockSrc || /p-6\.mp3(?:\?|$)/.test(a.src || ""))) {
+        try { a.pause(); a.currentTime = 0; } catch (_e) { /* */ }
+      }
+      try { a.muted = false; } catch (_e) { /* */ }
+    };
+    const p = a.play();
+    if (p && typeof p.then === "function") p.then(finish).catch(finish);
+    else finish();
+  } catch (_e) {
+    try { a.muted = false; } catch (_e2) { /* */ }
+  }
+}
+
+function playClip(file: string, onEnd?: () => void): Promise<"ok" | "fail"> {
+  const a = getClipAudio();
+  if (!a) return Promise.resolve("fail");
+  stopClip();
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (res: "ok" | "fail") => {
+      if (settled) return;
+      settled = true;
+      resolve(res);
+    };
+    clipOnEnd = onEnd || null;
+    a.muted = false;
+    a.src = spellClipUrl(file);
+    a.onended = () => {
+      a.onended = null;
+      a.onerror = null;
+      const cb = clipOnEnd;
+      clipOnEnd = null;
+      if (cb) cb();
+    };
+    a.onerror = () => {
+      a.onended = null;
+      a.onerror = null;
+      finish("fail");
+    };
+    try {
+      const p = a.play();
+      if (p && typeof p.then === "function") p.then(() => finish("ok")).catch(() => finish("fail"));
+      else finish("ok");
+    } catch (_e) {
+      finish("fail");
+    }
+  });
+}
+
+function playClipSeq(files: string[], onEnd?: () => void, onFail?: () => void): void {
+  if (files.length === 0) {
+    if (onFail) onFail();
+    return;
+  }
+  const next = (i: number) => {
+    if (i >= files.length) {
+      if (onEnd) onEnd();
+      return;
+    }
+    playClip(files[i], () => {
+      clipSeqTimer = window.setTimeout(() => next(i + 1), 120);
+    }).then((res) => {
+      if (res !== "ok") {
+        if (i === 0 && onFail) onFail();
+        else if (onEnd) onEnd();
+      }
+    });
+  };
+  next(0);
 }
 
 let speechPrimed = false;
@@ -564,8 +737,7 @@ function speakEnglish(text: string, onEnd?: () => void): "ok" | "none" | "fail" 
     const syn = window.speechSynthesis;
     if (syn.paused) syn.resume();
     syn.cancel();
-    const voices = syn.getVoices() || [];
-    if (voices.length > 0 && !pickEnglishVoice(voices)) return "none";
+    syn.getVoices(); // may be empty on Android until after speak()
     const u = new window.SpeechSynthesisUtterance(text);
     applyEnglishVoice(u);
     u.rate = 0.85;
@@ -1520,7 +1692,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [spMode, spI, spTimer]);
 
-  const spHasTTS = typeof window !== "undefined" && !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === "function";
   const SRCtor: any = typeof window !== "undefined" ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition : null;
 
   const markLetters = (target: string, ok: boolean) => {
@@ -1535,22 +1706,26 @@ export default function App() {
     });
   };
   const speakSeq = (seq: string) => {
-    if (!spHasTTS) {
-      setSpMsg("Sprachausgabe ist in diesem Browser nicht verfügbar.");
+    const files = seqClipFiles(seq);
+    const ttsFallback = () => {
+      if (!speechAvailable()) {
+        setSpMsg("Die Aufnahme konnte nicht abgespielt werden. Prüfe die Lautstärke und versuche es noch einmal.");
+        return;
+      }
+      try {
+        const words = seq.split("").map((ch: string) => officialWord(ch)).join(", ");
+        const res = speakEnglish(words);
+        setSpMsg(res === "ok" ? "" : "Die Aufnahme konnte nicht abgespielt werden. Prüfe die Lautstärke und versuche es noch einmal.");
+      } catch (_e) {
+        setSpMsg("Die Aufnahme konnte nicht abgespielt werden. Prüfe die Lautstärke und versuche es noch einmal.");
+      }
+    };
+    if (files.length > 0) {
+      setSpMsg("");
+      playClipSeq(files, undefined, ttsFallback);
       return;
     }
-    try {
-      window.speechSynthesis.cancel();
-      const words = seq.split("").map((ch: string) => officialWord(ch)).join(", ");
-      primeSpeech();
-      const u = new window.SpeechSynthesisUtterance(words);
-      applyEnglishVoice(u);
-      u.rate = 0.85;
-      window.speechSynthesis.speak(u);
-      setSpMsg("");
-    } catch (_e) {
-      setSpMsg("Sprachausgabe konnte nicht gestartet werden.");
-    }
+    ttsFallback();
   };
   const nextItem = (mode: SpMode, rec: Record<string, SpRec>) => {
     const p = spellPrompt(mode, rec);
@@ -1561,7 +1736,7 @@ export default function App() {
     if (mode === "letter") setSpChoices(pickChoices(officialWord(p), LETTERS.map((c: string) => officialWord(c)), 4));
     else if (mode === "code") setSpChoices(pickChoices(p, LETTERS, 4));
     else setSpChoices([]);
-    if (mode === "listen") setTimeout(() => speakSeq(p), 250);
+    if (mode === "listen") speakSeq(p);
   };
   const startRound = (mode: SpMode) => {
     setSpMode(mode);
@@ -2106,6 +2281,7 @@ export default function App() {
     else syn.onvoiceschanged = onVoices;
     const prime = () => {
       primeSpeech();
+      unlockAudio();
       window.removeEventListener("pointerdown", prime, true);
     };
     window.addEventListener("pointerdown", prime, true);
@@ -2121,11 +2297,7 @@ export default function App() {
   }, [tafelToast]);
   useEffect(() => {
     setTafelSpeak(null);
-    return () => {
-      if (speechAvailable()) {
-        try { window.speechSynthesis.cancel(); } catch (_e) { /* */ }
-      }
-    };
+    return () => { stopSpeechOutput(); };
   }, [path.join("/"), pg]);
 
   type Tile = { id: string; title: string; sub?: string; done?: number; ok?: number; total?: number };
@@ -2583,7 +2755,7 @@ export default function App() {
             <span style={{ flex: "0 0 auto", ...txt("label", t.text.tertiary) }}>{spMode === "letter" ? "Wie heißt das Codewort?" : spMode === "code" ? "Welcher Buchstabe?" : spMode === "listen" ? "Was wurde buchstabiert?" : spMode === "speak" ? "Buchstabiere laut (en-GB)" : "Buchstabiere mit Codewörtern"}</span>
             {spMode === "listen" ? (
               <div style={{ flex: "0 0 auto", ...rowWrap }}>
-                <Button label={spHasTTS ? "Nochmal vorsprechen" : "Sprache nicht verfügbar"} onClick={() => speakSeq(spPrompt)} disabled={!spHasTTS} />
+                <Button label="Nochmal vorsprechen" onClick={() => speakSeq(spPrompt)} />
               </div>
             ) : (
               <div style={{ flex: "0 0 auto", fontFamily: t.font.mono, fontSize: promptSize.fontSize, lineHeight: promptSize.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary, letterSpacing: 2 }}>{spMode === "code" ? officialWord(spPrompt) : spPrompt}</div>
@@ -3047,20 +3219,25 @@ export default function App() {
     const same = tafelSpeak && tafelSpeak.id === id;
     const mode: "itu" | "plain" = forcePlain || (same && tafelSpeak!.mode === "itu") ? "plain" : "itu";
     if (same && tafelSpeak!.mode === "plain" && !forcePlain) {
-      if (speechAvailable()) {
-        try { window.speechSynthesis.cancel(); } catch (_e) { /* */ }
-      }
+      stopSpeechOutput();
       setTafelSpeak(null);
       return;
     }
     const text = mode === "plain" ? plain : itu;
-    const res = speakEnglish(text, () => setTafelSpeak((cur) => (cur && cur.id === id ? null : cur)));
-    if (res === "ok") {
-      setTafelSpeak({ id, mode });
-      setTafelToast("");
-    } else {
+    const clear = () => setTafelSpeak((cur) => (cur && cur.id === id ? null : cur));
+    const file = tafelClipFile(id, mode);
+    setTafelSpeak({ id, mode });
+    setTafelToast("");
+    const useTts = () => {
+      const res = speakEnglish(text, clear);
+      if (res === "ok") return;
       setTafelSpeak(null);
-      setTafelToast("Sprachausgabe ist auf diesem Gerät nicht verfügbar.");
+      setTafelToast("Die Aufnahme konnte nicht abgespielt werden. Prüfe die Lautstärke und versuche es noch einmal.");
+    };
+    if (file) {
+      playClip(file, clear).then((res) => { if (res !== "ok") useTts(); });
+    } else {
+      useTts();
     }
   };
   const startTafelPress = (id: string, itu: string, plain: string) => {
@@ -4889,8 +5066,9 @@ export default function App() {
     if (!hasTTS || !speakOn) return;
     try {
       W.speechSynthesis.cancel();
+      W.speechSynthesis.getVoices();
       const u = new W.SpeechSynthesisUtterance(text);
-      u.lang = lang;
+      applyVoice(u, lang);
       u.rate = 0.95;
       W.speechSynthesis.speak(u);
     } catch (_e) {
@@ -4901,8 +5079,9 @@ export default function App() {
     if (!hasTTS || !speakOn) { noise(350); return; }
     try {
       W.speechSynthesis.cancel();
+      W.speechSynthesis.getVoices();
       const u = new W.SpeechSynthesisUtterance(text);
-      u.lang = lang;
+      applyVoice(u, lang);
       u.rate = 0.9;
       u.pitch = 0.82;
       const c = audio();
