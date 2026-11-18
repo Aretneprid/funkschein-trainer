@@ -1589,20 +1589,26 @@ export default function App() {
     setTab(v);
   }
 
-  function chooseCert(c: Cert) {
+  function applyCertSettings(c: Cert, resetSession?: boolean) {
     setCert(c);
     setChap("alle");
     setFlt("alle");
-    setMode("ueben");
     const bg = c === "SRC" && bogen === "quote" ? "zufall" : bogen;
     setBogen(bg);
-    rebuild(c, "alle", "ueben", undefined, bg);
+    const nextMode: Mode = resetSession || mode === "pruefung" ? "ueben" : mode;
+    setMode(nextMode);
+    rebuild(c, "alle", nextMode, undefined, bg);
     setSp((p: SP) => ({ ...p, rev: c === "SRC" ? "see" : "binnen" }));
-    setIcomTask(c === "SRC" ? "distress" : "power");
+    if (resetSession) setIcomTask(c === "SRC" ? "distress" : "power");
+    else setIcomTask((cur: string) => (c === "SRC" || ["power", "channel", "hilo", "group", "dw"].indexOf(cur) >= 0 ? cur : "power"));
     setIcomStep(-1);
     setFunkTab("mayday");
     setR2({ ch: c === "UBI" ? 10 : 16, prev: 72, call: false, hi: c !== "UBI", dw: 0, scan: false, vol: 8, sql: 2, knob: 0, grp: c === "UBI" ? "ATIS" : "INT", dwt: "Dualwatch", scant: "Priority Scan", sk: 0, scr: "main", mp: [], cur: 0, nature: "Undesignated", flap: false, tx: false, key: "", on: true, tags: [16, 6, 72], rx: "", cat: "" });
     setMicLang(c === "SRC" ? "en-GB" : "de-DE");
+  }
+
+  function chooseCert(c: Cert) {
+    applyCertSettings(c, true);
     setExamPhase("intro");
     setTopic("ueberblick");
     setShowAll(false);
@@ -4320,6 +4326,7 @@ export default function App() {
     const done = drills.filter((d: OrderDrill) => orderDone(d.id)).length;
     return (
       <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
+        {certTabs("Seefunk (SRC)", "Binnenfunk (UBI)", true)}
         <div style={txt("body2", t.text.secondary)}>{done + " von " + drills.length + " selbst gelöst. „Lösung zeigen“ zählt nicht."}</div>
         <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
           {ORDER_GROUPS.map((g: { id: OrderGroup; label: string }) => {
@@ -4781,8 +4788,8 @@ export default function App() {
   const OVER = /OVER\W*$/;
   const KOMMEN = /(BITTE )?KOMMEN\W*$/;
   const POS = /POSITION|NORTH|NORD|DEGREES|GRAD|MILES|MEILEN|KILOMETER|KM /;
-  const SCNS = (): Scn[] =>
-    isUBI
+  const SCNS = (forCert?: Cert): Scn[] =>
+    (forCert || certC) === "UBI"
       ? [
           { id: "unot", title: "Notverkehr: Leck, an die Revierzentrale", ch: "Kanal der Revierzentrale (NIF)", lang: "de-DE", intro: "Motoryacht Seeadler, Rufzeichen DA5005, Rhein-km 550, Wassereinbruch, 3 Personen. Du rufst die Revierzentrale Oberwesel.", turns: [
             { you: "Notanruf und Notmeldung", model: "MAYDAY MAYDAY MAYDAY / HIER IST / SEEADLER SEEADLER SEEADLER / DA5005 / MAYDAY SEEADLER DA5005 / POSITION RHEIN-KILOMETER 550 / WASSEREINBRUCH / ICH BENÖTIGE SOFORTIGE HILFE / 3 PERSONEN AN BORD / BITTE KOMMEN", checks: [{ label: "MAYDAY (3x im Anruf, 1x vor der Meldung)", re: /MAYDAY/g, min: 4 }, { label: "HIER IST", re: /HIER IST/ }, { label: "Schiffsname 3x", re: NAME, min: 3 }, { label: "Rufzeichen", re: CALL }, { label: "Ortsangabe", re: POS }, { label: "Art der Not", re: /WASSER|LECK|FEUER|BRAND|SINK|KENTER|ÜBER BORD/ }, { label: "erbetene Hilfe", re: /HILFE|ASSISTENZ|SCHLEPP/ }, { label: "Personen an Bord", re: /PERSON/ }, { label: "Abschluss BITTE KOMMEN", re: KOMMEN }], replyWho: "Revierzentrale Oberwesel", reply: "MAYDAY SEEADLER SEEADLER SEEADLER DA5005, HIER IST OBERWESEL REVIERZENTRALE, MAYDAY EMPFANGEN. Hilfe ist unterwegs. Melden Sie, ob Sie Ihr Schiff ans Ufer steuern können. BITTE KOMMEN." },
@@ -5241,7 +5248,8 @@ export default function App() {
   };
 
   type P2 = { say: string; ok: (s: R2) => boolean };
-  const PROCS2 = (): { id: string; title: string; steps: P2[] }[] => {
+  const PROCS2 = (forCert?: Cert): { id: string; title: string; steps: P2[] }[] => {
+    const ubi = (forCert || certC) === "UBI";
     const common = [
       { id: "vs", title: "Einschalten, Lautstärke & Squelch (S. 12–13)", steps: [
         { say: "Gerät ist aus. [VOL/SQL•PWR] 1 Sek. drücken zum Einschalten (hier: Taste PWR).", ok: (s: R2) => s.on && s.key === "pwr" },
@@ -5262,14 +5270,14 @@ export default function App() {
         { say: "[MENU] drücken.", ok: (s: R2) => s.scr === "menu" },
         { say: "Mit [∧]/[∨] oder Regler „Radio Settings“ wählen, [ENT].", ok: (s: R2) => s.mp.length === 1 && s.mp[0] === 2 },
         { say: "„CHAN Group“ wählen, [ENT].", ok: (s: R2) => s.mp.length === 2 && s.mp[1] === 3 },
-        { say: isUBI ? "„ATIS“ wählen, [ENT] (✔ erscheint)." : "„INT“ wählen, [ENT] (✔ erscheint).", ok: (s: R2) => s.grp === (isUBI ? "ATIS" : "INT") && s.key.indexOf("ent") >= 0 },
+        { say: ubi ? "„ATIS“ wählen, [ENT] (✔ erscheint)." : "„INT“ wählen, [ENT] (✔ erscheint).", ok: (s: R2) => s.grp === (ubi ? "ATIS" : "INT") && s.key.indexOf("ent") >= 0 },
         { say: "[EXIT] (Softkey) drücken: Menü verlassen. Das Display zeigt die Gruppe.", ok: (s: R2) => s.scr === "main" },
       ] },
       { id: "dw", title: "Zwei-/Dreikanalwache (S. 19, 66)", steps: [
         { say: "[MENU] → „Radio Settings“ → „Dual/Tri-Watch“: Dualwatch oder Tri-watch wählen, [ENT].", ok: (s: R2) => s.key.indexOf("ent") >= 0 && s.mp.length === 2 && s.mp[1] === 2 },
         { say: "Menü mit [EXIT] verlassen.", ok: (s: R2) => s.scr === "main" },
         { say: "Betriebskanal wählen.", ok: (s: R2) => s.ch !== 16 },
-        { say: "Softkey [DW] drücken: „DUAL 16“ bzw. „TRI 16“ erscheint." + (isUBI ? " Binnen nicht zulässig – siehe Hinweis unten." : ""), ok: (s: R2) => s.dw > 0 },
+        { say: "Softkey [DW] drücken: „DUAL 16“ bzw. „TRI 16“ erscheint." + (ubi ? " Binnen nicht zulässig – siehe Hinweis unten." : ""), ok: (s: R2) => s.dw > 0 },
         { say: "[DW] nochmal drücken: Wache beenden.", ok: (s: R2) => s.dw === 0 && s.key === "sk:DW" },
       ] },
       { id: "scan", title: "Suchlauf mit TAG-Kanälen (S. 17–18)", steps: [
@@ -5317,7 +5325,7 @@ export default function App() {
         { say: "[EXIT]. Jetzt [PTT] drücken und loslassen: Beim Loslassen sendet das Gerät die ATIS-Kennung.", ok: (s: R2) => s.scr === "main" && (s.key === "ptt" || s.key === "pttUp") },
       ] },
     ];
-    return isUBI ? [...binnen, ...common] : [...see, ...common];
+    return ubi ? [...binnen, ...common] : [...see, ...common];
   };
 
   const disp2 = (s: R2): string[] => {
@@ -6320,7 +6328,114 @@ export default function App() {
     </>
   );
 
-  /* Inhalt der aktuellen Ebene */
+  const pathAfterCertSwitch = (c: Cert, cur: string[]): string[] => {
+    if (cur[0] === "werkzeuge" && cur[1] === "spruchbau" && cur[2]) {
+      const drills = c === "SRC" ? ORDER_DRILLS_SRC : ORDER_DRILLS_UBI;
+      return drills.some((d: OrderDrill) => d.id === cur[2]) ? cur : cur.slice(0, 2);
+    }
+    if (cur[0] === "werkzeuge" && cur[1] === "funk" && cur[2]) {
+      const item = FUNK.find((f: { id: string; srcOnly?: boolean }) => f.id === cur[2]);
+      if (!item || (item.srcOnly && c === "UBI")) return cur.slice(0, 2);
+      return cur;
+    }
+    if (cur[0] === "werkzeuge" && cur[1] === "geraet" && cur[2] && cur[2] !== "modell") {
+      if (c === "UBI" && ["power", "channel", "hilo", "group", "dw"].indexOf(cur[2]) < 0) return cur.slice(0, 2);
+      return cur;
+    }
+    if (cur[0] === "erklaeren" && cur[1] && cur[1] !== "ref") {
+      const lessons = c === "SRC" ? SRC_LESSONS : UBI_LESSONS;
+      return lessons.some((l: Lesson) => l.id === cur[1]) ? cur : ["erklaeren"];
+    }
+    if (cur[0] === "fragen" && cur[1] && cur[1] !== "alle") {
+      return CHAPTERS.some((ch: Chapter) => ch.key === cur[1] && ch.cert === c) ? cur : ["fragen"];
+    }
+    if (cur[0] === "pruefung" && cur[1]) {
+      if (cur[1] === "quote" && c === "SRC") return ["pruefung"];
+      return ["pruefung"];
+    }
+    if (cur[0] === "funkgeraet" && cur[1] === "exam" && cur.length >= 3) return ["funkgeraet", "exam"];
+    if (cur[0] === "funkgeraet" && cur[1] === "ablauf" && cur[2]) {
+      return PROCS2(c).some((p: { id: string }) => p.id === cur[2]) ? cur : ["funkgeraet", "ablauf"];
+    }
+    if (cur[0] === "funkgeraet" && cur[1] === "sim" && cur[2]) {
+      return SCNS(c).some((x: Scn) => x.id === cur[2]) ? cur : ["funkgeraet", "sim"];
+    }
+    return cur;
+  };
+
+  const switchCertStay = (c: Cert) => {
+    if (c === certC) return;
+    const cur = pathRef.current.slice();
+    const next = pathAfterCertSwitch(c, cur);
+    applyCertSettings(c);
+    if (samePath(cur, next)) return;
+    const st = framesRef.current;
+    let idx = -1;
+    for (let i = st.length - 1; i >= 0; i--) {
+      if (samePath(st[i].path, next)) { idx = i; break; }
+    }
+    if (idx >= 0) {
+      const n = st.length - idx;
+      framesRef.current = st.slice(0, idx);
+      setFrames(framesRef.current);
+      pathRef.current = next;
+      pgRef.current = 0;
+      setPath(next);
+      setPg(0);
+      consumeHistory(n, idx);
+      return;
+    }
+    pathRef.current = next;
+    pgRef.current = 0;
+    setPath(next);
+    setPg(0);
+    history.replaceState({ d: framesRef.current.length, p: next }, "");
+  };
+
+  const certTabs = (srcLabel: string, ubiLabel: string, prominent?: boolean): ReactNode => (
+    <div role="tablist" aria-label="Zeugnis" style={{ flex: "0 0 auto", display: "flex", gap: prominent ? 0 : 4, width: prominent ? "100%" : undefined, borderRadius: prominent ? t.radius.full : undefined, overflow: prominent ? "hidden" : undefined, border: prominent ? "2px solid " + accent : "none", boxSizing: "border-box" }}>
+      {([{ c: "UBI" as Cert, label: ubiLabel }, { c: "SRC" as Cert, label: srcLabel }]).map((o: { c: Cert; label: string }) => {
+        const active = o.c === certC;
+        return (
+          <button
+            key={o.c}
+            type="button"
+            role="tab"
+            aria-selected={active}
+            aria-label={prominent ? undefined : (o.c === "SRC" ? "SRC – Seefunk" : "UBI – Binnenfunk")}
+            onClick={() => (o.c === certC ? undefined : requestNav(() => switchCertStay(o.c)))}
+            style={{
+              flex: prominent ? "1 1 0" : "0 0 auto",
+              minHeight: 44,
+              minWidth: 44,
+              boxSizing: "border-box",
+              padding: prominent ? "8px 10px" : "10px 14px",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: prominent ? "none" : "2px solid " + (active ? accent : t.border.default),
+              borderRight: prominent && o.c === "UBI" ? "1px solid " + accent : undefined,
+              borderRadius: prominent ? 0 : t.radius.full,
+              background: active ? t.fill.accentSubtle : (prominent ? t.bg.elevated : t.bg.base),
+              color: t.text.primary,
+              fontFamily: fam,
+              fontSize: t.font.subtext.fontSize,
+              lineHeight: t.font.subtext.lineHeight,
+              fontWeight: active ? t.weight.semibold : t.weight.medium,
+              cursor: active ? "default" : "pointer",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+    /* Inhalt der aktuellen Ebene */
   let body: ReactNode = null;
   let title = "";
   let sub = "";
@@ -6500,9 +6615,7 @@ export default function App() {
             ))
           )}
         </div>
-        <div role="tablist" aria-label="Zeugnis" style={{ flex: "0 0 auto", display: "flex", gap: 4 }}>
-          {(["UBI", "SRC"] as Cert[]).map((c: Cert) => chip("cert-" + c, c, c === certC, () => (c === certC ? undefined : requestNav(() => chooseCert(c)))))}
-        </div>
+        {certTabs("SRC", "UBI")}
       </div>
       <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: uiShort ? 8 : 12, padding: uiShort ? "8px 10px 8px" : "12px 12px 8px" }}>
         {titleInHeader ? (sub ? <div style={{ ...txt("label", t.text.secondary), flex: "0 0 auto" }}>{sub}</div> : null) : screenTitle(title, sub || undefined)}
