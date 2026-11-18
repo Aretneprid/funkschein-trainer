@@ -424,14 +424,6 @@ function shuffle<T>(arr: T[]): T[] {
   return b;
 }
 
-function poolOf(cert: CertFilter, ch: string): number[] {
-  const out: number[] = [];
-  ITEMS.forEach((it: Item, i: number) => {
-    if ((cert === "alle" || it.cert === cert) && (ch === "alle" || it.ch === ch)) out.push(i);
-  });
-  return out;
-}
-
 /* ---------- Amtliche Prüfungsbögen ---------- */
 // SRC: Anlage 2a Durchführungsrichtlinie Funkbetriebszeugnisse (ELWIS), Fragebögen 1–12
 const SRC_SHEETS: number[][] = [
@@ -464,20 +456,60 @@ const UBI_SHEETS: number[][] = [
   [1, 10, 14, 20, 21, 30, 34, 40, 49, 51, 58, 67, 71, 73, 87, 91, 95, 105, 117, 118, 128, 130],
 ];
 const UBI_QUOTA: [string, number][] = [["U1", 5], ["U2", 5], ["U3", 4], ["U4", 4], ["U5", 4]];
+const UBI_ERG_QUOTA: [string, number][] = [["U1", 2], ["U2", 2], ["U3", 2], ["U4", 2], ["U5", 2]];
+// Ergänzungsprüfung UBI (SRC vorhanden): 79 Fragen aus dem Gesamtkatalog, Reihenfolge = Ergänzungs-Nr. 1–79.
+// Quelle: Gesamtfragenkatalog zur Ergänzungsprüfung, Stand Oktober 2026. [n] = Nummer im vollen UBI-Katalog.
+const UBI_ERG_NS: number[] = [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 21, 25, 27, 29, 30, 31, 36, 37, 39, 40, 42, 43, 44, 45, 47, 55, 56, 57, 58, 59, 63, 64, 65, 66, 67, 69, 70, 74, 75, 78, 79, 80, 81, 82, 83, 89, 90, 91, 92, 93, 95, 96, 100, 101, 102, 103, 107, 109, 110, 111, 113, 114, 116, 117, 118, 119, 120, 122, 126, 127, 128, 129, 130];
+const UBI_ERG_SET: Record<number, boolean> = {};
+const UBI_ERG_NR: Record<number, number> = {};
+UBI_ERG_NS.forEach((n: number, i: number) => {
+  UBI_ERG_SET[n] = true;
+  UBI_ERG_NR[n] = i + 1;
+});
+// 12 amtliche Ergänzungsbögen à 10 Fragen (je 2 aus Teil I–V). Werte = volle Katalognummern.
+// Quelle: UBI Ergänzungsprüfung Fragenverteilung, Stand Oktober 2026.
+const UBI_ERG_SHEETS: number[][] = [
+  [1, 18, 36, 39, 55, 64, 80, 101, 109, 130],
+  [2, 5, 27, 47, 69, 74, 81, 89, 116, 128],
+  [1, 16, 29, 42, 66, 79, 90, 96, 117, 127],
+  [2, 3, 25, 44, 57, 58, 92, 100, 122, 126],
+  [1, 17, 30, 40, 56, 57, 83, 102, 110, 129],
+  [9, 11, 43, 45, 58, 63, 82, 103, 113, 127],
+  [3, 7, 36, 44, 55, 57, 81, 93, 111, 122],
+  [1, 13, 42, 47, 55, 75, 80, 95, 114, 120],
+  [8, 17, 31, 37, 63, 70, 82, 107, 109, 126],
+  [6, 12, 25, 43, 59, 65, 83, 92, 119, 126],
+  [2, 21, 25, 45, 57, 78, 81, 90, 113, 127],
+  [10, 14, 30, 40, 58, 67, 91, 95, 118, 128],
+];
+
+type UbiKind = "voll" | "ergaenzung";
 
 function idxOf(cert: Cert, n: number): number {
   return ITEMS.findIndex((it: Item) => it.cert === cert && it.n === n);
 }
 
-function sheetDeck(cert: Cert, nr: number): number[] {
-  const list = (cert === "SRC" ? SRC_SHEETS : UBI_SHEETS)[nr - 1];
+function poolOf(cert: CertFilter, ch: string, erg?: boolean): number[] {
+  const out: number[] = [];
+  ITEMS.forEach((it: Item, i: number) => {
+    if ((cert === "alle" || it.cert === cert) && (ch === "alle" || it.ch === ch)) {
+      if (erg && it.cert === "UBI" && !UBI_ERG_SET[it.n]) return;
+      out.push(i);
+    }
+  });
+  return out;
+}
+
+function sheetDeck(cert: Cert, nr: number, erg?: boolean): number[] {
+  const list = (cert === "SRC" ? SRC_SHEETS : erg ? UBI_ERG_SHEETS : UBI_SHEETS)[nr - 1];
   return list.map((n: number) => idxOf(cert, n)).filter((i: number) => i >= 0);
 }
 
-function quotaDeck(): number[] {
+function quotaDeck(erg?: boolean): number[] {
   const out: number[] = [];
-  UBI_QUOTA.forEach((q: [string, number]) => {
-    out.push(...shuffle(poolOf("UBI", q[0])).slice(0, q[1]));
+  const quota = erg ? UBI_ERG_QUOTA : UBI_QUOTA;
+  quota.forEach((q: [string, number]) => {
+    out.push(...shuffle(poolOf("UBI", q[0], erg)).slice(0, q[1]));
   });
   return out.sort((a: number, b: number) => ITEMS[a].n - ITEMS[b].n);
 }
@@ -1297,6 +1329,7 @@ export default function App() {
 
   /* Quiz-State */
   const [cert, setCert] = useState<CertFilter>("alle");
+  const [ubiKind, setUbiKind] = useState<UbiKind | null>(null);
   const [chap, setChap] = useState<string>("alle");
   const [mode, setMode] = useState<Mode>("ueben");
   const [bogen, setBogen] = useState<string>("zufall");
@@ -1328,7 +1361,8 @@ export default function App() {
 
   const setField = (k: keyof SP) => (v: string) => setSp((prev: SP) => ({ ...prev, [k]: v } as SP));
 
-  function rebuild(c: CertFilter, ch: string, m: Mode, base?: number[], bg?: string) {
+  function rebuild(c: CertFilter, ch: string, m: Mode, base?: number[], bg?: string, kind?: UbiKind | null) {
+    const erg = c === "UBI" && (kind !== undefined ? kind : ubiKind) === "ergaenzung";
     let p: number[];
     if (base) {
       p = shuffle(base.slice());
@@ -1336,15 +1370,15 @@ export default function App() {
       const cc: Cert = c === "UBI" ? "UBI" : "SRC";
       const b = bg ?? bogen;
       if (cc === "UBI" && b === "quote") {
-        p = quotaDeck();
+        p = quotaDeck(erg);
         setBogenNr(0);
       } else {
         const nr = b === "zufall" || b === "quote" ? 1 + Math.floor(Math.random() * 12) : Number(b);
-        p = sheetDeck(cc, nr);
+        p = sheetDeck(cc, nr, erg);
         setBogenNr(nr);
       }
     } else {
-      p = shuffle(poolOf(c, ch));
+      p = shuffle(poolOf(c, ch, erg));
     }
     setDeck(p);
     setPos(0);
@@ -1432,7 +1466,7 @@ export default function App() {
 
   const answered = right + wrong;
   const rate = answered > 0 ? Math.round((right / answered) * 100) : 0;
-  const passMark = cert === "UBI" ? 17 : 19;
+  const passMark = cert === "UBI" ? (ubiKind === "ergaenzung" ? 8 : 17) : 19;
 
   const answerStyle = (i: number): CSSProperties => {
     let border = t.border.default;
@@ -1638,8 +1672,9 @@ export default function App() {
     try {
       const raw = window.localStorage.getItem(STORE_KEY);
       if (raw) {
-        const d = JSON.parse(raw) as { prog?: Record<string, number> };
+        const d = JSON.parse(raw) as { prog?: Record<string, number>; ubiKind?: string };
         if (d && d.prog) setProg(d.prog);
+        if (d && (d.ubiKind === "voll" || d.ubiKind === "ergaenzung")) setUbiKind(d.ubiKind);
       }
       window.localStorage.setItem(STORE_KEY + "-test", "1");
       window.localStorage.removeItem(STORE_KEY + "-test");
@@ -1653,11 +1688,20 @@ export default function App() {
   useEffect(() => {
     if (!loaded || !stored) return;
     try {
-      window.localStorage.setItem(STORE_KEY, JSON.stringify({ prog }));
+      const payload: { prog: Record<string, number>; ubiKind?: UbiKind } = { prog };
+      if (ubiKind) payload.ubiKind = ubiKind;
+      else {
+        try {
+          const prevRaw = window.localStorage.getItem(STORE_KEY);
+          const prev = prevRaw ? JSON.parse(prevRaw) as { ubiKind?: string } : {};
+          if (prev && (prev.ubiKind === "voll" || prev.ubiKind === "ergaenzung")) payload.ubiKind = prev.ubiKind;
+        } catch (_e) { /* bleibt ohne ubiKind */ }
+      }
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(payload));
     } catch (e) {
       setStored(false);
     }
-  }, [prog, loaded, stored]);
+  }, [prog, ubiKind, loaded, stored]);
 
   /* ---------- Buchstabier-Trainer ---------- */
   const [spSave, setSpSave] = useState<SpSave>(SP0);
@@ -1910,20 +1954,72 @@ export default function App() {
   }
 
   const certC: Cert = cert === "UBI" ? "UBI" : "SRC";
-  const stateOf = (i: number): number => prog[ITEMS[i].cert + "-" + ITEMS[i].n] || 0;
-  const filtered = (ch: string, f: string): number[] =>
-    poolOf(certC, ch).filter((i: number) => (f === "neu" ? stateOf(i) === 0 : f === "falsch" ? stateOf(i) === 2 : true));
+  const ubiErg = certC === "UBI" && ubiKind === "ergaenzung";
+  const qRef = (it: Item, short?: boolean): string => {
+    const base = short ? it.cert + " " + it.n : it.cert + "-Katalog Nr. " + it.n;
+    const en = it.cert === "UBI" ? UBI_ERG_NR[it.n] : 0;
+    return ubiErg && en ? base + " · Ergänzung " + en : base;
+  };
+  const ubiKindTitle = ubiKind === "ergaenzung" ? "Ergänzungsprüfung UBI (SRC vorhanden, 79 Fragen)" : "Vollprüfung UBI (kompletter Katalog, 130 Fragen)";
+  const ubiKindShort = ubiKind === "ergaenzung" ? "Ergänzungsprüfung (79 Fragen)" : "Vollprüfung (130 Fragen)";
 
-  function practise(ch: string, f: string, m: Mode) {
+  function changeUbiKind(k: UbiKind) {
+    if (k === ubiKind) return;
+    const apply = (): void => {
+      setUbiKind(k);
+      const examActive = pathRef.current[0] === "pruefung" && pathRef.current.length >= 2 && !finished;
+      if (examActive) {
+        enter(["pruefung"]);
+        return;
+      }
+      if (pathRef.current[0] === "fragen" && pathRef.current.length >= 2) {
+        practise(chap, flt, curMode(), k);
+        return;
+      }
+      if (mode === "pruefung" && pathRef.current[0] !== "pruefung") {
+        rebuild(cert, chap, mode, undefined, bogen, k);
+      }
+    };
+    if (pathRef.current[0] === "pruefung" && pathRef.current.length >= 2 && !finished) {
+      setAsk({
+        title: "Prüfungsart wechseln?",
+        body: "Der laufende Bogen wird beendet. Fortschritt der einzelnen Fragen bleibt erhalten.",
+        ok: "Wechseln",
+        onOk: apply,
+      });
+      return;
+    }
+    apply();
+  }
+
+  const ubiKindTabs = (): ReactNode =>
+    certC !== "UBI" ? null : (
+      <Segmented<UbiKind>
+        options={[
+          { value: "voll", label: "Vollprüfung" },
+          { value: "ergaenzung", label: "Ergänzung" },
+        ]}
+        value={ubiKind || "voll"}
+        onChange={(k: UbiKind) => changeUbiKind(k)}
+      />
+    );
+  const stateOf = (i: number): number => prog[ITEMS[i].cert + "-" + ITEMS[i].n] || 0;
+  const filtered = (ch: string, f: string, kind?: UbiKind | null): number[] => {
+    const erg = certC === "UBI" && (kind !== undefined ? kind : ubiKind) === "ergaenzung";
+    return poolOf(certC, ch, erg).filter((i: number) => (f === "neu" ? stateOf(i) === 0 : f === "falsch" ? stateOf(i) === 2 : true));
+  };
+
+  function practise(ch: string, f: string, m: Mode, kind?: UbiKind | null) {
     setChap(ch);
     setFlt(f);
     setMode(m);
-    rebuild(certC, ch, m, f === "alle" ? undefined : filtered(ch, f));
+    const k = kind !== undefined ? kind : ubiKind;
+    rebuild(certC, ch, m, f === "alle" ? undefined : filtered(ch, f, k), undefined, k);
     setTab("fragen");
   }
 
   const statsOf = (c: Cert, ch: string): { total: number; done: number; ok: number } => {
-    const p = poolOf(c, ch);
+    const p = poolOf(c, ch, c === "UBI" && ubiKind === "ergaenzung");
     let done = 0;
     let ok = 0;
     p.forEach((i: number) => {
@@ -2059,7 +2155,7 @@ export default function App() {
   );
 
   const rowWrap: CSSProperties = { display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" };
-  const examLimit = cert === "UBI" ? 60 : 30;
+  const examLimit = cert === "UBI" ? (ubiKind === "ergaenzung" ? 30 : 60) : 30;
   const elapsed = examStart > 0 ? Math.max(0, Math.floor((now - examStart) / 1000)) : 0;
   const mmss = (s: number): string => Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
   const sessTotal = sessR + sessW;
@@ -2072,7 +2168,7 @@ export default function App() {
       <>
         <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", gap: 8, alignItems: "center" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-            <Status tone={item.cert === "SRC" ? "accent" : "neutral"}>{item.cert + "-Katalog Nr. " + item.n}</Status>
+            <Status tone={item.cert === "SRC" ? "accent" : "neutral"}>{qRef(item)}</Status>
             {mode !== "pruefung" ? stateBadge() : null}
             <span style={txt("label", t.text.tertiary)}>{ch ? ch.label : ""}</span>
           </div>
@@ -2120,7 +2216,7 @@ export default function App() {
           const it = ITEMS[i];
           return (
             <div key={k} style={{ background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderLeft: "4px solid " + t.text.danger, borderRadius: t.radius.lg, padding: 14, display: "flex", flexDirection: "column", gap: 6 }}>
-              <span style={txt("label", t.text.tertiary)}>{it.cert + " " + it.n}</span>
+              <span style={txt("label", t.text.tertiary)}>{qRef(it, true)}</span>
               <span style={txt("body1", t.text.primary, t.weight.semibold)}>{it.q}</span>
               <span style={txt("body2", t.text.secondary)}>{"Richtig: " + it.a[0]}</span>
             </div>
@@ -2214,7 +2310,7 @@ export default function App() {
 
   const chooser = (): ReactNode => {
     const opts: { c: Cert; sub: string; desc: string; color: string }[] = [
-      { c: "UBI", sub: "UKW-Sprechfunkzeugnis Binnen", desc: "Binnenschifffahrtsfunk mit ATIS · " + U.length + " Katalogfragen · 12 amtliche Bögen à 22 Fragen", color: accent2 },
+      { c: "UBI", sub: "UKW-Sprechfunkzeugnis Binnen", desc: "Binnenschifffahrtsfunk mit ATIS · Vollprüfung 130 Fragen (22er-Bögen) oder Ergänzungsprüfung 79 Fragen, wenn SRC bereits vorhanden", color: accent2 },
       { c: "SRC", sub: "Short Range Certificate (See)", desc: "UKW-Seefunk mit DSC und GMDSS · " + S.length + " Katalogfragen · 12 amtliche Bögen à 24 Fragen", color: accent },
     ];
     return (
@@ -2252,6 +2348,40 @@ export default function App() {
       </div>
     );
   };
+
+  const ubiKindChooser = (): ReactNode => (
+    <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 860, margin: "0 auto", padding: "28px 12px 40px", display: "flex", flexDirection: "column", gap: 22, boxSizing: "border-box" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {appIcon(72)}
+        <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <span style={{ fontFamily: fam, fontSize: t.font.heading2.fontSize, lineHeight: t.font.heading2.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary }}>UBI – welche Prüfung?</span>
+          <span style={txt("subtext", t.text.secondary)}>Einmal wählen, jederzeit in den Prüfungsfragen und der Theorieprüfung wechseln.</span>
+        </div>
+      </div>
+      {grid(
+        <>
+          {([
+            { k: "voll" as UbiKind, title: "Vollprüfung UBI", desc: "Kompletter Katalog, 130 Fragen · 12 amtliche Bögen à 22 Fragen · 60 min, bestanden ab 17 Punkten (ABVT)" },
+            { k: "ergaenzung" as UbiKind, title: "Ergänzungsprüfung UBI", desc: "SRC bereits vorhanden · 79 Zusatzfragen · 12 amtliche Bögen à 10 Fragen · 30 min, bestanden ab 8 Punkten (ABVT)" },
+          ]).map((o: { k: UbiKind; title: string; desc: string }) => (
+            <button
+              key={o.k}
+              type="button"
+              onClick={() => setUbiKind(o.k)}
+              style={{ textAlign: "left", cursor: "pointer", background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderTop: "6px solid " + accent2, borderRadius: t.radius.xl, padding: 24, display: "flex", flexDirection: "column", gap: 10, fontFamily: fam, minHeight: 180 }}
+            >
+              <span style={{ fontFamily: fam, fontSize: t.font.heading3.fontSize, lineHeight: t.font.heading3.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary }}>{o.title}</span>
+              <span style={txt("body2", t.text.secondary)}>{o.desc}</span>
+            </button>
+          ))}
+        </>,
+        260,
+      )}
+      <div style={rowWrap}>
+        <Button label="‹ Zu den Zeugnissen" onClick={() => setChosen(false)} />
+      </div>
+    </div>
+  );
 
   /* ================= Bildschirm-App: eine Ebene pro Bildschirm, kein Scrollen ================= */
   const [path, setPath] = useState<string[]>([]);
@@ -3651,7 +3781,7 @@ export default function App() {
       return card(
         <>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
-            <Status tone="neutral">{it.cert + " " + it.n}</Status>
+            <Status tone="neutral">{qRef(it, true)}</Status>
             {st === 1 ? <Status tone="success">zuletzt richtig</Status> : st === 2 ? <Status tone="danger">zuletzt falsch</Status> : <Status tone="neutral">neu</Status>}
           </div>
           <div style={txt("heading3", t.text.primary, t.weight.semibold)}>{it.q}</div>
@@ -6801,9 +6931,9 @@ export default function App() {
       return { id: c.key, title: shortLabel(c.label), sub: s.total + " Fragen · " + pctOf(s.done, s.total) + " % bearbeitet · " + pctOf(s.ok, s.total) + " % richtig", done: s.done, ok: s.ok, total: s.total };
     });
   const sheetTiles = (): Tile[] => [
-    { id: "zufall", title: "Zufälliger amtlicher Bogen", sub: "einer der Bögen 1–12" },
-    ...(certC === "UBI" ? [{ id: "quote", title: "Zufall nach Teil-Verteilung", sub: "5/5/4/4/4, kein amtlicher Bogen" }] : []),
-    ...Array.from({ length: 12 }, (_: unknown, i: number) => ({ id: String(i + 1), title: "Bogen " + (i + 1), sub: "amtlich" })),
+    { id: "zufall", title: "Zufälliger amtlicher Bogen", sub: ubiErg ? "einer der 10-Fragen-Bögen 1–12" : "einer der Bögen 1–12" },
+    ...(certC === "UBI" ? [{ id: "quote", title: "Zufall nach Teil-Verteilung", sub: ubiErg ? "2/2/2/2/2, kein amtlicher Bogen" : "5/5/4/4/4, kein amtlicher Bogen" }] : []),
+    ...Array.from({ length: 12 }, (_: unknown, i: number) => ({ id: String(i + 1), title: "Bogen " + (i + 1), sub: ubiErg ? "amtlich · 10 Fragen" : "amtlich" })),
   ];
 
   const labelOf = (lvl: number, id: string): string => {
@@ -6876,6 +7006,7 @@ export default function App() {
     const all = statsOf(certC, "alle");
     return (
       <>
+        {certC === "UBI" ? <div style={{ flex: "0 0 auto" }}>{ubiKindTabs()}</div> : null}
         <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 16, alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
             {ring(pctOf(all.done, all.total), accent, "bearbeitet", all.done + " von " + all.total)}
@@ -6909,6 +7040,7 @@ export default function App() {
   const practiceScreen = (): ReactNode => (
     <>
       <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        {ubiKindTabs()}
         <Segmented<Mode>
           options={[
             { value: "ueben", label: "Üben" },
@@ -6960,7 +7092,7 @@ export default function App() {
       const it = ITEMS[i];
       return card(
         <>
-          <Status tone="danger">{"Falsch · " + it.cert + " " + it.n}</Status>
+          <Status tone="danger">{"Falsch · " + qRef(it, true)}</Status>
           <div style={txt("heading3", t.text.primary, t.weight.semibold)}>{it.q}</div>
           <div style={{ borderLeft: "4px solid " + t.text.success, background: t.fill.successSubtle, borderRadius: t.radius.md, padding: 12, ...txt("body1", t.text.primary) }}>{"Richtig: " + it.a[0]}</div>
         </>,
@@ -6974,7 +7106,7 @@ export default function App() {
     <>
       <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, ...txt("subtext", t.text.secondary) }}>
-          <span style={{ color: t.text.primary, fontWeight: t.weight.semibold }}>{bogenNr > 0 ? "Amtlicher " + certC + "-Bogen " + bogenNr + " (" + deck.length + " Fragen)" : "Zufallsbogen nach Teil-Verteilung (22 Fragen)"}</span>
+          <span style={{ color: t.text.primary, fontWeight: t.weight.semibold }}>{bogenNr > 0 ? "Amtlicher " + certC + (ubiErg ? "-Ergänzungsbogen " : "-Bogen ") + bogenNr + " (" + deck.length + " Fragen)" : "Zufallsbogen nach Teil-Verteilung (" + deck.length + " Fragen, nicht amtlich)"}</span>
           <span>{"bestanden ab " + passMark}</span>
           <span>{"Zeit " + mmss(elapsed) + " / " + examLimit + ":00"}</span>
         </div>
@@ -6986,9 +7118,12 @@ export default function App() {
 
   const pruefungHome = (): ReactNode => (
     <>
+      {certC === "UBI" ? <div style={{ flex: "0 0 auto" }}>{ubiKindTabs()}</div> : null}
       <div style={{ flex: "0 0 auto", ...txt("label", t.text.secondary) }}>
         {certC === "UBI"
-          ? "12 Bögen der amtlichen Fragenverteilung des ABVT (Stand Oktober 2026): je 5 Fragen aus Teil I und II, je 4 aus III–V; 60 min, bestanden ab 17 von 22."
+          ? (ubiErg
+            ? "Ergänzungsprüfung (SRC vorhanden): 12 Bögen der amtlichen Fragenverteilung des ABVT (Stand Oktober 2026), je 2 Fragen aus Teil I–V; 30 min, bestanden ab 8 von 10 (ABVT, Hinweise zum Prüfungsablauf)."
+            : "Vollprüfung: 12 Bögen der amtlichen Fragenverteilung des ABVT (Stand Oktober 2026): je 5 Fragen aus Teil I und II, je 4 aus III–V; 60 min, bestanden ab 17 von 22.")
           : "12 amtliche Fragebögen nach Anlage 2a (ELWIS); 30 min, bestanden ab 19 von 24. Frage 33 (Bögen 5 und 12) fehlt, weil ihre Antworten in der Leseversion wortgleich sind; diese Bögen haben 23 Fragen."}
       </div>
       {tileGrid(sheetTiles(), 14, 150, open)}
@@ -7110,7 +7245,7 @@ export default function App() {
   const a0 = path[0];
   if (path.length === 0) {
     title = "Was möchtest du tun?";
-    sub = certC === "SRC" ? "SRC · Seefunk mit DSC" : "UBI · Binnenfunk mit ATIS";
+    sub = certC === "SRC" ? "SRC · Seefunk mit DSC" : (ubiKind ? "UBI · " + ubiKindShort + " · Binnenfunk mit ATIS" : "UBI · Binnenfunk mit ATIS");
     body = areaScreen();
   } else if (a0 === "erklaeren") {
     if (path.length === 1) {
@@ -7164,10 +7299,11 @@ export default function App() {
   } else if (a0 === "fragen") {
     if (path.length === 1) {
       title = "Prüfungsfragen";
-      sub = "Kapitel wählen: bearbeitet (blau) und richtig (grün)";
+      sub = (certC === "UBI" && ubiKind ? ubiKindTitle + " · " : "") + "Kapitel wählen: bearbeitet (blau) und richtig (grün)";
       body = fragenHome();
     } else {
       title = labelOf(1, path[1]);
+      sub = certC === "UBI" && ubiKind ? ubiKindTitle : "";
       body = practiceScreen();
     }
   } else if (a0 === "funkgeraet") {
@@ -7204,10 +7340,11 @@ export default function App() {
   } else if (a0 === "pruefung") {
     if (path.length === 1) {
       title = "Prüfung";
-      sub = "Bogen wählen";
+      sub = certC === "UBI" && ubiKind ? ubiKindTitle + " · Bogen wählen" : "Bogen wählen";
       body = pruefungHome();
     } else {
       title = labelOf(1, path[1]);
+      sub = certC === "UBI" && ubiKind ? ubiKindTitle : "";
       body = examScreen();
     }
   }
@@ -7251,8 +7388,9 @@ export default function App() {
   const par = parentPath();
   const backText = par === null ? "‹ Zeugnisse" : "‹ " + titleOfPath(par);
 
-  if (!chosen) {
-    return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base, position: "relative" }}>{chooser()}{swUpdate ? (
+  const askUbiKind = certC === "UBI" && ubiKind === null && (path.length === 0 || path[0] === "fragen" || path[0] === "pruefung");
+  if (!chosen || askUbiKind) {
+    return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base, position: "relative" }}>{!chosen ? chooser() : ubiKindChooser()}{swUpdate ? (
         <div role="status" aria-live="polite" data-sw-update="1" style={{ position: "absolute", left: 12, right: 12, bottom: 12, zIndex: 40, background: t.bg.elevated, color: t.text.primary, border: "1px solid " + t.border.default, borderRadius: t.radius.lg, padding: "10px 14px", boxShadow: "0 8px 28px rgba(0,0,0,0.2)", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
           <span style={txt("body2", t.text.primary)}>Update verfügbar – neue Sprachclips sind bereit.</span>
           <Button label="Neu laden" variant="primary" onClick={() => { const fn = swUpdate; setSwUpdate(null); if (fn) fn(); }} />
