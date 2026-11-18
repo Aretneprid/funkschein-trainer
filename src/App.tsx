@@ -1985,6 +1985,7 @@ export default function App() {
   const framesRef = useRef<NavFrame[]>([]);
   const skipTo = useRef<number | null>(null);
   const examRef = useRef<boolean>(false);
+  const leavingExam = useRef<boolean>(false);
   pathRef.current = path;
   pgRef.current = pg;
   framesRef.current = frames;
@@ -2012,6 +2013,11 @@ export default function App() {
 
   const samePath = (a: string[], b: string[]): boolean => a.length === b.length && a.every((id: string, i: number) => id === b[i]);
   const isLessonPath = (p: string[]): boolean => p[0] === "erklaeren" && p.length === 2;
+  const isModeHub = (p: string[]): boolean => p[0] === "werkzeuge" && p[1] === "spelltrain" && p.length === 2;
+  const isModeChild = (p: string[]): boolean => p.length === 3 && isModeHub(p.slice(0, 2));
+  const shouldReplace = (cur: string[], np: string[]): boolean =>
+    (isLessonPath(cur) && isLessonPath(np)) ||
+    (isModeChild(cur) && isModeChild(np) && samePath(cur.slice(0, -1), np.slice(0, -1)));
   const normalizePath = (np: string[]): string[] => {
     const p = np.slice();
     if (p[0] === "erklaeren" && p[1] === "ref") return ["werkzeuge", ...p.slice(2)];
@@ -2097,7 +2103,7 @@ export default function App() {
       setPg(0);
       return;
     }
-    if (isLessonPath(curP) && isLessonPath(np)) {
+    if (shouldReplace(curP, np)) {
       pathRef.current = np;
       pgRef.current = 0;
       setPath(np);
@@ -2119,7 +2125,7 @@ export default function App() {
   const open = (id: string) => enter([...path, id]);
   const examRunning = (): boolean =>
     (path[0] === "pruefung" && path.length >= 2 && !finished) ||
-    (path[0] === "funkgeraet" && path[1] === "exam" && examPhase !== "intro" && examPhase !== "done" && examIds.length > 0);
+    (path[0] === "funkgeraet" && path[1] === "exam" && path.length >= 3 && examPhase !== "intro" && examPhase !== "done" && examIds.length > 0);
   const requestNav = (fn: () => void) => {
     if (!examRunning()) { fn(); return; }
     setAsk({
@@ -2129,6 +2135,7 @@ export default function App() {
       onOk: () => {
         if (path[0] === "pruefung") setMode("ueben");
         if (path[0] === "funkgeraet" && path[1] === "exam") { setExamPhase("intro"); setExamIds([]); }
+        leavingExam.current = true;
         examRef.current = false;
         fn();
       },
@@ -2177,6 +2184,7 @@ export default function App() {
               setExamPhase("intro");
               setExamIds([]);
             }
+            leavingExam.current = true;
             examRef.current = false;
             history.back();
           },
@@ -2188,6 +2196,36 @@ export default function App() {
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
   }, []);
+
+  const SP_ROUND: SpMode[] = ["letter", "code", "phrase", "listen", "speak"];
+  const spellRoot = (): string[] => (path[1] === "spelltrain" ? path.slice(0, 2) : ["werkzeuge", "spelltrain"]);
+  const lastSpellPath = useRef<string>("");
+  useEffect(() => {
+    const key = path.join("/");
+    if (path[0] === "werkzeuge" && path[1] === "spelltrain") {
+      if (path.length < 3) {
+        if (spRecOn) pttStop();
+        setSpMode("home");
+        setSpI(0);
+        setSpFb("");
+        setSpIn("");
+        setSpMsg("");
+        setSpChoices([]);
+      } else if (path[2] === "weak") {
+        if (spRecOn) pttStop();
+        setSpMode("weak");
+      } else if (SP_ROUND.indexOf(path[2] as SpMode) >= 0) {
+        if (lastSpellPath.current !== key) startRound(path[2] as SpMode);
+      }
+    }
+    if (path[0] === "funkgeraet" && path[1] === "exam" && path.length < 3) {
+      if (examPhase !== "intro" || examIds.length > 0) {
+        setExamPhase("intro");
+        setExamIds([]);
+      }
+    }
+    lastSpellPath.current = key;
+  }, [path.join("/")]);
 
   /* ---------- Bausteine ---------- */
   const screenTitle = (title: string, sub?: string): ReactNode => (
@@ -2345,7 +2383,7 @@ export default function App() {
               <button
                 key={m.id}
                 type="button"
-                onClick={() => startRound(m.id)}
+                onClick={() => enter([...spellRoot(), m.id])}
                 style={{ textAlign: "left", cursor: "pointer", background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderLeft: "5px solid " + [accent, accent2, accent3][i % 3], borderRadius: t.radius.xl, padding: "12px 16px", display: "flex", flexDirection: "column", gap: 2, fontFamily: fam }}
               >
                 <span style={txt("body1", t.text.primary, t.weight.semibold)}>{m.title}</span>
@@ -2354,7 +2392,7 @@ export default function App() {
             ))}
           </div>
           <div style={rowWrap}>
-            <Button label="Schwache Buchstaben" onClick={() => setSpMode("weak")} />
+            <Button label="Schwache Buchstaben" onClick={() => enter([...spellRoot(), "weak"])} />
             <Button label="Buchstabiertafel" variant="quiet" onClick={() => enter(["erklaeren", "ref", "nato"])} />
           </div>
           <span style={txt("label", t.text.tertiary)}>Offizielle Schreibweise nach ITU VO Funk, Anhang 14: Alfa, Juliett. Anerkannt werden auch Alpha und Juliet. Ziffern übst du mit Zero…Nine (auch Tree, Fower, Fife, Niner). Die ITU-Ziffernwörter Nadazero…Novenine gelten ebenfalls und stehen unter der Tafel.</span>
@@ -2375,8 +2413,8 @@ export default function App() {
             </div>
           ))}
           <div style={rowWrap}>
-            <Button label="Schwache üben" variant="primary" onClick={() => startRound("letter")} disabled={weak.length === 0} />
-            <Button label="Zurück" onClick={() => setSpMode("home")} />
+            <Button label="Schwache üben" variant="primary" onClick={() => enter([...spellRoot(), "letter"])} disabled={weak.length === 0} />
+            <Button label="Zurück" onClick={back} />
             {Object.keys(spSave.rec).length > 0 ? <Button label="Statistik löschen" variant="quiet" onClick={() => setSpSave(SP0)} /> : null}
           </div>
         </div>
@@ -2392,8 +2430,8 @@ export default function App() {
               <span style={txt("body2", t.text.secondary)}>{spScore === 10 ? "Saubere Runde. Serie: " + (spSave.streak) : "Schau unter „Schwache Buchstaben“, was noch unsicher ist."}</span>
               <div style={rowWrap}>
                 <Button label="Noch eine Runde" variant="primary" onClick={() => startRound(spMode)} />
-                <Button label="Schwache Buchstaben" onClick={() => setSpMode("weak")} />
-                <Button label="Zum Menü" onClick={() => setSpMode("home")} />
+                <Button label="Schwache Buchstaben" onClick={() => enter([...spellRoot(), "weak"])} />
+                <Button label="Zum Menü" onClick={back} />
               </div>
             </>,
             { padding: 16, gap: 8 },
@@ -2467,7 +2505,6 @@ export default function App() {
         </div>
         <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 6, borderTop: "1px solid " + t.border.subtle, background: t.bg.base }}>
           {spFb === "" ? <Button label="Prüfen" variant="primary" onClick={() => submit()} disabled={spIn.trim() === ""} /> : <Button label={spI + 1 >= 10 ? "Auswertung" : "Weiter"} variant="primary" onClick={goNext} />}
-          <Button label="Abbrechen" variant="quiet" onClick={() => setSpMode("home")} />
         </div>
       </div>
     );
@@ -5716,6 +5753,7 @@ export default function App() {
     setExamPhase("task");
     const first = EXAM_TASKS().find((x: ExTask) => x.id === ids[0]);
     if (first) applyExamSetup(first);
+    if (!(path[0] === "funkgeraet" && path[1] === "exam" && path.length >= 3)) enter(["funkgeraet", "exam", "run"]);
   };
 
   const gradeExam = (textIn: string, fromButton: boolean) => {
@@ -5794,7 +5832,7 @@ export default function App() {
   };
 
   const examScreen2 = (): ReactNode => {
-    if (examPhase === "intro" || examIds.length === 0) {
+    if (path[1] === "exam" && path.length < 3 || examPhase === "intro" || examIds.length === 0) {
       return (
         <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
           {card(
@@ -5846,7 +5884,7 @@ export default function App() {
                   </div>
                 );
               })}
-              <div style={rowWrap}><Button label="Neue Prüfungsfahrt" variant="primary" onClick={() => { setExamPhase("intro"); setExamIds([]); }} /></div>
+              <div style={rowWrap}><Button label="Neue Prüfungsfahrt" variant="primary" onClick={() => enter(["funkgeraet", "exam"])} /></div>
             </>,
             { padding: 14, gap: 8 },
           )}
@@ -5944,6 +5982,10 @@ export default function App() {
     }
     if (a === "werkzeuge") {
       if (lvl === 1) return (ERK.find((x: Tile) => x.id === id) || { title: id }).title;
+      if (path[1] === "spelltrain") {
+        const names: Record<string, string> = { weak: "Schwache Buchstaben", letter: "Buchstabe → Codewort", code: "Codewort → Buchstabe", phrase: "Wort / Rufzeichen", listen: "Hören", speak: "Sprechen" };
+        return names[id] || id;
+      }
       if (path[1] === "spruchbau") return (orderDrills().find((d: OrderDrill) => d.id === id) || { short: id }).short;
       if (path[1] === "funk") return (FUNK_TILES.find((x: Tile) => x.id === id) || { title: id }).title;
       if (path[1] === "geraet") return id === "modell" ? "Modell, Tasten & Tipps" : (ICOM_TASKS.find((x: { value: string }) => x.value === id) || { label: id }).label;
@@ -5953,6 +5995,7 @@ export default function App() {
       if (lvl === 1) return id === "frei" || id === "panel" ? "Gerät frei bedienen" : id === "ablauf" ? "Bedienung üben" : id === "sim" ? "Funkverkehr üben" : id === "exam" ? "Praxisprüfung" : id === "menue" ? "Menüstruktur" : id;
       if (path[1] === "ablauf") return (PROCS2().find((x: { id: string }) => x.id === id) || { title: id }).title;
       if (path[1] === "sim") return (SCNS().find((x: Scn) => x.id === id) || { title: id }).title;
+      if (path[1] === "exam") return id === "run" ? "Prüfungsfahrt" : id;
       return id;
     }
     if (a === "pruefung") return id === "zufall" ? "Zufallsbogen" : id === "quote" ? "Teil-Verteilung" : "Bogen " + id;
@@ -6145,8 +6188,8 @@ export default function App() {
       sub = "Buchstabier-Trainer, Tafeln, Quellen und Videos";
       body = tileGrid(ERK, 6, 150, open);
     } else if (path[1] === "spelltrain") {
-      title = "Buchstabier-Trainer";
-      sub = uiShort ? "" : "Internationale Buchstabiertafel · 10er-Runden";
+      title = path.length > 2 ? labelOf(2, path[2]) : "Buchstabier-Trainer";
+      sub = path.length > 2 || uiShort ? "" : "Internationale Buchstabiertafel · 10er-Runden";
       body = spellScreen();
     } else if (path[1] === "spruchbau") {
       if (path.length === 2) {
@@ -6229,7 +6272,8 @@ export default function App() {
   }
 
   const crumbs = ["Start", ...path.map((id: string, i: number) => labelOf(i, id))];
-  examRef.current = examRunning();
+  if (!leavingExam.current) examRef.current = examRunning();
+  if (!examRunning()) leavingExam.current = false;
   const parentPath = (): string[] | null => {
     if (frames.length > 0) return frames[frames.length - 1].path;
     if (path.length === 0) return null;
@@ -6250,6 +6294,7 @@ export default function App() {
       const n = l ? LESSONS.indexOf(l) + 1 : 0;
       return n ? "Lektion " + n : "Lektion";
     }
+    if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "spelltrain") return "Buchstabier-Trainer";
     if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "spruchbau") return "Funksprüche";
     if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "funk") return "Funkverfahren";
     if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "geraet") return "Gerät";
@@ -6263,7 +6308,7 @@ export default function App() {
     return labelOf(p.length - 1, p[p.length - 1]);
   };
   const par = parentPath();
-  const backText = par === null ? "‹ Zeugnisse" : (uiNarrow && ("‹ " + titleOfPath(par)).length > 16 ? "‹ Zurück" : "‹ " + titleOfPath(par));
+  const backText = par === null ? "‹ Zeugnisse" : "‹ " + titleOfPath(par);
 
   if (!chosen) {
     return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base }}>{chooser()}</div>;
@@ -6272,7 +6317,7 @@ export default function App() {
   const lastCrumb = crumbs[crumbs.length - 1];
   const namedBack = backText !== "‹ Zurück" && backText !== "‹ Zeugnisse";
   const titleInHeader = path.length > 0 && !uiNarrow && (title === lastCrumb || title.indexOf(lastCrumb) === 0);
-  const navBtn: CSSProperties = { flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: uiNarrow ? "8px 10px" : "10px 14px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, fontWeight: t.weight.semibold, cursor: "pointer", maxWidth: uiNarrow ? 160 : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+  const navBtn: CSSProperties = { flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: uiNarrow ? "8px 10px" : "10px 14px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, fontWeight: t.weight.semibold, cursor: "pointer", maxWidth: uiNarrow ? 220 : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
   const crumbBtn = (current: boolean): CSSProperties => ({ border: "none", background: "transparent", padding: "10px 6px", minHeight: 44, minWidth: current ? 0 : 44, flexShrink: current ? 1 : 0, boxSizing: "border-box", cursor: current ? "default" : "pointer", fontFamily: fam, fontSize: t.font.body2.fontSize, color: current ? t.text.primary : t.text.secondary, fontWeight: current ? t.weight.semibold : t.weight.regular, overflow: current ? "hidden" : "visible", textOverflow: current ? "ellipsis" : "clip", whiteSpace: "nowrap", maxWidth: "100%" });
 
   return (
