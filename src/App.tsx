@@ -17,6 +17,11 @@ import {
 import type { CSSProperties, ReactNode } from "./canvas";
 import { StepAnim } from "./StepAnim";
 import type { StepKey } from "./StepAnim";
+import { playClip, playClipSeq, unlockAudio, stopClip, spellClipUrl } from "./mediaAudio";
+import { DictationHome, DictationItem, VocabHome, VocabBrowse, VocabQuiz, HandbookHome, HandbookChapterView } from "./learn/screens";
+import { LESSON_TO_BOOK, chapterById } from "./learn/handbook";
+import { dictationById } from "./learn/dictations";
+import { VOCAB_TOPICS } from "./learn/vocab";
 
 type Theme = ReturnType<typeof useGrokTheme>;
 
@@ -545,6 +550,14 @@ function speechAvailable(): boolean {
   return typeof window !== "undefined" && !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === "function";
 }
 
+
+function stopSpeechOutput(): void {
+  stopClip();
+  if (speechAvailable()) {
+    try { window.speechSynthesis.cancel(); } catch (_e) { /* */ }
+  }
+}
+
 function normVoiceLang(lang: string): string {
   return (lang || "").toLowerCase().replace(/_/g, "-");
 }
@@ -599,15 +612,6 @@ function applyEnglishVoice(u: SpeechSynthesisUtterance): SpeechSynthesisVoice | 
   return applyVoice(u, "en-GB");
 }
 
-/** Versioned folder so a new voice cannot be served from an old SW/HTTP cache of l-a.mp3 etc. */
-const SPELL_CLIP_DIR = "media/spell/v3/";
-
-function spellClipUrl(file: string): string {
-  const base = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) ? String(import.meta.env.BASE_URL) : "./";
-  const prefix = base.endsWith("/") ? base : base + "/";
-  return new URL(prefix + SPELL_CLIP_DIR + file, typeof document !== "undefined" ? document.baseURI : prefix).href;
-}
-
 function tafelClipFile(id: string, mode: "itu" | "plain"): string | null {
   if (/^L-[A-Z]$/.test(id)) return "l-" + id.slice(2).toLowerCase() + ".mp3";
   if (/^D-[0-9]$/.test(id)) return (mode === "itu" ? "d-" : "p-") + id.slice(2) + ".mp3";
@@ -627,130 +631,6 @@ function seqClipFiles(seq: string): string[] {
     else if (ch === "-") files.push("m-hyphen.mp3");
   }
   return files;
-}
-
-let clipAudio: HTMLAudioElement | null = null;
-let clipOnEnd: (() => void) | null = null;
-let clipSeqTimer: number | null = null;
-let audioUnlocked = false;
-
-function getClipAudio(): HTMLAudioElement | null {
-  if (typeof document === "undefined") return null;
-  if (clipAudio && clipAudio.isConnected) return clipAudio;
-  const a = document.createElement("audio");
-  a.setAttribute("data-spell-audio", "1");
-  a.preload = "auto";
-  (a as any).playsInline = true;
-  a.style.display = "none";
-  document.body.appendChild(a);
-  clipAudio = a;
-  return a;
-}
-
-function stopClip(): void {
-  if (clipSeqTimer != null) {
-    window.clearTimeout(clipSeqTimer);
-    clipSeqTimer = null;
-  }
-  clipOnEnd = null;
-  if (!clipAudio) return;
-  try {
-    clipAudio.onended = null;
-    clipAudio.onerror = null;
-    clipAudio.pause();
-    clipAudio.removeAttribute("src");
-    clipAudio.load();
-  } catch (_e) {
-    /* */
-  }
-}
-
-function stopSpeechOutput(): void {
-  stopClip();
-  if (speechAvailable()) {
-    try { window.speechSynthesis.cancel(); } catch (_e) { /* */ }
-  }
-}
-
-function unlockAudio(): void {
-  if (audioUnlocked) return;
-  audioUnlocked = true;
-  const a = getClipAudio();
-  if (!a) return;
-  try {
-    const unlockSrc = spellClipUrl("p-6.mp3");
-    a.muted = true;
-    a.src = unlockSrc;
-    const finish = () => {
-      if (a.muted && (a.getAttribute("src") === unlockSrc || /p-6\.mp3(?:\?|$)/.test(a.src || ""))) {
-        try { a.pause(); a.currentTime = 0; } catch (_e) { /* */ }
-      }
-      try { a.muted = false; } catch (_e) { /* */ }
-    };
-    const p = a.play();
-    if (p && typeof p.then === "function") p.then(finish).catch(finish);
-    else finish();
-  } catch (_e) {
-    try { a.muted = false; } catch (_e2) { /* */ }
-  }
-}
-
-function playClip(file: string, onEnd?: () => void): Promise<"ok" | "fail"> {
-  const a = getClipAudio();
-  if (!a) return Promise.resolve("fail");
-  stopClip();
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (res: "ok" | "fail") => {
-      if (settled) return;
-      settled = true;
-      resolve(res);
-    };
-    clipOnEnd = onEnd || null;
-    a.muted = false;
-    a.src = spellClipUrl(file);
-    a.onended = () => {
-      a.onended = null;
-      a.onerror = null;
-      const cb = clipOnEnd;
-      clipOnEnd = null;
-      if (cb) cb();
-    };
-    a.onerror = () => {
-      a.onended = null;
-      a.onerror = null;
-      finish("fail");
-    };
-    try {
-      const p = a.play();
-      if (p && typeof p.then === "function") p.then(() => finish("ok")).catch(() => finish("fail"));
-      else finish("ok");
-    } catch (_e) {
-      finish("fail");
-    }
-  });
-}
-
-function playClipSeq(files: string[], onEnd?: () => void, onFail?: () => void): void {
-  if (files.length === 0) {
-    if (onFail) onFail();
-    return;
-  }
-  const next = (i: number) => {
-    if (i >= files.length) {
-      if (onEnd) onEnd();
-      return;
-    }
-    playClip(files[i], () => {
-      clipSeqTimer = window.setTimeout(() => next(i + 1), 120);
-    }).then((res) => {
-      if (res !== "ok") {
-        if (i === 0 && onFail) onFail();
-        else if (onEnd) onEnd();
-      }
-    });
-  };
-  next(0);
 }
 
 let speechPrimed = false;
@@ -5284,6 +5164,11 @@ export default function App() {
             <Button label={p === n - 2 ? "Lektion abschließen ✓" : "Weiter ›"} variant="primary" onClick={() => setPg(p + 1)} />
           </div>
         ) : null}
+        {LESSON_TO_BOOK[l.id] ? (
+          <div style={{ flex: "0 0 auto" }}>
+            <Button label="Im Nachschlagebuch" variant="quiet" onClick={() => enter(["werkzeuge", "buch", LESSON_TO_BOOK[l.id]])} />
+          </div>
+        ) : null}
       </div>
     );
   };
@@ -6906,9 +6791,12 @@ export default function App() {
     { id: "fragen", title: "Prüfungsfragen", sub: "Katalog üben mit Fortschritt", color: accent2 },
     { id: "pruefung", title: "Theorieprüfung", sub: "Amtliche Fragebögen unter Zeit", color: accent3 },
     { id: "funkgeraet", title: "Funkgerät", sub: "Virtuelles IC-M423, Funkverkehr, Praxisprüfung", color: accent },
-    { id: "werkzeuge", title: "Nachschlagen & Werkzeuge", sub: "Buchstabier-Trainer, Kanäle, MMSI, Quellen", color: accent2 },
+    { id: "werkzeuge", title: "Nachschlagen & Werkzeuge", sub: "Nachschlagebuch, Sprachteil, Kanäle, Quellen", color: accent2 },
   ];
   const ERK: Tile[] = [
+    { id: "buch", title: "Nachschlagebuch", sub: certC === "SRC" ? "SRC: Verfahren, GMDSS, DSC, Quellen" : "UBI: Recht, ATIS, Kanäle, Verfahren, Quellen" },
+    { id: "diktat", title: "Hördiktate", sub: certC === "SRC" ? "Englisch hören, mitschreiben, übersetzen" : "Deutsche Textaufnahme im UBI-Stil" },
+    { id: "vokabeln", title: "SRC-Vokabeltrainer", sub: "Themenwortschatz mit Audio und Quiz" },
     { id: "spelltrain", title: "Buchstabier-Trainer", sub: "10er-Runden: Hören, Sprechen, schwache Buchstaben" },
     { id: "nato", title: "Buchstabiertafel", sub: "Buchstaben, Ziffern, Position und Werkzeug" },
     { id: "funk", title: "Funkverfahren", sub: "Mayday, Pan Pan, Sécurité, Routine" + (certC === "SRC" ? ", Fehlalarm" : "") },
@@ -6951,6 +6839,18 @@ export default function App() {
       if (path[1] === "spruchbau") return (orderDrills().find((d: OrderDrill) => d.id === id) || { short: id }).short;
       if (path[1] === "funk") return (FUNK_TILES.find((x: Tile) => x.id === id) || { title: id }).title;
       if (path[1] === "geraet") return id === "modell" ? "Modell, Tasten & Tipps" : (ICOM_TASKS.find((x: { value: string }) => x.value === id) || { label: id }).label;
+      if (path[1] === "diktat") return (dictationById(id) || { title: id }).title;
+      if (path[1] === "vokabeln") {
+        if (id === "quiz") return "Quiz";
+        return (VOCAB_TOPICS.find((x: { id: string; title: string }) => x.id === id) || { title: id }).title;
+      }
+      if (path[1] === "buch") {
+        const ch = chapterById(id, certC);
+        if (ch) return ch.title;
+        const parent = path[2] ? chapterById(path[2], certC) : undefined;
+        const sec = parent ? parent.sections.find((s: { id: string; title: string }) => s.id === id) : undefined;
+        return sec ? sec.title : id;
+      }
     }
     if (a === "fragen") return id === "alle" ? "Alle Kapitel" : shortLabel((CHAPTERS.find((c: Chapter) => c.key === id) || { label: id }).label);
     if (a === "funkgeraet") {
@@ -7144,6 +7044,13 @@ export default function App() {
       if (c === "UBI" && ["power", "channel", "hilo", "group", "dw"].indexOf(cur[2]) < 0) return cur.slice(0, 2);
       return cur;
     }
+    if (cur[0] === "werkzeuge" && cur[1] === "diktat" && cur[2]) {
+      const d = dictationById(cur[2]);
+      return d && d.cert === c ? cur : cur.slice(0, 2);
+    }
+    if (cur[0] === "werkzeuge" && cur[1] === "buch" && cur[2]) {
+      return chapterById(cur[2], c) ? cur.slice(0, 3) : cur.slice(0, 2);
+    }
     if (cur[0] === "erklaeren" && cur[1] && cur[1] !== "ref") {
       const lessons = c === "SRC" ? SRC_LESSONS : UBI_LESSONS;
       return lessons.some((l: Lesson) => l.id === cur[1]) ? cur : ["erklaeren"];
@@ -7260,8 +7167,46 @@ export default function App() {
   } else if (a0 === "werkzeuge") {
     if (path.length === 1) {
       title = "Nachschlagen & Werkzeuge";
-      sub = "Buchstabier-Trainer, Tafeln, Quellen und Videos";
+      sub = "Nachschlagebuch, Sprachteil, Tafeln, Quellen";
       body = tileGrid(ERK, 6, 150, open);
+    } else if (path[1] === "diktat") {
+      if (path.length === 2) {
+        title = "Hördiktate";
+        sub = certC === "SRC" ? "SRC-Sprachteil: Hören, mitschreiben, übersetzen" : "UBI-Textaufnahme auf Deutsch";
+        body = <DictationHome cert={certC} ubiKind={ubiKind} onOpen={(id: string) => enter(["werkzeuge", "diktat", id])} />;
+      } else {
+        const d = dictationById(path[2]);
+        title = d ? d.title : "Diktat";
+        sub = d ? d.topic : "";
+        body = <DictationItem id={path[2]} />;
+      }
+    } else if (path[1] === "vokabeln") {
+      if (path.length === 2) {
+        title = "SRC-Vokabeltrainer";
+        sub = "Themenwortschatz für den Sprachteil";
+        body = <VocabHome onOpen={(tp: string) => enter(["werkzeuge", "vokabeln", tp])} onQuiz={(tp: string) => enter(["werkzeuge", "vokabeln", tp, "quiz"])} />;
+      } else if (path[3] === "quiz") {
+        const tp = VOCAB_TOPICS.find((x: { id: string; title: string }) => x.id === path[2]);
+        title = "Quiz";
+        sub = tp ? tp.title : "";
+        body = <VocabQuiz topicId={path[2]} />;
+      } else {
+        const tp = VOCAB_TOPICS.find((x: { id: string; title: string }) => x.id === path[2]);
+        title = tp ? tp.title : "Thema";
+        sub = "Liste mit Aussprache und Bewertung";
+        body = <VocabBrowse topicId={path[2]} onQuiz={() => enter(["werkzeuge", "vokabeln", path[2], "quiz"])} />;
+      }
+    } else if (path[1] === "buch") {
+      if (path.length === 2) {
+        title = "Nachschlagebuch";
+        sub = certC === "SRC" ? "Seefunk SRC – Suche und Kapitel" : "Binnenfunk UBI – Suche und Kapitel";
+        body = <HandbookHome cert={certC} onOpen={(ch: string, sec?: string) => enter(sec ? ["werkzeuge", "buch", ch, sec] : ["werkzeuge", "buch", ch])} />;
+      } else {
+        const ch = chapterById(path[2], certC);
+        title = ch ? ch.title : "Kapitel";
+        sub = "";
+        body = <HandbookChapterView cert={certC} chapterId={path[2]} sectionId={path[3]} onLesson={(lid: string) => enter(["erklaeren", lid])} />;
+      }
     } else if (path[1] === "spelltrain") {
       title = path.length > 2 ? labelOf(2, path[2]) : "Buchstabier-Trainer";
       sub = path.length > 2 || uiShort ? "" : "Internationale Buchstabiertafel · 10er-Runden";
@@ -7372,6 +7317,9 @@ export default function App() {
       const n = l ? LESSONS.indexOf(l) + 1 : 0;
       return n ? "Lektion " + n : "Lektion";
     }
+    if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "diktat") return "Hördiktate";
+    if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "vokabeln") return "Vokabeln";
+    if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "buch") return "Nachschlagebuch";
     if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "spelltrain") return "Buchstabier-Trainer";
     if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "spruchbau") return "Funksprüche";
     if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "funk") return "Funkverfahren";

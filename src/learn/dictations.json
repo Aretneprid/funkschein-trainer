@@ -1,0 +1,280 @@
+[
+  {
+    "id": "src-mayday-sinking",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Mayday",
+    "title": "Sinkendes Fahrzeug",
+    "en": "MAYDAY MAYDAY MAYDAY. This is sailing yacht KITTWAKE, KITTWAKE, KITTWAKE. Call sign Delta Golf two four one nine. My position is five four degrees one two decimal four minutes north, zero zero eight degrees three six decimal two minutes east. I am sinking. I require immediate assistance. Four persons on board. Over.",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Segelyacht KITTWAKE, KITTWAKE, KITTWAKE. Rufzeichen Delta Golf zwei vier eins neun. Meine Position ist vierundfünfzig Grad zwölf Komma vier Minuten Nord, null acht Grad sechsunddreißig Komma zwei Minuten Ost. Ich sinke. Ich benötige sofortige Hilfe. Vier Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-mayday-fire",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Mayday",
+    "title": "Feuer an Bord",
+    "en": "MAYDAY MAYDAY MAYDAY. This is motor vessel GREY SEAL, GREY SEAL, GREY SEAL. Call sign Two Alpha Lima eight seven two. Position five four degrees three one decimal one minutes north, zero one zero degrees zero five decimal eight minutes east. I am on fire and require immediate assistance. Five persons on board. Over.",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Motorschiff GREY SEAL, GREY SEAL, GREY SEAL. Rufzeichen Two Alpha Lima acht sieben zwei. Position vierundfünfzig Grad einunddreißig Komma eins Minuten Nord, zehn Grad fünf Komma acht Minuten Ost. Ich habe Feuer an Bord und benötige sofortige Hilfe. Fünf Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-mayday-collision",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Mayday",
+    "title": "Zusammenstoß",
+    "en": "MAYDAY MAYDAY MAYDAY. This is cargo vessel AMBER LIGHT, AMBER LIGHT, AMBER LIGHT. Call sign Charlie Hotel six two zero one. I have been in collision. My position is five three degrees five eight decimal six minutes north, zero zero eight degrees one four decimal zero minutes east. I am taking water. I require immediate assistance. Twelve persons on board. Over.",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Frachtschiff AMBER LIGHT, AMBER LIGHT, AMBER LIGHT. Rufzeichen Charlie Hotel sechs zwei null eins. Ich hatte einen Zusammenstoß. Meine Position ist dreiundfünfzig Grad achtundfünfzig Komma sechs Minuten Nord, acht Grad vierzehn Komma null Minuten Ost. Ich nehme Wasser. Ich benötige sofortige Hilfe. Zwölf Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-mayday-pob",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Mayday",
+    "title": "Mann über Bord",
+    "en": "MAYDAY MAYDAY MAYDAY. This is sailing yacht SANDPIPER, SANDPIPER, SANDPIPER. Call sign Echo Sierra one one six four. Person overboard. Position five four degrees zero four decimal two minutes north, zero zero nine degrees two two decimal seven minutes east. The person is wearing a lifejacket. I require immediate assistance. Three persons remaining on board. Over.",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Segelyacht SANDPIPER, SANDPIPER, SANDPIPER. Rufzeichen Echo Sierra eins eins sechs vier. Person über Bord. Position vierundfünfzig Grad vier Komma zwei Minuten Nord, neun Grad zweiundzwanzig Komma sieben Minuten Ost. Die Person trägt eine Rettungsweste. Ich benötige sofortige Hilfe. Drei Personen verbleiben an Bord. Kommen."
+  },
+  {
+    "id": "src-mayday-relay",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Mayday Relay",
+    "title": "Notmeldung weiterleiten",
+    "en": "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY. This is motor yacht NORTHWIND, NORTHWIND, NORTHWIND. Call sign Delta Bravo five five zero two. I have received a distress message from sailing yacht KITTWAKE. Her position is five four degrees one two decimal four minutes north, zero zero eight degrees three six decimal two minutes east. She is sinking. Four persons on board. Over.",
+    "de": "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY. Hier ist Motoryacht NORTHWIND, NORTHWIND, NORTHWIND. Rufzeichen Delta Bravo fünf fünf null zwei. Ich habe eine Notmeldung der Segelyacht KITTWAKE aufgenommen. Ihre Position ist vierundfünfzig Grad zwölf Komma vier Minuten Nord, acht Grad sechsunddreißig Komma zwei Minuten Ost. Sie sinkt. Vier Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-panpan-engine",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Pan Pan",
+    "title": "Maschinenausfall",
+    "en": "PAN PAN PAN PAN PAN PAN. All stations, all stations, all stations. This is sailing yacht SEA LARK, SEA LARK, SEA LARK. Call sign Golf Lima three three eight zero. My position is five four degrees two zero decimal five minutes north, zero zero seven degrees five one decimal three minutes east. I have engine failure and I am drifting. I require a tow. Two persons on board. Over.",
+    "de": "PAN PAN PAN PAN PAN PAN. An alle, an alle, an alle. Hier ist Segelyacht SEA LARK, SEA LARK, SEA LARK. Rufzeichen Golf Lima drei drei acht null. Meine Position ist vierundfünfzig Grad zwanzig Komma fünf Minuten Nord, sieben Grad einundfünfzig Komma drei Minuten Ost. Ich habe einen Maschinenausfall und treibe. Ich benötige einen Schlepp. Zwei Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-panpan-medical",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Pan Pan",
+    "title": "Medizinischer Notfall",
+    "en": "PAN PAN PAN PAN PAN PAN. This is motor vessel HARBOUR HERON, HARBOUR HERON, HARBOUR HERON. Call sign Mike Victor one nine four six. Position five three degrees four seven decimal eight minutes north, zero zero nine degrees zero two decimal one minutes east. I require medical assistance. One crew member is unconscious and not breathing normally. Six persons on board. Over.",
+    "de": "PAN PAN PAN PAN PAN PAN. Hier ist Motorschiff HARBOUR HERON, HARBOUR HERON, HARBOUR HERON. Rufzeichen Mike Victor eins neun vier sechs. Position dreiundfünfzig Grad siebenundvierzig Komma acht Minuten Nord, neun Grad zwei Komma eins Minuten Ost. Ich benötige medizinische Hilfe. Ein Besatzungsmitglied ist bewusstlos und atmet nicht normal. Sechs Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-panpan-steering",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Pan Pan",
+    "title": "Ruderanlage ausgefallen",
+    "en": "PAN PAN PAN PAN PAN PAN. All stations. This is sailing yacht RED KITE, RED KITE, RED KITE. Call sign November Charlie seven zero two five. My position is five four degrees one six decimal zero minutes north, zero one one degrees one eight decimal four minutes east. I have a steering failure. I am not under command. I require assistance. Three persons on board. Over.",
+    "de": "PAN PAN PAN PAN PAN PAN. An alle. Hier ist Segelyacht RED KITE, RED KITE, RED KITE. Rufzeichen November Charlie sieben null zwei fünf. Meine Position ist vierundfünfzig Grad sechzehn Komma null Minuten Nord, elf Grad achtzehn Komma vier Minuten Ost. Meine Ruderanlage ist ausgefallen. Ich bin manövrierunfähig. Ich benötige Hilfe. Drei Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-securite-buoy",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Sécurité",
+    "title": "Unbeleuchtete Tonne",
+    "en": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. All stations, all stations, all stations. This is motor yacht FOG BELL, FOG BELL, FOG BELL. Call sign Delta Echo four four six three. Navigational warning. An unlit buoy is adrift in position five four degrees zero eight decimal three minutes north, zero zero eight degrees five five decimal zero minutes east. The buoy is a danger to navigation. Out.",
+    "de": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. An alle, an alle, an alle. Hier ist Motoryacht FOG BELL, FOG BELL, FOG BELL. Rufzeichen Delta Echo vier vier sechs drei. Nautische Warnung. Eine unbeleuchtete Tonne treibt in Position vierundfünfzig Grad acht Komma drei Minuten Nord, acht Grad fünfundfünfzig Komma null Minuten Ost. Die Tonne ist eine Gefahr für die Schifffahrt. Ende."
+  },
+  {
+    "id": "src-securite-wreck",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Sécurité",
+    "title": "Treibendes Wrackteil",
+    "en": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. All stations. This is fishing vessel SILVER NET, SILVER NET, SILVER NET. Call sign Alpha Whiskey two eight one one. Navigational warning. I have sighted a large floating container in position five four degrees two five decimal six minutes north, zero zero seven degrees four four decimal nine minutes east. It is a danger to navigation. Out.",
+    "de": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. An alle. Hier ist Fischereifahrzeug SILVER NET, SILVER NET, SILVER NET. Rufzeichen Alpha Whiskey zwei acht eins eins. Nautische Warnung. Ich habe einen großen treibenden Container in Position vierundfünfzig Grad fünfundzwanzig Komma sechs Minuten Nord, sieben Grad vierundvierzig Komma neun Minuten Ost gesichtet. Er ist eine Gefahr für die Schifffahrt. Ende."
+  },
+  {
+    "id": "src-securite-weather",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Sécurité",
+    "title": "Wetterwarnung",
+    "en": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. All stations, all stations, all stations. This is German coast guard radio. Navigational warning. A gale warning is in force for the western Baltic. Wind south west force eight to nine, veering west. Waves four to five metres. Visibility decreasing in heavy rain. Out.",
+    "de": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. An alle, an alle, an alle. Hier ist die deutsche Küstenfunkstelle. Nautische Warnung. Es gilt eine Sturmwarnung für die westliche Ostsee. Wind Südwest Stärke acht bis neun, drehend auf West. Wellen vier bis fünf Meter. Sicht abnehmend bei starkem Regen. Ende."
+  },
+  {
+    "id": "src-securite-cancel",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Sécurité",
+    "title": "Warnung aufheben",
+    "en": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. All stations. This is motor yacht FOG BELL, FOG BELL, FOG BELL. Call sign Delta Echo four four six three. Cancel my navigational warning. The unlit buoy has been recovered. There is no longer a danger to navigation in that position. Out.",
+    "de": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. An alle. Hier ist Motoryacht FOG BELL, FOG BELL, FOG BELL. Rufzeichen Delta Echo vier vier sechs drei. Meine nautische Warnung wird aufgehoben. Die unbeleuchtete Tonne wurde geborgen. In dieser Position besteht keine Gefahr für die Schifffahrt mehr. Ende."
+  },
+  {
+    "id": "src-mayday-grounding",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Mayday",
+    "title": "Auf Grund gelaufen",
+    "en": "MAYDAY MAYDAY MAYDAY. This is motor cruiser WHITE HAVEN, WHITE HAVEN, WHITE HAVEN. Call sign Bravo Sierra nine three zero eight. My position is five four degrees three three decimal five minutes north, zero one zero degrees one one decimal two minutes east. I am aground and taking water. I require immediate assistance. Three persons on board. Over.",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Motorkreuzer WHITE HAVEN, WHITE HAVEN, WHITE HAVEN. Rufzeichen Bravo Sierra neun drei null acht. Meine Position ist vierundfünfzig Grad dreiunddreißig Komma fünf Minuten Nord, zehn Grad elf Komma zwei Minuten Ost. Ich bin auf Grund gelaufen und nehme Wasser. Ich benötige sofortige Hilfe. Drei Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-panpan-disabled",
+    "cert": "SRC",
+    "kind": "listen",
+    "topic": "Pan Pan",
+    "title": "Segel beschädigt",
+    "en": "PAN PAN PAN PAN PAN PAN. All stations. This is sailing yacht BLUE THISTLE, BLUE THISTLE, BLUE THISTLE. Call sign Lima Yankee five six one two. Position five four degrees zero one decimal seven minutes north, zero zero eight degrees two nine decimal five minutes east. My rigging is damaged and I cannot make way. I require assistance. Two persons on board. Over.",
+    "de": "PAN PAN PAN PAN PAN PAN. An alle. Hier ist Segelyacht BLUE THISTLE, BLUE THISTLE, BLUE THISTLE. Rufzeichen Lima Yankee fünf sechs eins zwei. Position vierundfünfzig Grad eins Komma sieben Minuten Nord, acht Grad neunundzwanzig Komma fünf Minuten Ost. Meine Takelage ist beschädigt und ich kann nicht fahren. Ich benötige Hilfe. Zwei Personen an Bord. Kommen."
+  },
+  {
+    "id": "src-tr-mayday-fire",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Mayday",
+    "title": "Feuer (Deutsch → Englisch)",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Segelyacht NORDLICHT, NORDLICHT, NORDLICHT. Rufzeichen Delta Charlie zwei zwei acht eins. Meine Position ist vierundfünfzig Grad fünfzehn Komma zwei Minuten Nord, zehn Grad drei Komma sechs Minuten Ost. Ich habe Feuer an Bord und benötige sofortige Hilfe. Vier Personen an Bord. Kommen.",
+    "en": "MAYDAY MAYDAY MAYDAY. This is sailing yacht NORDLICHT, NORDLICHT, NORDLICHT. Call sign Delta Charlie two two eight one. My position is five four degrees one five decimal two minutes north, one zero degrees zero three decimal six minutes east. I am on fire and require immediate assistance. Four persons on board. Over."
+  },
+  {
+    "id": "src-tr-mayday-pob",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Mayday",
+    "title": "Mann über Bord (Deutsch → Englisch)",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Motoryacht SEEFALKE, SEEFALKE, SEEFALKE. Rufzeichen Golf Hotel vier sieben null fünf. Person über Bord in Position vierundfünfzig Grad zweiundzwanzig Komma acht Minuten Nord, elf Grad fünf Komma eins Minuten Ost. Die Person trägt eine Rettungsweste. Ich benötige sofortige Hilfe. Drei Personen an Bord. Kommen.",
+    "en": "MAYDAY MAYDAY MAYDAY. This is motor yacht SEEFALKE, SEEFALKE, SEEFALKE. Call sign Golf Hotel four seven zero five. Person overboard in position five four degrees two two decimal eight minutes north, one one degrees zero five decimal one minutes east. The person is wearing a lifejacket. I require immediate assistance. Three persons on board. Over."
+  },
+  {
+    "id": "src-tr-panpan-engine",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Pan Pan",
+    "title": "Maschinenausfall (Deutsch → Englisch)",
+    "de": "PAN PAN PAN PAN PAN PAN. An alle. Hier ist Segelyacht MOEWENNEST, MOEWENNEST, MOEWENNEST. Rufzeichen Echo Bravo eins acht drei vier. Position dreiundfünfzig Grad fünfundfünfzig Komma vier Minuten Nord, acht Grad zweiundvierzig Komma null Minuten Ost. Ich habe einen Maschinenausfall und treibe. Ich benötige einen Schlepp. Zwei Personen an Bord. Kommen.",
+    "en": "PAN PAN PAN PAN PAN PAN. All stations. This is sailing yacht MOEWENNEST, MOEWENNEST, MOEWENNEST. Call sign Echo Bravo one eight three four. Position five three degrees five five decimal four minutes north, zero zero eight degrees four two decimal zero minutes east. I have engine failure and I am drifting. I require a tow. Two persons on board. Over."
+  },
+  {
+    "id": "src-tr-panpan-medical",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Pan Pan",
+    "title": "Medizinische Hilfe (Deutsch → Englisch)",
+    "de": "PAN PAN PAN PAN PAN PAN. Hier ist Motorschiff HAFENMOEWE, HAFENMOEWE, HAFENMOEWE. Rufzeichen Charlie Sierra sechs eins zwei neun. Position vierundfünfzig Grad acht Komma eins Minuten Nord, neun Grad dreißig Komma sieben Minuten Ost. Ich benötige medizinische Hilfe. Ein Besatzungsmitglied hat schwere Verbrennungen. Fünf Personen an Bord. Kommen.",
+    "en": "PAN PAN PAN PAN PAN PAN. This is motor vessel HAFENMOEWE, HAFENMOEWE, HAFENMOEWE. Call sign Charlie Sierra six one two nine. Position five four degrees zero eight decimal one minutes north, zero zero nine degrees three zero decimal seven minutes east. I require medical assistance. One crew member has severe burns. Five persons on board. Over."
+  },
+  {
+    "id": "src-tr-securite-wreck",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Sécurité",
+    "title": "Treibende Gefahr (Deutsch → Englisch)",
+    "de": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. An alle. Hier ist Fischereifahrzeug STURMMOEWE, STURMMOEWE, STURMMOEWE. Rufzeichen Alpha Delta drei drei fünf acht. Nautische Warnung. Ich habe ein treibendes Wrackteil in Position vierundfünfzig Grad achtzehn Komma sechs Minuten Nord, zehn Grad zwölf Komma zwei Minuten Ost gesichtet. Es ist eine Gefahr für die Schifffahrt. Ende.",
+    "en": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. All stations. This is fishing vessel STURMMOEWE, STURMMOEWE, STURMMOEWE. Call sign Alpha Delta three three five eight. Navigational warning. I have sighted a floating wreckage in position five four degrees one eight decimal six minutes north, one zero degrees one two decimal two minutes east. It is a danger to navigation. Out."
+  },
+  {
+    "id": "src-tr-securite-weather",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Sécurité",
+    "title": "Sturmankündigung (Deutsch → Englisch)",
+    "de": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. An alle, an alle, an alle. Hier ist die Küstenfunkstelle. Nautische Warnung. Sturmwarnung für die Deutsche Bucht. Wind Nordwest Stärke acht, später neun. Hoher Seegang. Sicht durch Schauer zeitweise unter einer Seemeile. Ende.",
+    "en": "SÉCURITÉ SÉCURITÉ SÉCURITÉ. All stations, all stations, all stations. This is the coast radio station. Navigational warning. Gale warning for the German Bight. Wind north west force eight, later nine. High seas. Visibility in showers at times less than one nautical mile. Out."
+  },
+  {
+    "id": "src-tr-mayday-sinking",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Mayday",
+    "title": "Wassereinbruch (Deutsch → Englisch)",
+    "de": "MAYDAY MAYDAY MAYDAY. Hier ist Motorkreuzer ALSTERBLITZ, ALSTERBLITZ, ALSTERBLITZ. Rufzeichen Delta Foxtrot fünf null sieben zwei. Position dreiundfünfzig Grad vierundvierzig Komma drei Minuten Nord, neun Grad zweiundzwanzig Komma fünf Minuten Ost. Ich habe Wassereinbruch und sinke. Ich benötige sofortige Hilfe. Sechs Personen an Bord. Kommen.",
+    "en": "MAYDAY MAYDAY MAYDAY. This is motor cruiser ALSTERBLITZ, ALSTERBLITZ, ALSTERBLITZ. Call sign Delta Foxtrot five zero seven two. Position five three degrees four four decimal three minutes north, zero zero nine degrees two two decimal five minutes east. I am taking water and sinking. I require immediate assistance. Six persons on board. Over."
+  },
+  {
+    "id": "src-tr-relay",
+    "cert": "SRC",
+    "kind": "translate",
+    "topic": "Mayday Relay",
+    "title": "Relay (Deutsch → Englisch)",
+    "de": "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY. Hier ist Motoryacht WESTERWELLE, WESTERWELLE, WESTERWELLE. Rufzeichen Bravo Lima acht eins vier null. Ich habe eine Notmeldung der Segelyacht NORDLICHT aufgenommen. Sie hat Feuer an Bord in Position vierundfünfzig Grad fünfzehn Komma zwei Minuten Nord, zehn Grad drei Komma sechs Minuten Ost. Vier Personen an Bord. Kommen.",
+    "en": "MAYDAY RELAY MAYDAY RELAY MAYDAY RELAY. This is motor yacht WESTERWELLE, WESTERWELLE, WESTERWELLE. Call sign Bravo Lima eight one four zero. I have received a distress message from sailing yacht NORDLICHT. She is on fire in position five four degrees one five decimal two minutes north, one zero degrees zero three decimal six minutes east. Four persons on board. Over."
+  },
+  {
+    "id": "ubi-not-feuer",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Not",
+    "title": "Feuer an Bord",
+    "de": "Notmeldung. Hier Motorboot REIHER, REIHER, REIHER. Ich buchstabiere Romeo Echo India Hotel Echo Romeo. ATIS Delta Alfa fünf null null acht. Position Rhein-Kilometer fünfhundertvierundfünfzig, rechtes Ufer, zu Tal. Ich habe Feuer an Bord und benötige sofortige Hilfe. Drei Personen an Bord. Kommen."
+  },
+  {
+    "id": "ubi-not-sinken",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Not",
+    "title": "Fahrzeug sinkt",
+    "de": "Notmeldung. Hier Gütermotorschiff MOSELBLITZ, MOSELBLITZ, MOSELBLITZ. Ich buchstabiere Mike Oscar Sierra Echo Lima Bravo Lima India Tango Zulu. ATIS Delta Alfa zwei eins sieben vier. Position Mosel-Kilometer einhundertzweiunddreißig, linkes Ufer, zu Berg. Ich sinke nach einer Kollision und benötige sofortige Hilfe. Zwei Personen an Bord. Kommen."
+  },
+  {
+    "id": "ubi-not-pob",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Not",
+    "title": "Person über Bord",
+    "de": "Notmeldung. Hier Kabinenfahrgastschiff TAUGLERCHE, TAUGLERCHE, TAUGLERCHE. ATIS Delta Alfa neun drei eins eins. Position Main-Kilometer achtundsiebenzig, Mitte des Fahrwassers, zu Tal. Eine Person ist über Bord gegangen. Die Person trägt eine Rettungsweste. Ich benötige sofortige Hilfe. Kommen."
+  },
+  {
+    "id": "ubi-dring-maschine",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Dringlichkeit",
+    "title": "Maschinenausfall vor der Schleuse",
+    "de": "Dringlichkeitsmeldung. An alle. Hier Sportboot SEESTERN, SEESTERN, SEESTERN. Ich buchstabiere Sierra Echo Echo Sierra Tango Echo Romeo November. ATIS Delta Alfa sechs sechs zwei null. Position Donau-Kilometer zwei tausend dreihundertvierzehn, zu Berg, kurz vor der Schleuse Kachlet. Meine Maschine ist ausgefallen. Ich treibe und benötige einen Schlepp. Zwei Personen an Bord. Kommen."
+  },
+  {
+    "id": "ubi-dring-medizin",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Dringlichkeit",
+    "title": "Medizinische Hilfe",
+    "de": "Dringlichkeitsmeldung. Hier Motoryacht FUCHSBAU, FUCHSBAU, FUCHSBAU. ATIS Delta Alfa vier acht fünf zwei. Position Elbe-Kilometer sechshundertundzwanzig, rechtes Ufer, zu Tal. Ich benötige medizinische Hilfe. Ein Gast hat starke Brustschmerzen. Vier Personen an Bord. Kommen."
+  },
+  {
+    "id": "ubi-sich-tonne",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Sicherheit",
+    "title": "Abgetriebene Tonne",
+    "de": "Sicherheitsmeldung. An alle. Hier Revierzentrale Musterstadt. Nautische Warnung. Bei Rhein-Kilometer fünfhundertachtundvierzig, rechtes Ufer, ist eine Tonne abgetrieben. Die Tonne ist eine Gefahr für die Schifffahrt. Bitte mit verminderter Geschwindigkeit und erhöhtem Abstand passieren. Ende."
+  },
+  {
+    "id": "ubi-sich-baum",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Sicherheit",
+    "title": "Treibendes Hindernis",
+    "de": "Sicherheitsmeldung. An alle. Hier Motorboot REIHER, REIHER, REIHER. ATIS Delta Alfa fünf null null acht. Nautische Warnung. Ich habe einen großen treibenden Baumstamm bei Neckar-Kilometer einhundertzwölf, Mitte der Fahrrinne, zu Tal beobachtet. Der Baumstamm ist eine Gefahr für den Verkehr. Ende."
+  },
+  {
+    "id": "ubi-sich-wetter",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Sicherheit",
+    "title": "Unwetterwarnung",
+    "de": "Sicherheitsmeldung. An alle. Hier Revierzentrale Oberwesel. Warnung vor schwerem Wetter. Auf dem Mittelrhein zwischen Bingen und Koblenz ist mit starkem Wind, Gewitter und plötzlich abnehmender Sicht zu rechnen. Schifffahrt bitte auf sichere Liegeplätze achten. Ende."
+  },
+  {
+    "id": "ubi-routine-schleuse",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Routine",
+    "title": "Anmeldung an der Schleuse",
+    "de": "Schleuse Iffezheim, Schleuse Iffezheim, hier Motoryacht FUCHSBAU, FUCHSBAU. Ich buchstabiere Foxtrot Uniform Charlie Hotel Sierra Bravo Alfa Uniform. ATIS Delta Alfa vier acht fünf zwei. Position zu Berg, zwanzig Minuten vor der Schleuse. Ich bitte um Schleusung. Länge zwölf Meter, Breite vier Meter. Kommen."
+  },
+  {
+    "id": "ubi-routine-nif",
+    "cert": "UBI",
+    "kind": "listen",
+    "topic": "Routine",
+    "title": "Meldung an die Revierzentrale",
+    "de": "Revierzentrale Oberwesel, Revierzentrale Oberwesel, hier Gütermotorschiff MOSELBLITZ, MOSELBLITZ. ATIS Delta Alfa zwei eins sieben vier. Ich fahre zu Tal und passiere in zehn Minuten die Ortslage Loreley. Keine besondere Meldung. Kommen."
+  }
+]

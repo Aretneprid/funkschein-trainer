@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "favicon-32.png", "apple-touch-icon.png", "media/*.webp", "media/spell/v3/*"],
+      includeAssets: ["favicon.svg", "favicon-32.png", "apple-touch-icon.png", "media/*.webp", "media/spell/v3/*", "media/dict/v1/*", "media/vocab/v1/*"],
       manifest: {
         name: "Funkschein-Trainer",
         short_name: "Funkschein",

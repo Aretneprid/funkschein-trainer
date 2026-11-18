@@ -1,0 +1,1722 @@
+{
+  "topics": [
+    {
+      "id": "numbers",
+      "title": "Zahlen, Uhrzeit und Position",
+      "order": 1
+    },
+    {
+      "id": "weather",
+      "title": "Wetter und Seegang",
+      "order": 2
+    },
+    {
+      "id": "ships",
+      "title": "Schiffstypen und Teile",
+      "order": 3
+    },
+    {
+      "id": "distress",
+      "title": "Not, Dringlichkeit und Gefahr",
+      "order": 4
+    },
+    {
+      "id": "medical",
+      "title": "Medizinisches",
+      "order": 5
+    },
+    {
+      "id": "nav",
+      "title": "Navigation und Betonnung",
+      "order": 6
+    },
+    {
+      "id": "procedure",
+      "title": "Sprechfunk und SMCP",
+      "order": 7
+    },
+    {
+      "id": "verbs",
+      "title": "Verben",
+      "order": 8
+    },
+    {
+      "id": "colours",
+      "title": "Farben",
+      "order": 9
+    },
+    {
+      "id": "directions",
+      "title": "Richtungen und Lagen",
+      "order": 10
+    }
+  ],
+  "entries": [
+    {
+      "id": "n-zero",
+      "topic": "numbers",
+      "en": "zero",
+      "de": "null",
+      "hint": "Ziffer im Sprechfunk, auch in Rufzeichen"
+    },
+    {
+      "id": "n-one",
+      "topic": "numbers",
+      "en": "one",
+      "de": "eins"
+    },
+    {
+      "id": "n-two",
+      "topic": "numbers",
+      "en": "two",
+      "de": "zwei"
+    },
+    {
+      "id": "n-three",
+      "topic": "numbers",
+      "en": "three",
+      "de": "drei"
+    },
+    {
+      "id": "n-four",
+      "topic": "numbers",
+      "en": "four",
+      "de": "vier"
+    },
+    {
+      "id": "n-five",
+      "topic": "numbers",
+      "en": "five",
+      "de": "fünf"
+    },
+    {
+      "id": "n-six",
+      "topic": "numbers",
+      "en": "six",
+      "de": "sechs"
+    },
+    {
+      "id": "n-seven",
+      "topic": "numbers",
+      "en": "seven",
+      "de": "sieben"
+    },
+    {
+      "id": "n-eight",
+      "topic": "numbers",
+      "en": "eight",
+      "de": "acht"
+    },
+    {
+      "id": "n-nine",
+      "topic": "numbers",
+      "en": "nine",
+      "de": "neun"
+    },
+    {
+      "id": "n-decimal",
+      "topic": "numbers",
+      "en": "decimal",
+      "de": "Komma",
+      "hint": "Dezimaltrenner in Positionen, z. B. 54°12.4′"
+    },
+    {
+      "id": "n-degrees",
+      "topic": "numbers",
+      "en": "degrees",
+      "de": "Grad"
+    },
+    {
+      "id": "n-minutes",
+      "topic": "numbers",
+      "en": "minutes",
+      "de": "Minuten"
+    },
+    {
+      "id": "n-north",
+      "topic": "numbers",
+      "en": "north",
+      "de": "Nord"
+    },
+    {
+      "id": "n-south",
+      "topic": "numbers",
+      "en": "south",
+      "de": "Süd"
+    },
+    {
+      "id": "n-east",
+      "topic": "numbers",
+      "en": "east",
+      "de": "Ost"
+    },
+    {
+      "id": "n-west",
+      "topic": "numbers",
+      "en": "west",
+      "de": "West"
+    },
+    {
+      "id": "n-position",
+      "topic": "numbers",
+      "en": "position",
+      "de": "Position"
+    },
+    {
+      "id": "n-utc",
+      "topic": "numbers",
+      "en": "UTC",
+      "de": "koordinierte Weltzeit",
+      "hint": "Angabe der Zeit in Funksprüchen"
+    },
+    {
+      "id": "n-local-time",
+      "topic": "numbers",
+      "en": "local time",
+      "de": "Ortszeit"
+    },
+    {
+      "id": "n-hours",
+      "topic": "numbers",
+      "en": "hours",
+      "de": "Stunden"
+    },
+    {
+      "id": "n-knots",
+      "topic": "numbers",
+      "en": "knots",
+      "de": "Knoten"
+    },
+    {
+      "id": "n-nm",
+      "topic": "numbers",
+      "en": "nautical mile",
+      "de": "Seemeile"
+    },
+    {
+      "id": "n-bearing",
+      "topic": "numbers",
+      "en": "bearing",
+      "de": "Peilung"
+    },
+    {
+      "id": "n-course",
+      "topic": "numbers",
+      "en": "course",
+      "de": "Kurs"
+    },
+    {
+      "id": "n-speed",
+      "topic": "numbers",
+      "en": "speed",
+      "de": "Geschwindigkeit"
+    },
+    {
+      "id": "n-distance",
+      "topic": "numbers",
+      "en": "distance",
+      "de": "Abstand / Entfernung"
+    },
+    {
+      "id": "n-eta",
+      "topic": "numbers",
+      "en": "ETA",
+      "de": "voraussichtliche Ankunftszeit"
+    },
+    {
+      "id": "n-etd",
+      "topic": "numbers",
+      "en": "ETD",
+      "de": "voraussichtliche Abfahrtszeit"
+    },
+    {
+      "id": "w-wind",
+      "topic": "weather",
+      "en": "wind",
+      "de": "Wind"
+    },
+    {
+      "id": "w-force",
+      "topic": "weather",
+      "en": "force",
+      "de": "Stärke",
+      "hint": "Beaufort-Stärke, z. B. force eight"
+    },
+    {
+      "id": "w-gale",
+      "topic": "weather",
+      "en": "gale",
+      "de": "Sturm",
+      "hint": "oft force 8–9"
+    },
+    {
+      "id": "w-storm",
+      "topic": "weather",
+      "en": "storm",
+      "de": "schwerer Sturm"
+    },
+    {
+      "id": "w-hurricane",
+      "topic": "weather",
+      "en": "hurricane",
+      "de": "Orkan"
+    },
+    {
+      "id": "w-veering",
+      "topic": "weather",
+      "en": "veering",
+      "de": "rechtsdrehend",
+      "hint": "Wind dreht im Uhrzeigersinn"
+    },
+    {
+      "id": "w-backing",
+      "topic": "weather",
+      "en": "backing",
+      "de": "linksdrehend"
+    },
+    {
+      "id": "w-increasing",
+      "topic": "weather",
+      "en": "increasing",
+      "de": "zunehmend"
+    },
+    {
+      "id": "w-decreasing",
+      "topic": "weather",
+      "en": "decreasing",
+      "de": "abnehmend"
+    },
+    {
+      "id": "w-visibility",
+      "topic": "weather",
+      "en": "visibility",
+      "de": "Sicht"
+    },
+    {
+      "id": "w-fog",
+      "topic": "weather",
+      "en": "fog",
+      "de": "Nebel"
+    },
+    {
+      "id": "w-mist",
+      "topic": "weather",
+      "en": "mist",
+      "de": "Dunst"
+    },
+    {
+      "id": "w-rain",
+      "topic": "weather",
+      "en": "rain",
+      "de": "Regen"
+    },
+    {
+      "id": "w-heavy-rain",
+      "topic": "weather",
+      "en": "heavy rain",
+      "de": "starker Regen"
+    },
+    {
+      "id": "w-shower",
+      "topic": "weather",
+      "en": "shower",
+      "de": "Schauer"
+    },
+    {
+      "id": "w-snow",
+      "topic": "weather",
+      "en": "snow",
+      "de": "Schnee"
+    },
+    {
+      "id": "w-ice",
+      "topic": "weather",
+      "en": "ice",
+      "de": "Eis"
+    },
+    {
+      "id": "w-thunder",
+      "topic": "weather",
+      "en": "thunderstorm",
+      "de": "Gewitter"
+    },
+    {
+      "id": "w-waves",
+      "topic": "weather",
+      "en": "waves",
+      "de": "Wellen"
+    },
+    {
+      "id": "w-sea",
+      "topic": "weather",
+      "en": "sea state",
+      "de": "Seegang"
+    },
+    {
+      "id": "w-swell",
+      "topic": "weather",
+      "en": "swell",
+      "de": "Dünung"
+    },
+    {
+      "id": "w-high-seas",
+      "topic": "weather",
+      "en": "high seas",
+      "de": "hohe See / hoher Seegang"
+    },
+    {
+      "id": "w-calm",
+      "topic": "weather",
+      "en": "calm",
+      "de": "windstill / ruhig"
+    },
+    {
+      "id": "w-moderate",
+      "topic": "weather",
+      "en": "moderate",
+      "de": "mäßig"
+    },
+    {
+      "id": "w-rough",
+      "topic": "weather",
+      "en": "rough sea",
+      "de": "grobe See"
+    },
+    {
+      "id": "w-forecast",
+      "topic": "weather",
+      "en": "forecast",
+      "de": "Vorhersage"
+    },
+    {
+      "id": "w-warning",
+      "topic": "weather",
+      "en": "warning",
+      "de": "Warnung"
+    },
+    {
+      "id": "w-poor-vis",
+      "topic": "weather",
+      "en": "poor visibility",
+      "de": "schlechte Sicht"
+    },
+    {
+      "id": "s-vessel",
+      "topic": "ships",
+      "en": "vessel",
+      "de": "Fahrzeug / Schiff"
+    },
+    {
+      "id": "s-ship",
+      "topic": "ships",
+      "en": "ship",
+      "de": "Schiff"
+    },
+    {
+      "id": "s-yacht",
+      "topic": "ships",
+      "en": "yacht",
+      "de": "Yacht"
+    },
+    {
+      "id": "s-sailing-yacht",
+      "topic": "ships",
+      "en": "sailing yacht",
+      "de": "Segelyacht"
+    },
+    {
+      "id": "s-motor-yacht",
+      "topic": "ships",
+      "en": "motor yacht",
+      "de": "Motoryacht"
+    },
+    {
+      "id": "s-motor-vessel",
+      "topic": "ships",
+      "en": "motor vessel",
+      "de": "Motorschiff"
+    },
+    {
+      "id": "s-motor-cruiser",
+      "topic": "ships",
+      "en": "motor cruiser",
+      "de": "Motorkreuzer"
+    },
+    {
+      "id": "s-cargo",
+      "topic": "ships",
+      "en": "cargo vessel",
+      "de": "Frachtschiff"
+    },
+    {
+      "id": "s-fishing",
+      "topic": "ships",
+      "en": "fishing vessel",
+      "de": "Fischereifahrzeug"
+    },
+    {
+      "id": "s-tanker",
+      "topic": "ships",
+      "en": "tanker",
+      "de": "Tanker"
+    },
+    {
+      "id": "s-ferry",
+      "topic": "ships",
+      "en": "ferry",
+      "de": "Fähre"
+    },
+    {
+      "id": "s-lifeboat",
+      "topic": "ships",
+      "en": "lifeboat",
+      "de": "Rettungsboot"
+    },
+    {
+      "id": "s-lifejacket",
+      "topic": "ships",
+      "en": "lifejacket",
+      "de": "Rettungsweste"
+    },
+    {
+      "id": "s-liferaft",
+      "topic": "ships",
+      "en": "liferaft",
+      "de": "Rettungsinsel"
+    },
+    {
+      "id": "s-hull",
+      "topic": "ships",
+      "en": "hull",
+      "de": "Rumpf"
+    },
+    {
+      "id": "s-deck",
+      "topic": "ships",
+      "en": "deck",
+      "de": "Deck"
+    },
+    {
+      "id": "s-bridge",
+      "topic": "ships",
+      "en": "bridge",
+      "de": "Brücke"
+    },
+    {
+      "id": "s-engine",
+      "topic": "ships",
+      "en": "engine",
+      "de": "Maschine / Motor"
+    },
+    {
+      "id": "s-propeller",
+      "topic": "ships",
+      "en": "propeller",
+      "de": "Propeller / Schraube"
+    },
+    {
+      "id": "s-rudder",
+      "topic": "ships",
+      "en": "rudder",
+      "de": "Ruder"
+    },
+    {
+      "id": "s-steering",
+      "topic": "ships",
+      "en": "steering gear",
+      "de": "Ruderanlage"
+    },
+    {
+      "id": "s-mast",
+      "topic": "ships",
+      "en": "mast",
+      "de": "Mast"
+    },
+    {
+      "id": "s-rigging",
+      "topic": "ships",
+      "en": "rigging",
+      "de": "Takelage"
+    },
+    {
+      "id": "s-sail",
+      "topic": "ships",
+      "en": "sail",
+      "de": "Segel"
+    },
+    {
+      "id": "s-anchor",
+      "topic": "ships",
+      "en": "anchor",
+      "de": "Anker"
+    },
+    {
+      "id": "s-bow",
+      "topic": "ships",
+      "en": "bow",
+      "de": "Bug"
+    },
+    {
+      "id": "s-stern",
+      "topic": "ships",
+      "en": "stern",
+      "de": "Heck"
+    },
+    {
+      "id": "s-port",
+      "topic": "ships",
+      "en": "port side",
+      "de": "Backbord"
+    },
+    {
+      "id": "s-starboard",
+      "topic": "ships",
+      "en": "starboard side",
+      "de": "Steuerbord"
+    },
+    {
+      "id": "s-crew",
+      "topic": "ships",
+      "en": "crew",
+      "de": "Besatzung"
+    },
+    {
+      "id": "s-persons",
+      "topic": "ships",
+      "en": "persons on board",
+      "de": "Personen an Bord"
+    },
+    {
+      "id": "s-callsign",
+      "topic": "ships",
+      "en": "call sign",
+      "de": "Rufzeichen"
+    },
+    {
+      "id": "s-mmsi",
+      "topic": "ships",
+      "en": "MMSI",
+      "de": "MMSI-Nummer"
+    },
+    {
+      "id": "d-mayday",
+      "topic": "distress",
+      "en": "MAYDAY",
+      "de": "Notmeldung",
+      "hint": "Seenot; dreimal zu Beginn"
+    },
+    {
+      "id": "d-mayday-relay",
+      "topic": "distress",
+      "en": "MAYDAY RELAY",
+      "de": "Weiterleitung einer Notmeldung"
+    },
+    {
+      "id": "d-panpan",
+      "topic": "distress",
+      "en": "PAN PAN",
+      "de": "Dringlichkeitsmeldung"
+    },
+    {
+      "id": "d-securite",
+      "topic": "distress",
+      "en": "SÉCURITÉ",
+      "de": "Sicherheitsmeldung"
+    },
+    {
+      "id": "d-distress",
+      "topic": "distress",
+      "en": "distress",
+      "de": "Not"
+    },
+    {
+      "id": "d-urgency",
+      "topic": "distress",
+      "en": "urgency",
+      "de": "Dringlichkeit"
+    },
+    {
+      "id": "d-safety",
+      "topic": "distress",
+      "en": "safety",
+      "de": "Sicherheit"
+    },
+    {
+      "id": "d-assistance",
+      "topic": "distress",
+      "en": "assistance",
+      "de": "Hilfe"
+    },
+    {
+      "id": "d-immediate",
+      "topic": "distress",
+      "en": "immediate assistance",
+      "de": "sofortige Hilfe"
+    },
+    {
+      "id": "d-sinking",
+      "topic": "distress",
+      "en": "sinking",
+      "de": "sinkend"
+    },
+    {
+      "id": "d-on-fire",
+      "topic": "distress",
+      "en": "on fire",
+      "de": "in Brand / Feuer an Bord"
+    },
+    {
+      "id": "d-collision",
+      "topic": "distress",
+      "en": "collision",
+      "de": "Zusammenstoß / Kollision"
+    },
+    {
+      "id": "d-aground",
+      "topic": "distress",
+      "en": "aground",
+      "de": "auf Grund"
+    },
+    {
+      "id": "d-taking-water",
+      "topic": "distress",
+      "en": "taking water",
+      "de": "Wasser einnehmend"
+    },
+    {
+      "id": "d-pob",
+      "topic": "distress",
+      "en": "person overboard",
+      "de": "Mann über Bord / Person über Bord"
+    },
+    {
+      "id": "d-not-under-command",
+      "topic": "distress",
+      "en": "not under command",
+      "de": "manövrierunfähig"
+    },
+    {
+      "id": "d-adrift",
+      "topic": "distress",
+      "en": "adrift",
+      "de": "treibend"
+    },
+    {
+      "id": "d-drifting",
+      "topic": "distress",
+      "en": "drifting",
+      "de": "treibend"
+    },
+    {
+      "id": "d-disabled",
+      "topic": "distress",
+      "en": "disabled",
+      "de": "manövrierunfähig / außer Betrieb"
+    },
+    {
+      "id": "d-abandon",
+      "topic": "distress",
+      "en": "abandon ship",
+      "de": "das Schiff verlassen"
+    },
+    {
+      "id": "d-rescue",
+      "topic": "distress",
+      "en": "rescue",
+      "de": "Rettung"
+    },
+    {
+      "id": "d-tow",
+      "topic": "distress",
+      "en": "tow",
+      "de": "Schlepp"
+    },
+    {
+      "id": "d-engine-failure",
+      "topic": "distress",
+      "en": "engine failure",
+      "de": "Maschinenausfall"
+    },
+    {
+      "id": "d-steering-failure",
+      "topic": "distress",
+      "en": "steering failure",
+      "de": "Ruderausfall"
+    },
+    {
+      "id": "d-danger",
+      "topic": "distress",
+      "en": "danger to navigation",
+      "de": "Gefahr für die Schifffahrt"
+    },
+    {
+      "id": "d-wreckage",
+      "topic": "distress",
+      "en": "wreckage",
+      "de": "Wrackteil"
+    },
+    {
+      "id": "d-unlit-buoy",
+      "topic": "distress",
+      "en": "unlit buoy",
+      "de": "unbeleuchtete Tonne"
+    },
+    {
+      "id": "d-cancel",
+      "topic": "distress",
+      "en": "cancel my distress",
+      "de": "meine Notmeldung aufheben"
+    },
+    {
+      "id": "d-seelonce",
+      "topic": "distress",
+      "en": "SEELONCE MAYDAY",
+      "de": "Funkstille für den Notverkehr"
+    },
+    {
+      "id": "d-seelonce-feenee",
+      "topic": "distress",
+      "en": "SEELONCE FEENEE",
+      "de": "Funkstille aufgehoben"
+    },
+    {
+      "id": "d-prudence",
+      "topic": "distress",
+      "en": "PRUDENCE",
+      "de": "eingeschränkter Betrieb, Vorsicht"
+    },
+    {
+      "id": "d-received",
+      "topic": "distress",
+      "en": "received MAYDAY",
+      "de": "Notmeldung aufgenommen"
+    },
+    {
+      "id": "m-medical",
+      "topic": "medical",
+      "en": "medical assistance",
+      "de": "medizinische Hilfe"
+    },
+    {
+      "id": "m-unconscious",
+      "topic": "medical",
+      "en": "unconscious",
+      "de": "bewusstlos"
+    },
+    {
+      "id": "m-breathing",
+      "topic": "medical",
+      "en": "not breathing normally",
+      "de": "atmet nicht normal"
+    },
+    {
+      "id": "m-bleeding",
+      "topic": "medical",
+      "en": "bleeding",
+      "de": "blutend"
+    },
+    {
+      "id": "m-burns",
+      "topic": "medical",
+      "en": "burns",
+      "de": "Verbrennungen"
+    },
+    {
+      "id": "m-severe-burns",
+      "topic": "medical",
+      "en": "severe burns",
+      "de": "schwere Verbrennungen"
+    },
+    {
+      "id": "m-fracture",
+      "topic": "medical",
+      "en": "fracture",
+      "de": "Knochenbruch"
+    },
+    {
+      "id": "m-injury",
+      "topic": "medical",
+      "en": "injury",
+      "de": "Verletzung"
+    },
+    {
+      "id": "m-injured",
+      "topic": "medical",
+      "en": "injured person",
+      "de": "verletzte Person"
+    },
+    {
+      "id": "m-chest",
+      "topic": "medical",
+      "en": "chest pain",
+      "de": "Brustschmerzen"
+    },
+    {
+      "id": "m-hypothermia",
+      "topic": "medical",
+      "en": "hypothermia",
+      "de": "Unterkühlung"
+    },
+    {
+      "id": "m-seasick",
+      "topic": "medical",
+      "en": "seasick",
+      "de": "seekrank"
+    },
+    {
+      "id": "m-doctor",
+      "topic": "medical",
+      "en": "doctor",
+      "de": "Arzt"
+    },
+    {
+      "id": "m-first-aid",
+      "topic": "medical",
+      "en": "first aid",
+      "de": "Erste Hilfe"
+    },
+    {
+      "id": "m-medicine",
+      "topic": "medical",
+      "en": "medicine",
+      "de": "Medikament / Medizin"
+    },
+    {
+      "id": "m-ambulance",
+      "topic": "medical",
+      "en": "ambulance",
+      "de": "Rettungswagen"
+    },
+    {
+      "id": "m-helicopter",
+      "topic": "medical",
+      "en": "helicopter",
+      "de": "Hubschrauber"
+    },
+    {
+      "id": "m-crew-member",
+      "topic": "medical",
+      "en": "crew member",
+      "de": "Besatzungsmitglied"
+    },
+    {
+      "id": "m-patient",
+      "topic": "medical",
+      "en": "patient",
+      "de": "Patient"
+    },
+    {
+      "id": "m-blood-pressure",
+      "topic": "medical",
+      "en": "blood pressure",
+      "de": "Blutdruck"
+    },
+    {
+      "id": "v-buoy",
+      "topic": "nav",
+      "en": "buoy",
+      "de": "Tonne / Bake"
+    },
+    {
+      "id": "v-starboard-buoy",
+      "topic": "nav",
+      "en": "starboard-hand buoy",
+      "de": "steuerbordseitige Tonne"
+    },
+    {
+      "id": "v-port-buoy",
+      "topic": "nav",
+      "en": "port-hand buoy",
+      "de": "backbordseitige Tonne"
+    },
+    {
+      "id": "v-safe-water",
+      "topic": "nav",
+      "en": "safe-water mark",
+      "de": "Mitte-Fahrwasser-Zeichen"
+    },
+    {
+      "id": "v-isolated",
+      "topic": "nav",
+      "en": "isolated danger mark",
+      "de": "Einzelgefahrenzeichen"
+    },
+    {
+      "id": "v-special",
+      "topic": "nav",
+      "en": "special mark",
+      "de": "Sonderzeichen"
+    },
+    {
+      "id": "v-cardinal-n",
+      "topic": "nav",
+      "en": "north cardinal mark",
+      "de": "Nordufer- bzw. Nord-Kardinalzeichen"
+    },
+    {
+      "id": "v-cardinal-e",
+      "topic": "nav",
+      "en": "east cardinal mark",
+      "de": "Ost-Kardinalzeichen"
+    },
+    {
+      "id": "v-cardinal-s",
+      "topic": "nav",
+      "en": "south cardinal mark",
+      "de": "Süd-Kardinalzeichen"
+    },
+    {
+      "id": "v-cardinal-w",
+      "topic": "nav",
+      "en": "west cardinal mark",
+      "de": "West-Kardinalzeichen"
+    },
+    {
+      "id": "v-lighthouse",
+      "topic": "nav",
+      "en": "lighthouse",
+      "de": "Leuchtturm"
+    },
+    {
+      "id": "v-light",
+      "topic": "nav",
+      "en": "light",
+      "de": "Feuer / Licht"
+    },
+    {
+      "id": "v-fairway",
+      "topic": "nav",
+      "en": "fairway",
+      "de": "Fahrwasser"
+    },
+    {
+      "id": "v-channel",
+      "topic": "nav",
+      "en": "channel",
+      "de": "Rinne / Fahrwasser"
+    },
+    {
+      "id": "v-shoal",
+      "topic": "nav",
+      "en": "shoal",
+      "de": "Untiefe"
+    },
+    {
+      "id": "v-wreck",
+      "topic": "nav",
+      "en": "wreck",
+      "de": "Wrack"
+    },
+    {
+      "id": "v-rocks",
+      "topic": "nav",
+      "en": "rocks",
+      "de": "Felsen"
+    },
+    {
+      "id": "v-chart",
+      "topic": "nav",
+      "en": "chart",
+      "de": "Seekarte"
+    },
+    {
+      "id": "v-depth",
+      "topic": "nav",
+      "en": "depth",
+      "de": "Wassertiefe"
+    },
+    {
+      "id": "v-draught",
+      "topic": "nav",
+      "en": "draught",
+      "de": "Tiefgang"
+    },
+    {
+      "id": "v-tide",
+      "topic": "nav",
+      "en": "tide",
+      "de": "Gezeiten"
+    },
+    {
+      "id": "v-high-water",
+      "topic": "nav",
+      "en": "high water",
+      "de": "Hochwasser"
+    },
+    {
+      "id": "v-low-water",
+      "topic": "nav",
+      "en": "low water",
+      "de": "Niedrigwasser"
+    },
+    {
+      "id": "v-current",
+      "topic": "nav",
+      "en": "current",
+      "de": "Strömung"
+    },
+    {
+      "id": "v-harbour",
+      "topic": "nav",
+      "en": "harbour",
+      "de": "Hafen"
+    },
+    {
+      "id": "v-approach",
+      "topic": "nav",
+      "en": "approach",
+      "de": "Ansteuerung / Anfahrt"
+    },
+    {
+      "id": "v-anchorage",
+      "topic": "nav",
+      "en": "anchorage",
+      "de": "Ankerplatz"
+    },
+    {
+      "id": "v-breakwater",
+      "topic": "nav",
+      "en": "breakwater",
+      "de": "Wellenbrecher / Mole"
+    },
+    {
+      "id": "v-pier",
+      "topic": "nav",
+      "en": "pier",
+      "de": "Pier / Steg"
+    },
+    {
+      "id": "v-berth",
+      "topic": "nav",
+      "en": "berth",
+      "de": "Liegeplatz"
+    },
+    {
+      "id": "v-pilot",
+      "topic": "nav",
+      "en": "pilot",
+      "de": "Lotse"
+    },
+    {
+      "id": "v-waypoint",
+      "topic": "nav",
+      "en": "waypoint",
+      "de": "Wegpunkt"
+    },
+    {
+      "id": "p-all-stations",
+      "topic": "procedure",
+      "en": "all stations",
+      "de": "an alle"
+    },
+    {
+      "id": "p-this-is",
+      "topic": "procedure",
+      "en": "this is",
+      "de": "hier ist"
+    },
+    {
+      "id": "p-over",
+      "topic": "procedure",
+      "en": "over",
+      "de": "kommen",
+      "hint": "Aufforderung zur Antwort"
+    },
+    {
+      "id": "p-out",
+      "topic": "procedure",
+      "en": "out",
+      "de": "Ende",
+      "hint": "Gespräch beendet, keine Antwort erwartet"
+    },
+    {
+      "id": "p-roger",
+      "topic": "procedure",
+      "en": "roger",
+      "de": "verstanden"
+    },
+    {
+      "id": "p-wilco",
+      "topic": "procedure",
+      "en": "wilco",
+      "de": "werde ausführen",
+      "hint": "will comply"
+    },
+    {
+      "id": "p-say-again",
+      "topic": "procedure",
+      "en": "say again",
+      "de": "bitte wiederholen"
+    },
+    {
+      "id": "p-correction",
+      "topic": "procedure",
+      "en": "correction",
+      "de": "Berichtigung"
+    },
+    {
+      "id": "p-i-spell",
+      "topic": "procedure",
+      "en": "I spell",
+      "de": "ich buchstabiere"
+    },
+    {
+      "id": "p-stand-by",
+      "topic": "procedure",
+      "en": "stand by",
+      "de": "bitte warten"
+    },
+    {
+      "id": "p-nothing-heard",
+      "topic": "procedure",
+      "en": "nothing heard",
+      "de": "nichts gehört"
+    },
+    {
+      "id": "p-how-do-you-read",
+      "topic": "procedure",
+      "en": "how do you read",
+      "de": "wie verstehen Sie mich"
+    },
+    {
+      "id": "p-read-you",
+      "topic": "procedure",
+      "en": "I read you",
+      "de": "ich verstehe Sie"
+    },
+    {
+      "id": "p-loud-and-clear",
+      "topic": "procedure",
+      "en": "loud and clear",
+      "de": "laut und deutlich"
+    },
+    {
+      "id": "p-weak",
+      "topic": "procedure",
+      "en": "weak",
+      "de": "schwach"
+    },
+    {
+      "id": "p-garbled",
+      "topic": "procedure",
+      "en": "garbled",
+      "de": "gestört / unverständlich"
+    },
+    {
+      "id": "p-interco",
+      "topic": "procedure",
+      "en": "INTERCO",
+      "de": "Internationaler Signalcode"
+    },
+    {
+      "id": "p-channel",
+      "topic": "procedure",
+      "en": "channel sixteen",
+      "de": "Kanal sechzehn"
+    },
+    {
+      "id": "p-switch",
+      "topic": "procedure",
+      "en": "switch to channel",
+      "de": "gehen Sie auf Kanal"
+    },
+    {
+      "id": "p-working-channel",
+      "topic": "procedure",
+      "en": "working channel",
+      "de": "Arbeitskanal"
+    },
+    {
+      "id": "p-calling",
+      "topic": "procedure",
+      "en": "calling",
+      "de": "ruft"
+    },
+    {
+      "id": "p-acknowledge",
+      "topic": "procedure",
+      "en": "acknowledge",
+      "de": "bestätigen Sie"
+    },
+    {
+      "id": "p-confirm",
+      "topic": "procedure",
+      "en": "confirm",
+      "de": "bestätigen / bestätige"
+    },
+    {
+      "id": "p-negative",
+      "topic": "procedure",
+      "en": "negative",
+      "de": "nein / negativ"
+    },
+    {
+      "id": "p-affirmative",
+      "topic": "procedure",
+      "en": "affirmative",
+      "de": "ja / positiv"
+    },
+    {
+      "id": "p-information",
+      "topic": "procedure",
+      "en": "information",
+      "de": "Information / Mitteilung"
+    },
+    {
+      "id": "p-instruction",
+      "topic": "procedure",
+      "en": "instruction",
+      "de": "Anweisung"
+    },
+    {
+      "id": "p-advice",
+      "topic": "procedure",
+      "en": "advice",
+      "de": "Rat / Empfehlung"
+    },
+    {
+      "id": "p-warning-word",
+      "topic": "procedure",
+      "en": "warning",
+      "de": "Warnung"
+    },
+    {
+      "id": "p-request",
+      "topic": "procedure",
+      "en": "request",
+      "de": "Bitte / Ersuchen"
+    },
+    {
+      "id": "p-intention",
+      "topic": "procedure",
+      "en": "intention",
+      "de": "Absicht"
+    },
+    {
+      "id": "p-message",
+      "topic": "procedure",
+      "en": "message",
+      "de": "Meldung / Nachricht"
+    },
+    {
+      "id": "p-nav-warning",
+      "topic": "procedure",
+      "en": "navigational warning",
+      "de": "nautische Warnung"
+    },
+    {
+      "id": "p-coast-station",
+      "topic": "procedure",
+      "en": "coast radio station",
+      "de": "Küstenfunkstelle"
+    },
+    {
+      "id": "p-coastguard",
+      "topic": "procedure",
+      "en": "coast guard",
+      "de": "Küstenwache"
+    },
+    {
+      "id": "p-mrcs",
+      "topic": "procedure",
+      "en": "maritime rescue coordination centre",
+      "de": "Seenotleitung / MRCC"
+    },
+    {
+      "id": "p-please",
+      "topic": "procedure",
+      "en": "please",
+      "de": "bitte"
+    },
+    {
+      "id": "vb-require",
+      "topic": "verbs",
+      "en": "require",
+      "de": "benötigen"
+    },
+    {
+      "id": "vb-assist",
+      "topic": "verbs",
+      "en": "assist",
+      "de": "helfen"
+    },
+    {
+      "id": "vb-proceed",
+      "topic": "verbs",
+      "en": "proceed",
+      "de": "weiterfahren / fortsetzen"
+    },
+    {
+      "id": "vb-alter",
+      "topic": "verbs",
+      "en": "alter course",
+      "de": "den Kurs ändern"
+    },
+    {
+      "id": "vb-reduce",
+      "topic": "verbs",
+      "en": "reduce speed",
+      "de": "die Fahrt vermindern"
+    },
+    {
+      "id": "vb-increase",
+      "topic": "verbs",
+      "en": "increase speed",
+      "de": "die Fahrt erhöhen"
+    },
+    {
+      "id": "vb-heave-to",
+      "topic": "verbs",
+      "en": "heave to",
+      "de": "beidrehen / beiliegen"
+    },
+    {
+      "id": "vb-make-way",
+      "topic": "verbs",
+      "en": "make way",
+      "de": "Fahrt durchs Wasser machen"
+    },
+    {
+      "id": "vb-under-way",
+      "topic": "verbs",
+      "en": "under way",
+      "de": "in Fahrt"
+    },
+    {
+      "id": "vb-anchor",
+      "topic": "verbs",
+      "en": "drop anchor",
+      "de": "Anker werfen"
+    },
+    {
+      "id": "vb-weigh",
+      "topic": "verbs",
+      "en": "weigh anchor",
+      "de": "Anker lichten"
+    },
+    {
+      "id": "vb-berth",
+      "topic": "verbs",
+      "en": "berth",
+      "de": "anlegen"
+    },
+    {
+      "id": "vb-cast-off",
+      "topic": "verbs",
+      "en": "cast off",
+      "de": "ablegen"
+    },
+    {
+      "id": "vb-sighted",
+      "topic": "verbs",
+      "en": "I have sighted",
+      "de": "ich habe gesichtet"
+    },
+    {
+      "id": "vb-report",
+      "topic": "verbs",
+      "en": "report",
+      "de": "melden"
+    },
+    {
+      "id": "vb-stand-by-vb",
+      "topic": "verbs",
+      "en": "stand by",
+      "de": "bereit halten / warten"
+    },
+    {
+      "id": "vb-remain",
+      "topic": "verbs",
+      "en": "remain",
+      "de": "bleiben / verbleiben"
+    },
+    {
+      "id": "vb-abandon",
+      "topic": "verbs",
+      "en": "abandon",
+      "de": "verlassen"
+    },
+    {
+      "id": "vb-recover",
+      "topic": "verbs",
+      "en": "recover",
+      "de": "bergen"
+    },
+    {
+      "id": "vb-tow-vb",
+      "topic": "verbs",
+      "en": "take in tow",
+      "de": "in Schlepp nehmen"
+    },
+    {
+      "id": "vb-drift",
+      "topic": "verbs",
+      "en": "drift",
+      "de": "treiben"
+    },
+    {
+      "id": "vb-ground",
+      "topic": "verbs",
+      "en": "run aground",
+      "de": "auf Grund laufen"
+    },
+    {
+      "id": "vb-collide",
+      "topic": "verbs",
+      "en": "collide",
+      "de": "zusammenstoßen"
+    },
+    {
+      "id": "vb-capsize",
+      "topic": "verbs",
+      "en": "capsize",
+      "de": "kentern"
+    },
+    {
+      "id": "vb-flood",
+      "topic": "verbs",
+      "en": "flood",
+      "de": "vollschlagen / fluten"
+    },
+    {
+      "id": "vb-extinguish",
+      "topic": "verbs",
+      "en": "extinguish",
+      "de": "löschen (Feuer)"
+    },
+    {
+      "id": "vb-transmit",
+      "topic": "verbs",
+      "en": "transmit",
+      "de": "senden"
+    },
+    {
+      "id": "vb-receive",
+      "topic": "verbs",
+      "en": "receive",
+      "de": "empfangen / aufnehmen"
+    },
+    {
+      "id": "vb-repeat",
+      "topic": "verbs",
+      "en": "repeat",
+      "de": "wiederholen"
+    },
+    {
+      "id": "vb-spell",
+      "topic": "verbs",
+      "en": "spell",
+      "de": "buchstabieren"
+    },
+    {
+      "id": "c-red",
+      "topic": "colours",
+      "en": "red",
+      "de": "rot"
+    },
+    {
+      "id": "c-green",
+      "topic": "colours",
+      "en": "green",
+      "de": "grün"
+    },
+    {
+      "id": "c-white",
+      "topic": "colours",
+      "en": "white",
+      "de": "weiß"
+    },
+    {
+      "id": "c-yellow",
+      "topic": "colours",
+      "en": "yellow",
+      "de": "gelb"
+    },
+    {
+      "id": "c-black",
+      "topic": "colours",
+      "en": "black",
+      "de": "schwarz"
+    },
+    {
+      "id": "c-blue",
+      "topic": "colours",
+      "en": "blue",
+      "de": "blau"
+    },
+    {
+      "id": "c-orange",
+      "topic": "colours",
+      "en": "orange",
+      "de": "orange"
+    },
+    {
+      "id": "c-grey",
+      "topic": "colours",
+      "en": "grey",
+      "de": "grau"
+    },
+    {
+      "id": "c-red-white",
+      "topic": "colours",
+      "en": "red and white",
+      "de": "rot-weiß"
+    },
+    {
+      "id": "c-black-yellow",
+      "topic": "colours",
+      "en": "black and yellow",
+      "de": "schwarz-gelb"
+    },
+    {
+      "id": "c-green-white",
+      "topic": "colours",
+      "en": "green and white",
+      "de": "grün-weiß"
+    },
+    {
+      "id": "c-yellow-black",
+      "topic": "colours",
+      "en": "yellow and black",
+      "de": "gelb-schwarz"
+    },
+    {
+      "id": "dir-ahead",
+      "topic": "directions",
+      "en": "ahead",
+      "de": "voraus"
+    },
+    {
+      "id": "dir-astern",
+      "topic": "directions",
+      "en": "astern",
+      "de": "achteraus"
+    },
+    {
+      "id": "dir-abeam",
+      "topic": "directions",
+      "en": "abeam",
+      "de": "dwars / querab"
+    },
+    {
+      "id": "dir-port",
+      "topic": "directions",
+      "en": "to port",
+      "de": "nach Backbord"
+    },
+    {
+      "id": "dir-starboard",
+      "topic": "directions",
+      "en": "to starboard",
+      "de": "nach Steuerbord"
+    },
+    {
+      "id": "dir-left",
+      "topic": "directions",
+      "en": "left",
+      "de": "links"
+    },
+    {
+      "id": "dir-right",
+      "topic": "directions",
+      "en": "right",
+      "de": "rechts"
+    },
+    {
+      "id": "dir-inshore",
+      "topic": "directions",
+      "en": "inshore",
+      "de": "landwärts / küstennah"
+    },
+    {
+      "id": "dir-offshore",
+      "topic": "directions",
+      "en": "offshore",
+      "de": "seewärts / küstenfern"
+    },
+    {
+      "id": "dir-upstream",
+      "topic": "directions",
+      "en": "upstream",
+      "de": "zu Berg / stromauf"
+    },
+    {
+      "id": "dir-downstream",
+      "topic": "directions",
+      "en": "downstream",
+      "de": "zu Tal / stromab"
+    },
+    {
+      "id": "dir-northward",
+      "topic": "directions",
+      "en": "northward",
+      "de": "nordwärts"
+    },
+    {
+      "id": "dir-southward",
+      "topic": "directions",
+      "en": "southward",
+      "de": "südwärts"
+    },
+    {
+      "id": "dir-eastward",
+      "topic": "directions",
+      "en": "eastward",
+      "de": "ostwärts"
+    },
+    {
+      "id": "dir-westward",
+      "topic": "directions",
+      "en": "westward",
+      "de": "westwärts"
+    },
+    {
+      "id": "dir-vicinity",
+      "topic": "directions",
+      "en": "in the vicinity of",
+      "de": "in der Nähe von"
+    },
+    {
+      "id": "dir-approaching",
+      "topic": "directions",
+      "en": "approaching",
+      "de": "annähernd / ansteuernd"
+    },
+    {
+      "id": "dir-leaving",
+      "topic": "directions",
+      "en": "leaving",
+      "de": "verlassend"
+    },
+    {
+      "id": "dir-onboard",
+      "topic": "directions",
+      "en": "on board",
+      "de": "an Bord"
+    },
+    {
+      "id": "dir-ashore",
+      "topic": "directions",
+      "en": "ashore",
+      "de": "an Land"
+    },
+    {
+      "id": "dir-alongside",
+      "topic": "directions",
+      "en": "alongside",
+      "de": "längsseits"
+    },
+    {
+      "id": "dir-at-anchor",
+      "topic": "directions",
+      "en": "at anchor",
+      "de": "vor Anker"
+    },
+    {
+      "id": "dir-making-way",
+      "topic": "directions",
+      "en": "making way through the water",
+      "de": "Fahrt durchs Wasser machend"
+    }
+  ]
+}

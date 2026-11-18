@@ -19,7 +19,7 @@ for (const [w, h, tag] of [[1280, 800, "desktop"], [360, 640, "phone"]]) {
   await p.goto(URL, { waitUntil: "networkidle" });
   const shot = async (n) => p.screenshot({ path: `shots/${tag}-${n}.png` });
   await shot("01-start");
-  await p.getByRole("button", { name: /SRC/ }).first().click();
+  await p.getByRole("button", { name: /Short Range Certificate/ }).first().click();
   await shot("02-areas");
   const scroll = await p.evaluate(() => document.documentElement.scrollHeight > window.innerHeight + 1);
   for (const [area, n] of [["Erklären", "03-erklaeren"], ["Prüfungsfragen", "04-fragen"], ["Theorieprüfung", "05-pruefung"], ["Funkgerät", "06-funkgeraet"]]) {
