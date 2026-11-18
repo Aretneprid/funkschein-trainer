@@ -1616,6 +1616,19 @@ export default function App() {
     setPath([]);
     setPg(0);
     setChosen(true);
+    if (!chosen) {
+      history.pushState({ d: 0, p: [] as string[] }, "");
+    } else if (typeof framesRef !== "undefined") {
+      const n = framesRef.current.length;
+      framesRef.current = [];
+      setFrames([]);
+      pathRef.current = [];
+      pgRef.current = 0;
+      if (n > 0) {
+        skipTo.current = 0;
+        history.go(-n);
+      }
+    }
   }
 
   const certC: Cert = cert === "UBI" ? "UBI" : "SRC";
@@ -1965,6 +1978,16 @@ export default function App() {
   /* ================= Bildschirm-App: eine Ebene pro Bildschirm, kein Scrollen ================= */
   const [path, setPath] = useState<string[]>([]);
   const [pg, setPg] = useState<number>(0);
+  type NavFrame = { path: string[]; pg: number };
+  const [frames, setFrames] = useState<NavFrame[]>([]);
+  const pathRef = useRef<string[]>([]);
+  const pgRef = useRef<number>(0);
+  const framesRef = useRef<NavFrame[]>([]);
+  const skipTo = useRef<number | null>(null);
+  const examRef = useRef<boolean>(false);
+  pathRef.current = path;
+  pgRef.current = pg;
+  framesRef.current = frames;
   const [uiNarrow, setUiNarrow] = useState<boolean>(typeof window !== "undefined" ? window.innerWidth < 720 : true);
   const [uiShort, setUiShort] = useState<boolean>(typeof window !== "undefined" ? window.innerHeight < 520 : false);
   const [ask, setAsk] = useState<{ title: string; body: string; ok: string; onOk: () => void } | null>(null);
@@ -1987,11 +2010,20 @@ export default function App() {
     return out;
   };
 
-  function enter(np: string[]) {
-    if (np[0] === "erklaeren" && np[1] === "ref") np = ["werkzeuge", ...np.slice(2)];
-    if (np[0] === "funkgeraet" && np[1] === "panel") np = ["funkgeraet", "frei", ...np.slice(2)];
-    setPath(np);
-    setPg(0);
+  const samePath = (a: string[], b: string[]): boolean => a.length === b.length && a.every((id: string, i: number) => id === b[i]);
+  const isLessonPath = (p: string[]): boolean => p[0] === "erklaeren" && p.length === 2;
+  const normalizePath = (np: string[]): string[] => {
+    const p = np.slice();
+    if (p[0] === "erklaeren" && p[1] === "ref") return ["werkzeuge", ...p.slice(2)];
+    if (p[0] === "funkgeraet" && p[1] === "panel") return ["funkgeraet", "frei", ...p.slice(2)];
+    return p;
+  };
+  const consumeHistory = (n: number, destD: number) => {
+    if (n <= 0) return;
+    skipTo.current = destD;
+    history.go(-n);
+  };
+  const applyEnterEffects = (np: string[]) => {
     setOrd([]);
     if (np[0] === "pruefung" && np.length === 2) {
       setBogen(np[1]);
@@ -2008,6 +2040,81 @@ export default function App() {
         setR2(np[2] === "vs" ? { ...R20, on: false } : R20);
       } else startScn(np[2]);
     }
+  };
+  function popFrame() {
+    const st = framesRef.current;
+    if (st.length === 0) {
+      if (pathRef.current.length === 0) {
+        setChosen(false);
+        return;
+      }
+      const np = pathRef.current.slice(0, -1);
+      pathRef.current = np;
+      pgRef.current = 0;
+      setPath(np);
+      setPg(0);
+      return;
+    }
+    const fr = st[st.length - 1];
+    framesRef.current = st.slice(0, -1);
+    setFrames(framesRef.current);
+    pathRef.current = fr.path;
+    pgRef.current = fr.pg;
+    setPath(fr.path);
+    setPg(fr.pg);
+  }
+  function enter(np: string[]) {
+    np = normalizePath(np);
+    const curP = pathRef.current.slice();
+    const curPg = pgRef.current;
+    if (samePath(curP, np)) {
+      pgRef.current = 0;
+      setPg(0);
+      applyEnterEffects(np);
+      return;
+    }
+    if (np.length < curP.length && np.every((id: string, i: number) => id === curP[i])) {
+      const st = framesRef.current;
+      let idx = -1;
+      for (let i = st.length - 1; i >= 0; i--) {
+        if (samePath(st[i].path, np)) { idx = i; break; }
+      }
+      if (idx >= 0) {
+        const n = st.length - idx;
+        const fr = st[idx];
+        framesRef.current = st.slice(0, idx);
+        setFrames(framesRef.current);
+        pathRef.current = fr.path;
+        pgRef.current = fr.pg;
+        setPath(fr.path);
+        setPg(fr.pg);
+        consumeHistory(n, idx);
+        return;
+      }
+      pathRef.current = np;
+      pgRef.current = 0;
+      setPath(np);
+      setPg(0);
+      return;
+    }
+    if (isLessonPath(curP) && isLessonPath(np)) {
+      pathRef.current = np;
+      pgRef.current = 0;
+      setPath(np);
+      setPg(0);
+      applyEnterEffects(np);
+      history.replaceState({ d: framesRef.current.length, p: np }, "");
+      return;
+    }
+    const nextStack = [...framesRef.current, { path: curP, pg: curPg }];
+    framesRef.current = nextStack;
+    setFrames(nextStack);
+    pathRef.current = np;
+    pgRef.current = 0;
+    setPath(np);
+    setPg(0);
+    applyEnterEffects(np);
+    history.pushState({ d: nextStack.length, p: np }, "");
   }
   const open = (id: string) => enter([...path, id]);
   const examRunning = (): boolean =>
@@ -2022,21 +2129,65 @@ export default function App() {
       onOk: () => {
         if (path[0] === "pruefung") setMode("ueben");
         if (path[0] === "funkgeraet" && path[1] === "exam") { setExamPhase("intro"); setExamIds([]); }
+        examRef.current = false;
         fn();
       },
     });
   };
   function back() {
-    const go = () => {
-      if (path.length === 0) {
+    requestNav(() => {
+      if (pathRef.current.length === 0 && framesRef.current.length === 0) {
         setChosen(false);
         return;
       }
-      if (path[0] === "pruefung" && path.length >= 2) setMode("ueben");
-      enter(path.slice(0, -1));
-    };
-    requestNav(go);
+      if (pathRef.current[0] === "pruefung" && pathRef.current.length >= 2) setMode("ueben");
+      const st = history.state;
+      if (st && typeof st === "object" && typeof (st as { d?: number }).d === "number" && (st as { d: number }).d > 0) history.back();
+      else popFrame();
+    });
   }
+  function goHome() {
+    const n = framesRef.current.length;
+    framesRef.current = [];
+    setFrames([]);
+    pathRef.current = [];
+    pgRef.current = 0;
+    setPath([]);
+    setPg(0);
+    setOrd([]);
+    consumeHistory(n, 0);
+  }
+  useEffect(() => {
+    history.replaceState({ d: 0, p: [] as string[] }, "");
+    const onPop = () => {
+      if (skipTo.current !== null) {
+        const d = history.state && typeof history.state === "object" && typeof (history.state as { d?: number }).d === "number" ? (history.state as { d: number }).d : -1;
+        if (d <= skipTo.current) skipTo.current = null;
+        return;
+      }
+      if (examRef.current) {
+        history.pushState({ d: framesRef.current.length, p: pathRef.current }, "");
+        setAsk({
+          title: "Prüfung verlassen?",
+          body: "Der laufende Versuch wird beendet. Dein übriger Lernfortschritt bleibt gespeichert.",
+          ok: "Verlassen",
+          onOk: () => {
+            if (pathRef.current[0] === "pruefung") setMode("ueben");
+            if (pathRef.current[0] === "funkgeraet" && pathRef.current[1] === "exam") {
+              setExamPhase("intro");
+              setExamIds([]);
+            }
+            examRef.current = false;
+            history.back();
+          },
+        });
+        return;
+      }
+      popFrame();
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   /* ---------- Bausteine ---------- */
   const screenTitle = (title: string, sub?: string): ReactNode => (
@@ -2127,13 +2278,50 @@ export default function App() {
       .filter((x: { bad: number; rate: number }) => x.bad > 0 || x.rate > 0)
       .sort((a: { rate: number; bad: number }, b: { rate: number; bad: number }) => b.rate - a.rate || b.bad - a.bad);
 
-  const spellPad = (): ReactNode => (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-      {LETTERS.map((c: string) => chip("sp-" + c, c, false, () => addWord(officialWord(c))))}
-      {"0123456789".split("").map((c: string) => chip("spd-" + c, c, false, () => addWord(officialWord(c))))}
-      {chip("spx", "⌫ leeren", false, () => setSpIn(""))}
-    </div>
-  );
+  const spellPad = (): ReactNode => {
+    const cols = uiShort ? 8 : 7;
+    const keyStyle: CSSProperties = {
+      fontFamily: fam,
+      fontSize: t.font.subtext.fontSize,
+      lineHeight: 1,
+      padding: 0,
+      minHeight: 40,
+      minWidth: 0,
+      boxSizing: "border-box",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: t.radius.md,
+      border: "1px solid " + t.border.default,
+      background: t.bg.elevated,
+      color: t.text.primary,
+      fontWeight: t.weight.semibold,
+      cursor: "pointer",
+      touchAction: "manipulation",
+      userSelect: "none",
+    };
+    return (
+      <div
+        style={{
+          flex: "1 1 auto",
+          minHeight: 0,
+          overflow: "hidden",
+          display: "grid",
+          gridTemplateColumns: "repeat(" + cols + ", minmax(0, 1fr))",
+          gap: 3,
+          alignContent: "start",
+        }}
+      >
+        {LETTERS.map((c: string) => (
+          <button key={"sp-" + c} type="button" aria-label={c} onClick={() => addWord(officialWord(c))} style={keyStyle}>{c}</button>
+        ))}
+        {"0123456789".split("").map((c: string) => (
+          <button key={"spd-" + c} type="button" aria-label={c} onClick={() => addWord(officialWord(c))} style={keyStyle}>{c}</button>
+        ))}
+        <button type="button" aria-label="leeren" onClick={() => setSpIn("")} style={{ ...keyStyle, gridColumn: "span 2", fontWeight: t.weight.regular }}>⌫ leeren</button>
+      </div>
+    );
+  };
 
   const spellScreen = (): ReactNode => {
     const done = spMode !== "home" && spMode !== "weak" && spI >= 10;
@@ -2214,8 +2402,11 @@ export default function App() {
       );
     }
     const expect = spMode === "letter" ? officialWord(spPrompt) : spMode === "code" ? spPrompt : spPrompt.split("").map((c: string) => officialWord(c)).join(" ");
+    const keypadMode = spMode === "phrase" || spMode === "listen" || spMode === "speak";
+    const side = uiShort && keypadMode;
+    const promptSize = uiShort ? t.font.heading3 : t.font.heading1;
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: 4 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, ...txt("label", t.text.secondary) }}>
             <span>{"Frage " + (spI + 1) + " / 10 · " + spScore + " richtig"}</span>
@@ -2223,15 +2414,15 @@ export default function App() {
           </div>
           {bar(spI + (spFb !== "" ? 1 : 0), 10)}
         </div>
-        {card(
-          <>
-            <span style={txt("label", t.text.tertiary)}>{spMode === "letter" ? "Wie heißt das Codewort?" : spMode === "code" ? "Welcher Buchstabe?" : spMode === "listen" ? "Was wurde buchstabiert?" : spMode === "speak" ? "Buchstabiere laut (en-GB)" : "Buchstabiere mit Codewörtern"}</span>
+        <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: side ? "row" : "column", gap: 6 }}>
+        <div style={{ flex: "1 1 auto", minWidth: 0, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6, padding: uiShort ? 8 : 10, background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderRadius: t.radius.xl, boxSizing: "border-box" }}>
+            <span style={{ flex: "0 0 auto", ...txt("label", t.text.tertiary) }}>{spMode === "letter" ? "Wie heißt das Codewort?" : spMode === "code" ? "Welcher Buchstabe?" : spMode === "listen" ? "Was wurde buchstabiert?" : spMode === "speak" ? "Buchstabiere laut (en-GB)" : "Buchstabiere mit Codewörtern"}</span>
             {spMode === "listen" ? (
-              <div style={rowWrap}>
+              <div style={{ flex: "0 0 auto", ...rowWrap }}>
                 <Button label={spHasTTS ? "Nochmal vorsprechen" : "Sprache nicht verfügbar"} onClick={() => speakSeq(spPrompt)} disabled={!spHasTTS} />
               </div>
             ) : (
-              <div style={{ fontFamily: t.font.mono, fontSize: t.font.heading1.fontSize, lineHeight: t.font.heading1.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary, letterSpacing: 2 }}>{spMode === "code" ? officialWord(spPrompt) : spPrompt}</div>
+              <div style={{ flex: "0 0 auto", fontFamily: t.font.mono, fontSize: promptSize.fontSize, lineHeight: promptSize.lineHeight, fontWeight: t.weight.semibold, color: t.text.primary, letterSpacing: 2 }}>{spMode === "code" ? officialWord(spPrompt) : spPrompt}</div>
             )}
             {spMode === "letter" || spMode === "code" ? (
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -2264,18 +2455,20 @@ export default function App() {
                 </button>
               </div>
             ) : null}
-            <Input label={spMode === "letter" || spMode === "code" ? "Oder tippen" : "Antwort (Codewörter oder Zeichen)"} value={spIn} onChange={(v: string) => setSpIn(v)} />
-            {spMode === "phrase" || spMode === "listen" || spMode === "speak" ? spellPad() : null}
-            {spMsg ? <span style={txt("label", t.text.warning)}>{spMsg}</span> : null}
+            <div style={{ flex: "0 0 auto", display: "flex", width: "100%" }}>
+              <Input label={spMode === "letter" || spMode === "code" ? "Oder tippen" : "Antwort (Codewörter oder Zeichen)"} value={spIn} onChange={(v: string) => setSpIn(v)} />
+            </div>
+            {!side && keypadMode ? spellPad() : null}
+            {spMsg ? <span style={{ flex: "0 0 auto", ...txt("label", t.text.warning) }}>{spMsg}</span> : null}
             {spFb === "ok" ? <Status tone="success">Richtig</Status> : null}
             {spFb === "bad" ? <Status tone="danger">{"Nicht ganz. Richtig: " + expect}</Status> : null}
-            <div style={rowWrap}>
-              {spFb === "" ? <Button label="Prüfen" variant="primary" onClick={() => submit()} disabled={spIn.trim() === ""} /> : <Button label={spI + 1 >= 10 ? "Auswertung" : "Weiter"} variant="primary" onClick={goNext} />}
-              <Button label="Abbrechen" variant="quiet" onClick={() => setSpMode("home")} />
-            </div>
-          </>,
-          { padding: 14, gap: 8 },
-        )}
+        </div>
+        {side ? <div style={{ flex: "1 1 55%", minWidth: 0, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>{spellPad()}</div> : null}
+        </div>
+        <div style={{ flex: "0 0 auto", display: "flex", flexWrap: "wrap", gap: 8, paddingTop: 6, borderTop: "1px solid " + t.border.subtle, background: t.bg.base }}>
+          {spFb === "" ? <Button label="Prüfen" variant="primary" onClick={() => submit()} disabled={spIn.trim() === ""} /> : <Button label={spI + 1 >= 10 ? "Auswertung" : "Weiter"} variant="primary" onClick={goNext} />}
+          <Button label="Abbrechen" variant="quiet" onClick={() => setSpMode("home")} />
+        </div>
       </div>
     );
   };
@@ -5951,6 +6144,10 @@ export default function App() {
       title = "Nachschlagen & Werkzeuge";
       sub = "Buchstabier-Trainer, Tafeln, Quellen und Videos";
       body = tileGrid(ERK, 6, 150, open);
+    } else if (path[1] === "spelltrain") {
+      title = "Buchstabier-Trainer";
+      sub = uiShort ? "" : "Internationale Buchstabiertafel · 10er-Runden";
+      body = spellScreen();
     } else if (path[1] === "spruchbau") {
       if (path.length === 2) {
         title = "Funksprüche bauen";
@@ -6032,35 +6229,71 @@ export default function App() {
   }
 
   const crumbs = ["Start", ...path.map((id: string, i: number) => labelOf(i, id))];
+  examRef.current = examRunning();
+  const parentPath = (): string[] | null => {
+    if (frames.length > 0) return frames[frames.length - 1].path;
+    if (path.length === 0) return null;
+    return path.slice(0, -1);
+  };
+  const titleOfPath = (p: string[]): string => {
+    if (p.length === 0) return "Übersicht";
+    if (p.length === 1) {
+      if (p[0] === "werkzeuge") return "Werkzeuge";
+      if (p[0] === "erklaeren") return "Kurs";
+      if (p[0] === "fragen") return "Fragen";
+      if (p[0] === "pruefung") return "Prüfung";
+      if (p[0] === "funkgeraet") return "Funkgerät";
+      return labelOf(0, p[0]);
+    }
+    if (p[0] === "erklaeren" && p.length === 2) {
+      const l = LESSONS.find((x: Lesson) => x.id === p[1]);
+      const n = l ? LESSONS.indexOf(l) + 1 : 0;
+      return n ? "Lektion " + n : "Lektion";
+    }
+    if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "spruchbau") return "Funksprüche";
+    if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "funk") return "Funkverfahren";
+    if (p[0] === "werkzeuge" && p.length === 2 && p[1] === "geraet") return "Gerät";
+    if (p[0] === "fragen") return "Fragen";
+    if (p[0] === "pruefung") return "Prüfung";
+    if (p[0] === "funkgeraet" && p.length === 2) {
+      if (p[1] === "ablauf") return "Bedienung";
+      if (p[1] === "sim") return "Funkverkehr";
+      return labelOf(1, p[1]);
+    }
+    return labelOf(p.length - 1, p[p.length - 1]);
+  };
+  const par = parentPath();
+  const backText = par === null ? "‹ Zeugnisse" : (uiNarrow && ("‹ " + titleOfPath(par)).length > 16 ? "‹ Zurück" : "‹ " + titleOfPath(par));
 
   if (!chosen) {
     return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base }}>{chooser()}</div>;
   }
 
   const lastCrumb = crumbs[crumbs.length - 1];
-  const titleInHeader = path.length > 0 && (title === lastCrumb || title.indexOf(lastCrumb) === 0);
-  const navBtn: CSSProperties = { flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "10px 14px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, fontWeight: t.weight.semibold, cursor: "pointer" };
+  const namedBack = backText !== "‹ Zurück" && backText !== "‹ Zeugnisse";
+  const titleInHeader = path.length > 0 && !uiNarrow && (title === lastCrumb || title.indexOf(lastCrumb) === 0);
+  const navBtn: CSSProperties = { flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: uiNarrow ? "8px 10px" : "10px 14px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, fontWeight: t.weight.semibold, cursor: "pointer", maxWidth: uiNarrow ? 160 : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
   const crumbBtn = (current: boolean): CSSProperties => ({ border: "none", background: "transparent", padding: "10px 6px", minHeight: 44, minWidth: current ? 0 : 44, flexShrink: current ? 1 : 0, boxSizing: "border-box", cursor: current ? "default" : "pointer", fontFamily: fam, fontSize: t.font.body2.fontSize, color: current ? t.text.primary : t.text.secondary, fontWeight: current ? t.weight.semibold : t.weight.regular, overflow: current ? "hidden" : "visible", textOverflow: current ? "ellipsis" : "clip", whiteSpace: "nowrap", maxWidth: "100%" });
 
   return (
     <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 1100, margin: "0 auto", height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box", position: "relative" }}>
       <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
-        <button type="button" onClick={back} aria-label={path.length === 0 ? "‹ Zeugnisse" : "‹ Zurück"} style={navBtn}>
-          {path.length === 0 ? "‹ Zeugnisse" : "‹ Zurück"}
+        <button type="button" onClick={back} aria-label={backText} style={navBtn}>
+          {backText}
         </button>
-        <button type="button" onClick={() => requestNav(() => enter([]))} aria-label="Zur Übersicht" style={{ flex: "0 0 auto", border: "none", background: "transparent", padding: 4, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", borderRadius: t.radius.md }}>
+        <button type="button" onClick={() => requestNav(() => goHome())} aria-label="Zur Übersicht" style={{ flex: "0 0 auto", border: "none", background: "transparent", padding: 4, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", borderRadius: t.radius.md }}>
           {appIcon(28)}
         </button>
         <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
           {path.length === 0 ? (
             <span style={{ ...txt("body2", t.text.primary, t.weight.semibold), padding: "10px 4px" }}>{certC + " · Übersicht"}</span>
           ) : uiNarrow ? (
-            <span style={{ ...crumbBtn(true), minWidth: 0, flex: "1 1 auto" }} title={lastCrumb}>{lastCrumb}</span>
+            namedBack ? <div style={{ flex: "1 1 auto", minWidth: 0 }} /> : <span style={{ ...crumbBtn(true), minWidth: 0, flex: "1 1 auto" }} title={lastCrumb}>{lastCrumb}</span>
           ) : (
             crumbs.map((c: string, i: number) => (
               <span key={i} style={{ display: "flex", alignItems: "center", gap: 4, minWidth: i === crumbs.length - 1 ? 0 : undefined, flex: i === crumbs.length - 1 ? "1 1 auto" : "0 1 auto", overflow: "hidden" }}>
                 {i > 0 ? <span style={txt("label", t.text.tertiary)}>›</span> : null}
-                <button type="button" onClick={() => requestNav(() => (i === 0 ? enter([]) : i === crumbs.length - 1 ? undefined : enter(path.slice(0, i))))} style={crumbBtn(i === crumbs.length - 1)}>{c}</button>
+                <button type="button" onClick={() => requestNav(() => (i === 0 ? goHome() : i === crumbs.length - 1 ? undefined : enter(path.slice(0, i))))} style={crumbBtn(i === crumbs.length - 1)}>{c}</button>
               </span>
             ))
           )}

@@ -4,7 +4,7 @@ const b = await chromium.launch({ executablePath: "/usr/bin/google-chrome", args
 const res = [];
 
 async function goBack(p) {
-  await p.getByRole("button", { name: "‹ Zurück" }).first().click();
+  await p.getByRole("button", { name: /^‹ / }).first().click();
   const leave = p.getByRole("button", { name: "Verlassen" });
   if (await leave.count()) await leave.click();
   await p.waitForTimeout(150);
