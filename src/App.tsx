@@ -574,9 +574,11 @@ function spellClipUrl(file: string): string {
 
 function tafelClipFile(id: string, mode: "itu" | "plain"): string | null {
   if (/^L-[A-Z]$/.test(id)) return "l-" + id.slice(2).toLowerCase() + ".mp3";
-  if (/^D-[0-9]$/.test(id)) return (mode === "plain" ? "p-" : "d-") + id.slice(2) + ".mp3";
-  if (id === "M-.") return "m-decimal.mp3";
+  if (/^D-[0-9]$/.test(id)) return (mode === "itu" ? "d-" : "p-") + id.slice(2) + ".mp3";
+  if (id === "M-.") return mode === "itu" ? "d-decimal.mp3" : "m-decimal.mp3";
   if (id === "M--") return "m-hyphen.mp3";
+  if (/^T-[a-z0-9-]+$/i.test(id)) return "t-" + id.slice(2).toLowerCase() + ".mp3";
+  if (/^DE-[a-z0-9-]+$/i.test(id)) return "de-" + id.slice(3).toLowerCase() + ".mp3";
   return null;
 }
 
@@ -730,7 +732,7 @@ function primeSpeech(): void {
   }
 }
 
-function speakEnglish(text: string, onEnd?: () => void): "ok" | "none" | "fail" {
+function speakLang(text: string, langWanted: string, onEnd?: () => void): "ok" | "none" | "fail" {
   if (!speechAvailable()) return "none";
   primeSpeech();
   try {
@@ -739,8 +741,8 @@ function speakEnglish(text: string, onEnd?: () => void): "ok" | "none" | "fail" 
     syn.cancel();
     syn.getVoices(); // may be empty on Android until after speak()
     const u = new window.SpeechSynthesisUtterance(text);
-    applyEnglishVoice(u);
-    u.rate = 0.85;
+    applyVoice(u, langWanted || "en-GB");
+    u.rate = 1;
     u.onend = () => { if (onEnd) onEnd(); };
     u.onerror = () => { if (onEnd) onEnd(); };
     syn.speak(u);
@@ -748,6 +750,10 @@ function speakEnglish(text: string, onEnd?: () => void): "ok" | "none" | "fail" 
   } catch (_e) {
     return "fail";
   }
+}
+
+function speakEnglish(text: string, onEnd?: () => void): "ok" | "none" | "fail" {
+  return speakLang(text, "en-GB", onEnd);
 }
 
 interface SpellPart {
@@ -3215,10 +3221,10 @@ export default function App() {
       tafelLong.current.timer = null;
     }
   };
-  const speakTafel = (id: string, itu: string, plain: string, forcePlain?: boolean) => {
+  const speakTafel = (id: string, itu: string, plain: string, forceItu?: boolean) => {
     const same = tafelSpeak && tafelSpeak.id === id;
-    const mode: "itu" | "plain" = forcePlain || (same && tafelSpeak!.mode === "itu") ? "plain" : "itu";
-    if (same && tafelSpeak!.mode === "plain" && !forcePlain) {
+    const mode: "itu" | "plain" = forceItu ? "itu" : "plain";
+    if (same && tafelSpeak!.mode === mode && !forceItu) {
       stopSpeechOutput();
       setTafelSpeak(null);
       return;
@@ -3228,8 +3234,9 @@ export default function App() {
     const file = tafelClipFile(id, mode);
     setTafelSpeak({ id, mode });
     setTafelToast("");
+    const lang = id.startsWith("DE-") ? "de-DE" : "en-GB";
     const useTts = () => {
-      const res = speakEnglish(text, clear);
+      const res = speakLang(text, lang, clear);
       if (res === "ok") return;
       setTafelSpeak(null);
       setTafelToast("Die Aufnahme konnte nicht abgespielt werden. Prüfe die Lautstärke und versuche es noch einmal.");
@@ -3362,13 +3369,13 @@ export default function App() {
         fillPage(letterGrid(L)),
         fillPage(
           <>
-            {uiShort ? null : screenTitle("Ziffern und Zeichen", "Umlaute werden aufgelöst (Ä → A E). Im Alltag spricht man Ziffern meist englisch (Zero … Nine; auch Tree, Fower, Fife, Niner). Die ITU-Ziffernwörter stehen in der Vollzugsordnung für den Funkdienst.")}
-            {uiShort ? <div style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px", flex: "0 0 auto" }}>Tippen zum Anhören · Umlaute: Ä → A E. Alltag: Zero … Nine (auch Tree, Fower, Fife, Niner).</div> : speakHint}
+            {uiShort ? null : screenTitle("Ziffern und Zeichen", "Im SRC einzeln auf Englisch (Zero … Nine). ITU-Codewörter nur bei längerem Halten. Umlaute: Ä → A E.")}
+            {uiShort ? <div style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px", flex: "0 0 auto" }}>Tippen: Zero … Nine · Halten: ITU-Codewort · Umlaute: Ä → A E.</div> : <div style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px", flex: "0 0 auto" }}>Tippen: Zero … Nine · Halten: ITU-Codewort</div>}
             <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: uiShort ? (uiNarrow ? "repeat(4, minmax(0, 1fr))" : "repeat(6, minmax(0, 1fr))") : "repeat(auto-fill, minmax(150px, 1fr))", gap: uiShort ? 4 : 6, alignContent: "start" }}>
               {DIGIT_EN.map((w: string, i: number) =>
                 tafelBtn({
                   id: "D-" + i,
-                  label: i + " " + DIGIT_ITU[i],
+                  label: i + " " + w + ", halten für " + DIGIT_ITU[i],
                   itu: DIGIT_ITU_TTS[i],
                   plain: w,
                   style: { borderRadius: t.radius.md, padding: uiShort ? "4px 6px" : "6px 8px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" },
@@ -3403,6 +3410,123 @@ export default function App() {
               )}
             </div>
           </>,
+        ),
+        fillPage(
+          (() => {
+            const ubi = certC === "UBI";
+            const terms = ubi ? [
+              { id: "DE-position", word: "Position", hint: "" },
+              { id: "DE-kilometer", word: "Kilometer", hint: "" },
+              { id: "DE-stromkilometer", word: "Stromkilometer", display: "Strom\u00adkilometer", hint: "" },
+              { id: "DE-rheinkilometer", word: "Rheinkilometer", display: "Rhein\u00adkilometer", hint: "" },
+              { id: "DE-zuberg", word: "zu Berg", hint: "stromauf" },
+              { id: "DE-zutal", word: "zu Tal", hint: "stromab" },
+              { id: "DE-rechtesufer", word: "rechtes Ufer", hint: "" },
+              { id: "DE-linkesufer", word: "linkes Ufer", hint: "" },
+              { id: "DE-komma", word: "Komma", hint: "Dezimal" },
+              { id: "DE-bei", word: "bei", hint: "" },
+              { id: "DE-ortslage", word: "Ortslage", hint: "" },
+            ] : [
+              { id: "T-degrees", word: "Degrees", hint: "Grad" },
+              { id: "T-minutes", word: "Minutes", hint: "Minuten" },
+              { id: "T-decimal", word: "Decimal", hint: "Dezimal" },
+              { id: "T-point", word: "Point", hint: "Punkt" },
+              { id: "T-north", word: "North", hint: "Nord" },
+              { id: "T-south", word: "South", hint: "Süd" },
+              { id: "T-east", word: "East", hint: "Ost" },
+              { id: "T-west", word: "West", hint: "Westen" },
+              { id: "T-utc", word: "UTC", hint: "" },
+              { id: "T-position", word: "Position", hint: "" },
+              { id: "T-bearing", word: "Bearing", hint: "Peilung" },
+              { id: "T-distance", word: "Distance", hint: "Abstand" },
+              { id: "T-nautical-miles", word: "Nautical miles", hint: "Seemeilen" },
+              { id: "T-latitude", word: "Latitude", hint: "Breite" },
+              { id: "T-longitude", word: "Longitude", hint: "Länge" },
+            ];
+            const srcEx = ["p-5.mp3", "p-4.mp3", "t-degrees.mp3", "p-2.mp3", "p-5.mp3", "t-minutes.mp3", "t-north.mp3", "p-0.mp3", "p-1.mp3", "p-0.mp3", "t-degrees.mp3", "p-1.mp3", "p-2.mp3", "t-minutes.mp3", "t-east.mp3"];
+            const ubiEx = ["de-zuberg.mp3", "de-bei.mp3", "de-rheinkilometer.mp3", "de-5.mp3", "de-5.mp3", "de-0.mp3"];
+            const exText = ubi ? "zu Berg bei Rheinkilometer fünf fünf null" : "54° 25′ N  010° 12′ E";
+            const exSpoken = ubi ? "zu Berg bei Rheinkilometer fünf fünf null" : "Five Four degrees Two Five minutes North, Zero One Zero degrees One Two minutes East";
+            const exCaption = ubi ? "UBI, z. B. Rhein-km 550: Ziffern einzeln auf Deutsch." : "Seeadler (SRC): Ziffern einzeln, dann Degrees, Minutes, North / East.";
+            const playEx = () => {
+              const id = "EX-pos";
+              if (tafelSpeak && tafelSpeak.id === id) {
+                stopSpeechOutput();
+                setTafelSpeak(null);
+                return;
+              }
+              const clear = () => setTafelSpeak((cur) => (cur && cur.id === id ? null : cur));
+              setTafelSpeak({ id, mode: "plain" });
+              setTafelToast("");
+              playClipSeq(ubi ? ubiEx : srcEx, clear, () => {
+                const res = speakLang(exSpoken, ubi ? "de-DE" : "en-GB", clear);
+                if (res === "ok") return;
+                setTafelSpeak(null);
+                setTafelToast("Die Aufnahme konnte nicht abgespielt werden. Prüfe die Lautstärke und versuche es noch einmal.");
+              });
+            };
+            const cols = uiShort ? (uiNarrow ? 3 : 5) : (ubi ? 3 : 3);
+            const onEx = tafelSpeak?.id === "EX-pos";
+            return (
+              <>
+                {uiShort ? null : screenTitle("Für Positionsangaben", ubi
+                  ? "Im Binnenfunk: Fahrtrichtung, Gewässer und Kilometer- bzw. Ortsangabe. Ziffern einzeln auf Deutsch."
+                  : "Im SRC-Diktat: Ziffern einzeln, dann das Wort (Degrees, Minutes, North …). Beispiel von der Motoryacht Seeadler.")}
+                <div style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px", flex: "0 0 auto" }}>{uiShort ? (ubi ? "Tippen zum Anhören · UBI: Richtung, Kilometer, Ziffern einzeln." : "Tippen zum Anhören · SRC: Ziffern einzeln, dann das Wort.") : "Tippen zum Anhören"}</div>
+                <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(" + cols + ", minmax(0, 1fr))", gridAutoRows: "minmax(min-content, 1fr)", gap: uiShort ? 4 : 5, alignContent: "stretch" }}>
+                  {terms.map((x) =>
+                    tafelBtn({
+                      id: x.id,
+                      label: x.word,
+                      itu: x.word,
+                      plain: x.word,
+                      style: { borderRadius: t.radius.md, padding: uiShort ? "3px 6px" : "4px 7px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box", minHeight: 0, justifyContent: "center" },
+                      children: (
+                        <>
+                          <span style={{ ...txt("body2", t.text.primary), fontSize: uiShort ? 13 : 14, lineHeight: uiShort ? "16px" : "18px", fontWeight: t.weight.medium, hyphens: "manual", overflowWrap: "break-word" }}>{x.display || x.word}</span>
+                          {x.hint && !uiShort ? <span style={{ ...txt("label", t.text.tertiary), fontSize: 11, lineHeight: "13px" }}>{x.hint}</span> : null}
+                        </>
+                      ),
+                    }),
+                  )}
+                </div>
+                <button
+                  type="button"
+                  data-tafel="EX-pos"
+                  aria-label={"Beispiel abspielen: " + exSpoken}
+                  aria-pressed={onEx}
+                  onClick={playEx}
+                  style={{
+                    flex: "0 0 auto",
+                    margin: 0,
+                    width: "100%",
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    appearance: "none",
+                    WebkitAppearance: "none",
+                    border: "1px solid " + (onEx ? t.text.accent : t.border.subtle),
+                    background: onEx ? t.fill.accentSubtle : "transparent",
+                    color: t.text.primary,
+                    boxShadow: onEx ? "inset 0 0 0 1px " + t.text.accent : "none",
+                    borderRadius: t.radius.md,
+                    padding: uiShort ? "5px 8px" : "7px 10px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
+                    position: "relative",
+                  }}
+                >
+                  <span style={{ ...txt("body2", t.text.primary), fontSize: 14, lineHeight: "17px", fontWeight: t.weight.medium, display: "flex", alignItems: "center", gap: 6 }}>
+                    {onEx ? speakerIcon : null}
+                    Beispiel abspielen
+                  </span>
+                  <span style={{ fontFamily: t.font.mono, fontSize: uiShort ? 12 : 13, lineHeight: "16px", color: t.text.secondary }}>{exText}</span>
+                  {uiShort ? null : <span style={{ ...txt("label", t.text.tertiary), fontSize: 11, lineHeight: "13px" }}>{exCaption}</span>}
+                </button>
+              </>
+            );
+          })(),
         ),
         stack(
           <>
@@ -6565,7 +6689,7 @@ export default function App() {
   ];
   const ERK: Tile[] = [
     { id: "spelltrain", title: "Buchstabier-Trainer", sub: "10er-Runden: Hören, Sprechen, schwache Buchstaben" },
-    { id: "nato", title: "Buchstabiertafel", sub: "Buchstaben, Ziffern und Werkzeug" },
+    { id: "nato", title: "Buchstabiertafel", sub: "Buchstaben, Ziffern, Position und Werkzeug" },
     { id: "funk", title: "Funkverfahren", sub: "Mayday, Pan Pan, Sécurité, Routine" + (certC === "SRC" ? ", Fehlalarm" : "") },
     { id: "spruchbau", title: "Funksprüche bauen", sub: "Bausteine in die richtige Reihenfolge" },
     { id: "trainer", title: "Funkspruch-Trainer", sub: "Eigenen Funkspruch bauen" },

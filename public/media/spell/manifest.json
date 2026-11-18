@@ -1,70 +1,78 @@
 {
-  "engine": "Kokoro-82M",
-  "voice": "bm_george",
+  "engine": "Kokoro-82M + Piper",
+  "voice": "bm_daniel",
   "lang": "en-GB",
-  "license": "Apache-2.0 (https://huggingface.co/hexgrad/Kokoro-82M)",
-  "speed": 0.9,
-  "format": "mp3 22050 Hz mono 32 kbps",
+  "speed": 1.0,
+  "german_voice": "de_DE-thorsten-medium",
+  "german_license": "CC0 (https://github.com/thorstenMueller/Thorsten-Voice, rhasspy/piper-voices MODEL_CARD)",
+  "license": "Kokoro-82M Apache-2.0 (https://huggingface.co/hexgrad/Kokoro-82M); German clips CC0",
+  "format": "mp3 22050 Hz mono 48k, loudnorm I=-16 LUFS TP=-1.5",
   "clips": [
     {
       "key": "L-A",
       "file": "l-a.mp3",
-      "text": "Al fah",
-      "used": "Al fah",
+      "text": "Alpha",
+      "used": "Alpha",
       "kind": "text",
-      "duration_s": 1.073,
-      "rms": 0.0968,
-      "bytes": 4824
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.701,
+      "rms": 0.0884,
+      "bytes": 4771
     },
     {
       "key": "L-B",
       "file": "l-b.mp3",
-      "text": "Brah voh",
-      "used": "Brah voh",
+      "text": "Bravo",
+      "used": "Bravo",
       "kind": "text",
-      "duration_s": 1.028,
-      "rms": 0.1013,
-      "bytes": 4615
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.842,
+      "rms": 0.091,
+      "bytes": 5711
     },
     {
       "key": "L-C",
       "file": "l-c.mp3",
-      "text": "Char lee",
-      "used": "Char lee",
+      "text": "Charlie",
+      "used": "Charlie",
       "kind": "text",
-      "duration_s": 0.979,
-      "rms": 0.1037,
-      "bytes": 4406
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.786,
+      "rms": 0.0924,
+      "bytes": 5398
     },
     {
       "key": "L-D",
       "file": "l-d.mp3",
-      "text": "Dell tah",
-      "used": "Dell tah",
+      "text": "Delta",
+      "used": "Delta",
       "kind": "text",
-      "duration_s": 1.093,
-      "rms": 0.1008,
-      "bytes": 4824
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.747,
+      "rms": 0.0931,
+      "bytes": 5085
     },
     {
       "key": "L-E",
       "file": "l-e.mp3",
-      "text": "Eck oh",
-      "used": "Eck oh",
+      "text": "Echo",
+      "used": "Echo",
       "kind": "text",
-      "duration_s": 1.049,
-      "rms": 0.0941,
-      "bytes": 4719
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.706,
+      "rms": 0.0844,
+      "bytes": 4928
     },
     {
       "key": "L-F",
       "file": "l-f.mp3",
-      "text": "Foks trot",
-      "used": "Foks trot",
+      "text": "Foxtrot",
+      "used": "Foxtrot",
       "kind": "text",
-      "duration_s": 1.095,
-      "rms": 0.0988,
-      "bytes": 4824
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.854,
+      "rms": 0.0931,
+      "bytes": 5711
     },
     {
       "key": "L-G",
@@ -72,39 +80,43 @@
       "text": "Golf",
       "used": "Golf",
       "kind": "text",
-      "duration_s": 0.732,
-      "rms": 0.1038,
-      "bytes": 3465
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.607,
+      "rms": 0.0931,
+      "bytes": 4301
     },
     {
       "key": "L-H",
       "file": "l-h.mp3",
-      "text": "Hoh tel",
-      "used": "Hoh tel",
+      "text": "Hotel",
+      "used": "Hotel",
       "kind": "text",
-      "duration_s": 1.12,
-      "rms": 0.0994,
-      "bytes": 4928
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.89,
+      "rms": 0.0927,
+      "bytes": 6025
     },
     {
       "key": "L-I",
       "file": "l-i.mp3",
-      "text": "In dee ah",
-      "used": "In dee ah",
+      "text": "India",
+      "used": "India",
       "kind": "text",
-      "duration_s": 1.386,
-      "rms": 0.0994,
-      "bytes": 6077
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.803,
+      "rms": 0.0916,
+      "bytes": 5398
     },
     {
       "key": "L-J",
       "file": "l-j.mp3",
-      "text": "Jew lee ett",
-      "used": "Jew lee ett",
+      "text": "Juliett",
+      "used": "Juliett",
       "kind": "text",
-      "duration_s": 1.419,
-      "rms": 0.1018,
-      "bytes": 6182
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.948,
+      "rms": 0.0976,
+      "bytes": 6338
     },
     {
       "key": "L-K",
@@ -112,19 +124,21 @@
       "text": "Kilo",
       "used": "Kilo",
       "kind": "text",
-      "duration_s": 0.89,
-      "rms": 0.1014,
-      "bytes": 4092
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.759,
+      "rms": 0.097,
+      "bytes": 5241
     },
     {
       "key": "L-L",
       "file": "l-l.mp3",
-      "text": "Lee mah",
-      "used": "Lee mah",
+      "text": "Lima",
+      "used": "Lima",
       "kind": "text",
-      "duration_s": 1.018,
-      "rms": 0.1052,
-      "bytes": 4510
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.845,
+      "rms": 0.0931,
+      "bytes": 5711
     },
     {
       "key": "L-M",
@@ -132,69 +146,76 @@
       "text": "Mike",
       "used": "Mike",
       "kind": "text",
-      "duration_s": 0.759,
-      "rms": 0.1059,
-      "bytes": 3570
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.693,
+      "rms": 0.0934,
+      "bytes": 4771
     },
     {
       "key": "L-N",
       "file": "l-n.mp3",
-      "text": "Noh vem ber",
-      "used": "Noh vem ber",
+      "text": "November",
+      "used": "November",
       "kind": "text",
-      "duration_s": 1.485,
-      "rms": 0.0975,
-      "bytes": 6391
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.036,
+      "rms": 0.0922,
+      "bytes": 6809
     },
     {
       "key": "L-O",
       "file": "l-o.mp3",
-      "text": "Oss cah",
-      "used": "Oss cah",
+      "text": "Oscar",
+      "used": "Oscar",
       "kind": "text",
-      "duration_s": 1.149,
-      "rms": 0.0948,
-      "bytes": 5033
-    },
-    {
-      "key": "L-Q",
-      "file": "l-q.mp3",
-      "text": "Kebeck",
-      "used": "k\u02c8\u025b b\u02c8\u025bk",
-      "kind": "phonemes",
-      "duration_s": 0.93,
-      "rms": 0.1002,
-      "bytes": 4197
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.738,
+      "rms": 0.0891,
+      "bytes": 5085
     },
     {
       "key": "L-P",
       "file": "l-p.mp3",
-      "text": "Pah pah",
-      "used": "Pah pah",
+      "text": "Papa",
+      "used": "Papa",
       "kind": "text",
-      "duration_s": 1.032,
-      "rms": 0.0967,
-      "bytes": 4615
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.787,
+      "rms": 0.0898,
+      "bytes": 5398
+    },
+    {
+      "key": "L-Q",
+      "file": "l-q.mp3",
+      "text": "Keh-beck",
+      "used": "Keh-beck",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.758,
+      "rms": 0.0895,
+      "bytes": 5241
     },
     {
       "key": "L-R",
       "file": "l-r.mp3",
-      "text": "Row me oh",
-      "used": "Row me oh",
+      "text": "Romeo",
+      "used": "Romeo",
       "kind": "text",
-      "duration_s": 1.369,
-      "rms": 0.1015,
-      "bytes": 5973
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.926,
+      "rms": 0.0921,
+      "bytes": 6182
     },
     {
       "key": "L-S",
       "file": "l-s.mp3",
-      "text": "See air rah",
-      "used": "See air rah",
+      "text": "Sierra",
+      "used": "Sierra",
       "kind": "text",
-      "duration_s": 1.3,
-      "rms": 0.0978,
-      "bytes": 5659
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.869,
+      "rms": 0.0928,
+      "bytes": 5868
     },
     {
       "key": "L-T",
@@ -202,59 +223,65 @@
       "text": "Tango",
       "used": "Tango",
       "kind": "text",
-      "duration_s": 0.909,
-      "rms": 0.1032,
-      "bytes": 4092
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.828,
+      "rms": 0.0928,
+      "bytes": 5555
     },
     {
       "key": "L-U",
       "file": "l-u.mp3",
-      "text": "You nee form",
-      "used": "You nee form",
+      "text": "Uniform",
+      "used": "Uniform",
       "kind": "text",
-      "duration_s": 1.299,
-      "rms": 0.1023,
-      "bytes": 5659
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.066,
+      "rms": 0.096,
+      "bytes": 6965
     },
     {
       "key": "L-V",
       "file": "l-v.mp3",
-      "text": "Vik tah",
-      "used": "Vik tah",
+      "text": "Victor",
+      "used": "Victor",
       "kind": "text",
-      "duration_s": 1.144,
-      "rms": 0.0997,
-      "bytes": 5033
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.765,
+      "rms": 0.0903,
+      "bytes": 5241
     },
     {
       "key": "L-W",
       "file": "l-w.mp3",
-      "text": "Wiss key",
-      "used": "Wiss key",
+      "text": "Whiskey",
+      "used": "Whiskey",
       "kind": "text",
-      "duration_s": 1.103,
-      "rms": 0.1023,
-      "bytes": 4928
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.783,
+      "rms": 0.0898,
+      "bytes": 5241
     },
     {
       "key": "L-X",
       "file": "l-x.mp3",
-      "text": "Ecks ray",
-      "used": "Ecks ray",
+      "text": "X-ray",
+      "used": "X-ray",
       "kind": "text",
-      "duration_s": 1.083,
-      "rms": 0.1005,
-      "bytes": 4824
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.896,
+      "rms": 0.0925,
+      "bytes": 6025
     },
     {
       "key": "L-Y",
       "file": "l-y.mp3",
-      "text": "Yang key",
-      "used": "Yang key",
+      "text": "Yankee",
+      "used": "Yankee",
       "kind": "text",
-      "duration_s": 1.129,
-      "rms": 0.103,
-      "bytes": 5033
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.858,
+      "rms": 0.0938,
+      "bytes": 5711
     },
     {
       "key": "L-Z",
@@ -262,9 +289,10 @@
       "text": "Zulu",
       "used": "Zulu",
       "kind": "text",
-      "duration_s": 0.882,
-      "rms": 0.1058,
-      "bytes": 3988
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.796,
+      "rms": 0.0982,
+      "bytes": 5398
     },
     {
       "key": "D-0",
@@ -272,9 +300,10 @@
       "text": "Nah dah zay roh",
       "used": "Nah dah zay roh",
       "kind": "text",
-      "duration_s": 1.66,
-      "rms": 0.0951,
-      "bytes": 7122
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.425,
+      "rms": 0.0918,
+      "bytes": 9160
     },
     {
       "key": "D-1",
@@ -282,9 +311,10 @@
       "text": "Oo nah wun",
       "used": "Oo nah wun",
       "kind": "text",
-      "duration_s": 1.247,
-      "rms": 0.1034,
-      "bytes": 5450
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.118,
+      "rms": 0.0939,
+      "bytes": 7279
     },
     {
       "key": "D-2",
@@ -292,9 +322,10 @@
       "text": "Beece soh too",
       "used": "Beece soh too",
       "kind": "text",
-      "duration_s": 1.462,
-      "rms": 0.0984,
-      "bytes": 6286
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.216,
+      "rms": 0.0966,
+      "bytes": 7906
     },
     {
       "key": "D-3",
@@ -302,9 +333,10 @@
       "text": "Tay rah tree",
       "used": "Tay rah tree",
       "kind": "text",
-      "duration_s": 1.304,
-      "rms": 0.1036,
-      "bytes": 5659
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.145,
+      "rms": 0.097,
+      "bytes": 7436
     },
     {
       "key": "D-4",
@@ -312,9 +344,10 @@
       "text": "Kar tay fower",
       "used": "Kar tay fower",
       "kind": "text",
-      "duration_s": 1.429,
-      "rms": 0.0979,
-      "bytes": 6182
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.152,
+      "rms": 0.0919,
+      "bytes": 7592
     },
     {
       "key": "D-5",
@@ -322,9 +355,10 @@
       "text": "Pan tah five",
       "used": "Pan tah five",
       "kind": "text",
-      "duration_s": 1.576,
-      "rms": 0.0943,
-      "bytes": 6809
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.319,
+      "rms": 0.091,
+      "bytes": 8533
     },
     {
       "key": "D-6",
@@ -332,9 +366,10 @@
       "text": "Sock see six",
       "used": "Sock see six",
       "kind": "text",
-      "duration_s": 1.306,
-      "rms": 0.1011,
-      "bytes": 5764
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.131,
+      "rms": 0.0983,
+      "bytes": 7436
     },
     {
       "key": "D-7",
@@ -342,9 +377,10 @@
       "text": "Say tay seven",
       "used": "Say tay seven",
       "kind": "text",
-      "duration_s": 1.495,
-      "rms": 0.0954,
-      "bytes": 6495
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.287,
+      "rms": 0.0956,
+      "bytes": 8376
     },
     {
       "key": "D-8",
@@ -352,9 +388,10 @@
       "text": "Ock toh eight",
       "used": "Ock toh eight",
       "kind": "text",
-      "duration_s": 1.498,
-      "rms": 0.0975,
-      "bytes": 6495
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.198,
+      "rms": 0.0919,
+      "bytes": 7749
     },
     {
       "key": "D-9",
@@ -362,9 +399,10 @@
       "text": "Noh vay niner",
       "used": "Noh vay niner",
       "kind": "text",
-      "duration_s": 1.529,
-      "rms": 0.0992,
-      "bytes": 6600
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.298,
+      "rms": 0.0925,
+      "bytes": 8376
     },
     {
       "key": "P-0",
@@ -372,9 +410,10 @@
       "text": "Zero",
       "used": "Zero",
       "kind": "text",
-      "duration_s": 0.824,
-      "rms": 0.1042,
-      "bytes": 3779
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.816,
+      "rms": 0.094,
+      "bytes": 5555
     },
     {
       "key": "P-1",
@@ -382,9 +421,10 @@
       "text": "One",
       "used": "One",
       "kind": "text",
-      "duration_s": 0.734,
-      "rms": 0.1073,
-      "bytes": 3465
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.639,
+      "rms": 0.0988,
+      "bytes": 4458
     },
     {
       "key": "P-2",
@@ -392,9 +432,10 @@
       "text": "Two",
       "used": "Two",
       "kind": "text",
-      "duration_s": 0.768,
-      "rms": 0.0984,
-      "bytes": 3570
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.64,
+      "rms": 0.0908,
+      "bytes": 4458
     },
     {
       "key": "P-3",
@@ -402,9 +443,10 @@
       "text": "Three",
       "used": "Three",
       "kind": "text",
-      "duration_s": 0.803,
-      "rms": 0.1027,
-      "bytes": 3674
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.786,
+      "rms": 0.0948,
+      "bytes": 5398
     },
     {
       "key": "P-4",
@@ -412,9 +454,10 @@
       "text": "Four",
       "used": "Four",
       "kind": "text",
-      "duration_s": 0.785,
-      "rms": 0.097,
-      "bytes": 3674
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.71,
+      "rms": 0.0907,
+      "bytes": 4928
     },
     {
       "key": "P-5",
@@ -422,9 +465,10 @@
       "text": "Five",
       "used": "Five",
       "kind": "text",
-      "duration_s": 0.85,
-      "rms": 0.0992,
-      "bytes": 3883
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.689,
+      "rms": 0.0934,
+      "bytes": 4771
     },
     {
       "key": "P-6",
@@ -432,9 +476,10 @@
       "text": "Six",
       "used": "Six",
       "kind": "text",
-      "duration_s": 0.606,
-      "rms": 0.1032,
-      "bytes": 2943
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.69,
+      "rms": 0.0876,
+      "bytes": 4771
     },
     {
       "key": "P-7",
@@ -442,9 +487,10 @@
       "text": "Seven",
       "used": "Seven",
       "kind": "text",
-      "duration_s": 0.871,
-      "rms": 0.1007,
-      "bytes": 3988
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.817,
+      "rms": 0.0953,
+      "bytes": 5555
     },
     {
       "key": "P-8",
@@ -452,9 +498,10 @@
       "text": "Eight",
       "used": "Eight",
       "kind": "text",
-      "duration_s": 0.676,
-      "rms": 0.1037,
-      "bytes": 3152
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.665,
+      "rms": 0.0928,
+      "bytes": 4614
     },
     {
       "key": "P-9",
@@ -462,19 +509,32 @@
       "text": "Nine",
       "used": "Nine",
       "kind": "text",
-      "duration_s": 0.87,
-      "rms": 0.1076,
-      "bytes": 3988
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.794,
+      "rms": 0.0924,
+      "bytes": 5398
     },
     {
       "key": "M-.",
       "file": "m-decimal.mp3",
+      "text": "Decimal",
+      "used": "Decimal",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.891,
+      "rms": 0.0944,
+      "bytes": 6025
+    },
+    {
+      "key": "M-.-itu",
+      "file": "d-decimal.mp3",
       "text": "Day see mal",
       "used": "Day see mal",
       "kind": "text",
-      "duration_s": 1.332,
-      "rms": 0.0984,
-      "bytes": 5764
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.139,
+      "rms": 0.0962,
+      "bytes": 7436
     },
     {
       "key": "M--",
@@ -482,9 +542,406 @@
       "text": "Hyphen",
       "used": "Hyphen",
       "kind": "text",
-      "duration_s": 1.025,
-      "rms": 0.1001,
-      "bytes": 4615
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.862,
+      "rms": 0.091,
+      "bytes": 5711
+    },
+    {
+      "key": "T-degrees",
+      "file": "t-degrees.mp3",
+      "text": "Degrees",
+      "used": "Degrees",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.079,
+      "rms": 0.0944,
+      "bytes": 7122
+    },
+    {
+      "key": "T-minutes",
+      "file": "t-minutes.mp3",
+      "text": "Minutes",
+      "used": "Minutes",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.759,
+      "rms": 0.0909,
+      "bytes": 5241
+    },
+    {
+      "key": "T-decimal",
+      "file": "t-decimal.mp3",
+      "text": "Decimal",
+      "used": "Decimal",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.891,
+      "rms": 0.0944,
+      "bytes": 6025
+    },
+    {
+      "key": "T-point",
+      "file": "t-point.mp3",
+      "text": "Point",
+      "used": "Point",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.768,
+      "rms": 0.0961,
+      "bytes": 5241
+    },
+    {
+      "key": "T-north",
+      "file": "t-north.mp3",
+      "text": "North",
+      "used": "North",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.661,
+      "rms": 0.091,
+      "bytes": 4614
+    },
+    {
+      "key": "T-south",
+      "file": "t-south.mp3",
+      "text": "South",
+      "used": "South",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.633,
+      "rms": 0.084,
+      "bytes": 4458
+    },
+    {
+      "key": "T-east",
+      "file": "t-east.mp3",
+      "text": "East",
+      "used": "East",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.621,
+      "rms": 0.0932,
+      "bytes": 4301
+    },
+    {
+      "key": "T-west",
+      "file": "t-west.mp3",
+      "text": "West",
+      "used": "West",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.615,
+      "rms": 0.0927,
+      "bytes": 4301
+    },
+    {
+      "key": "T-utc",
+      "file": "t-utc.mp3",
+      "text": "U T C",
+      "used": "U T C",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.221,
+      "rms": 0.0981,
+      "bytes": 7906
+    },
+    {
+      "key": "T-position",
+      "file": "t-position.mp3",
+      "text": "Position",
+      "used": "Position",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.906,
+      "rms": 0.093,
+      "bytes": 6025
+    },
+    {
+      "key": "T-bearing",
+      "file": "t-bearing.mp3",
+      "text": "Bearing",
+      "used": "Bearing",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.811,
+      "rms": 0.0894,
+      "bytes": 5555
+    },
+    {
+      "key": "T-distance",
+      "file": "t-distance.mp3",
+      "text": "Distance",
+      "used": "Distance",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 0.937,
+      "rms": 0.0898,
+      "bytes": 6182
+    },
+    {
+      "key": "T-nautical-miles",
+      "file": "t-nautical-miles.mp3",
+      "text": "Nautical miles",
+      "used": "Nautical miles",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.328,
+      "rms": 0.0935,
+      "bytes": 8533
+    },
+    {
+      "key": "T-latitude",
+      "file": "t-latitude.mp3",
+      "text": "Latitude",
+      "used": "Latitude",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.001,
+      "rms": 0.0955,
+      "bytes": 6652
+    },
+    {
+      "key": "T-longitude",
+      "file": "t-longitude.mp3",
+      "text": "Longitude",
+      "used": "Longitude",
+      "kind": "text",
+      "engine": "Kokoro-82M/bm_daniel",
+      "duration_s": 1.097,
+      "rms": 0.0967,
+      "bytes": 7279
+    },
+    {
+      "key": "DE-position",
+      "file": "de-position.mp3",
+      "text": "Position",
+      "used": "Position",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.74,
+      "rms": 0.1513,
+      "bytes": 5085
+    },
+    {
+      "key": "DE-kilometer",
+      "file": "de-kilometer.mp3",
+      "text": "Kilometer",
+      "used": "Kilometer",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.643,
+      "rms": 0.1907,
+      "bytes": 4458
+    },
+    {
+      "key": "DE-stromkilometer",
+      "file": "de-stromkilometer.mp3",
+      "text": "Stromkilometer",
+      "used": "Stromkilometer",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.926,
+      "rms": 0.1633,
+      "bytes": 6182
+    },
+    {
+      "key": "DE-rheinkilometer",
+      "file": "de-rheinkilometer.mp3",
+      "text": "Rheinkilometer",
+      "used": "Rheinkilometer",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.842,
+      "rms": 0.212,
+      "bytes": 5711
+    },
+    {
+      "key": "DE-zuberg",
+      "file": "de-zuberg.mp3",
+      "text": "zu Berg",
+      "used": "zu Berg",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.581,
+      "rms": 0.1295,
+      "bytes": 4144
+    },
+    {
+      "key": "DE-zutal",
+      "file": "de-zutal.mp3",
+      "text": "zu Tal",
+      "used": "zu Tal",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.638,
+      "rms": 0.19,
+      "bytes": 4458
+    },
+    {
+      "key": "DE-rechtesufer",
+      "file": "de-rechtesufer.mp3",
+      "text": "rechtes Ufer",
+      "used": "rechtes Ufer",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.914,
+      "rms": 0.1522,
+      "bytes": 6182
+    },
+    {
+      "key": "DE-linkesufer",
+      "file": "de-linkesufer.mp3",
+      "text": "linkes Ufer",
+      "used": "linkes Ufer",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.848,
+      "rms": 0.1745,
+      "bytes": 5711
+    },
+    {
+      "key": "DE-komma",
+      "file": "de-komma.mp3",
+      "text": "Komma",
+      "used": "Komma",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.477,
+      "rms": 0.1794,
+      "bytes": 3517
+    },
+    {
+      "key": "DE-bei",
+      "file": "de-bei.mp3",
+      "text": "bei",
+      "used": "bei",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.331,
+      "rms": 0.1403,
+      "bytes": 2577
+    },
+    {
+      "key": "DE-ortslage",
+      "file": "de-ortslage.mp3",
+      "text": "Ortslage",
+      "used": "Ortslage",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.636,
+      "rms": 0.1309,
+      "bytes": 4458
+    },
+    {
+      "key": "DE-0",
+      "file": "de-0.mp3",
+      "text": "null",
+      "used": "null",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.428,
+      "rms": 0.2068,
+      "bytes": 3204
+    },
+    {
+      "key": "DE-1",
+      "file": "de-1.mp3",
+      "text": "eins",
+      "used": "eins",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.384,
+      "rms": 0.1951,
+      "bytes": 2890
+    },
+    {
+      "key": "DE-2",
+      "file": "de-2.mp3",
+      "text": "zwei",
+      "used": "zwei",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.526,
+      "rms": 0.1285,
+      "bytes": 3831
+    },
+    {
+      "key": "DE-3",
+      "file": "de-3.mp3",
+      "text": "drei",
+      "used": "drei",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.463,
+      "rms": 0.1546,
+      "bytes": 3360
+    },
+    {
+      "key": "DE-4",
+      "file": "de-4.mp3",
+      "text": "vier",
+      "used": "vier",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.417,
+      "rms": 0.2423,
+      "bytes": 3047
+    },
+    {
+      "key": "DE-5",
+      "file": "de-5.mp3",
+      "text": "fünf",
+      "used": "fünf",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.453,
+      "rms": 0.1947,
+      "bytes": 3360
+    },
+    {
+      "key": "DE-6",
+      "file": "de-6.mp3",
+      "text": "sechs",
+      "used": "sechs",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.478,
+      "rms": 0.1411,
+      "bytes": 3517
+    },
+    {
+      "key": "DE-7",
+      "file": "de-7.mp3",
+      "text": "sieben",
+      "used": "sieben",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.533,
+      "rms": 0.2061,
+      "bytes": 3831
+    },
+    {
+      "key": "DE-8",
+      "file": "de-8.mp3",
+      "text": "acht",
+      "used": "acht",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.33,
+      "rms": 0.1752,
+      "bytes": 2577
+    },
+    {
+      "key": "DE-9",
+      "file": "de-9.mp3",
+      "text": "neun",
+      "used": "neun",
+      "kind": "text",
+      "engine": "Piper de_DE-thorsten-medium",
+      "duration_s": 0.499,
+      "rms": 0.2296,
+      "bytes": 3674
     }
   ]
 }

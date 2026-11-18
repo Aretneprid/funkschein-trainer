@@ -1,11 +1,8 @@
-# ITU spelling clips
+# Bundled spelling and position clips
 
-Pre-recorded official ITU radiotelephony pronunciations (Appendix 14 / ITU-R M.1677)
-for the Buchstabiertafel and the spelling trainer.
-
-- Engine: [Kokoro-82M](https://huggingface.co/hexgrad/Kokoro-82M) neural TTS
-- Voice: `bm_george` (British English)
-- Licence: Apache License 2.0 (model and voice)
-- Format: MP3, mono, 22 050 Hz, 32 kbps
-
-Regenerate with `scripts/gen-spell-audio.py` (requires the Kokoro ONNX model files).
+- English: Kokoro-82M, voice `bm_daniel`, speed 1.0, en-GB. License: Apache 2.0.
+  Natural word prompts (Alpha, Bravo, …). Quebec is prompted as “Keh-beck”.
+  Everyday digits Zero…Nine (Nine, not Niner). ITU code words are long-press only.
+- German (UBI positions): Piper `de_DE-thorsten-medium` (22.05 kHz). Dataset: Thorsten Voice, CC0.
+  See https://github.com/thorstenMueller/Thorsten-Voice and the Piper MODEL_CARD.
+- Encoding: mono 22050 Hz, 48k MP3, loudness normalised to about −16 LUFS, trimmed, short fade, true peak ≤ −1.5 dB.
