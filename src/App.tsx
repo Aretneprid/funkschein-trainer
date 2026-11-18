@@ -495,7 +495,88 @@ const NATO_SAY: Record<string, string> = {
 };
 const DIGIT_EN = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
 const DIGIT_ITU = ["Nadazero", "Unaone", "Bissotwo", "Terrathree", "Kartefour", "Pantafive", "Soxisix", "Setteseven", "Oktoeight", "Novenine"];
+/* TTS-freundliche Schreibungen der offiziellen ITU-Aussprache (Anlage 14 / ITU-R M.1677). */
+const NATO_TTS: Record<string, string> = {
+  A: "AL-FAH", B: "BRAH-VOH", C: "CHAR-LEE", D: "DELL-TAH", E: "ECK-OH", F: "FOKS-TROT", G: "GOLF", H: "HOH-TELL", I: "IN-DEE-AH",
+  J: "JEW-LEE-ETT", K: "KEY-LOH", L: "LEE-MAH", M: "MIKE", N: "NOH-VEM-BER", O: "OSS-CAH", P: "PAH-PAH", Q: "KEH-BECK", R: "ROW-ME-OH",
+  S: "SEE-AIR-RAH", T: "TANG-GO", U: "YOU-NEE-FORM", V: "VIK-TAH", W: "WISS-KEY", X: "ECKS-RAY", Y: "YANG-KEY", Z: "ZOO-LOO",
+};
+const DIGIT_ITU_TTS = ["NAH-DAH-ZAY-ROH", "OO-NAH-WUN", "BEES-SOH-TOO", "TAY-RAH-TREE", "KAR-TAY-FOWER", "PAN-TAH-FIVE", "SOK-SEE-SIX", "SAY-TAY-SEVEN", "OK-TOH-AIT", "NO-VAY-NINER"];
+const MARK_TTS: Record<string, { itu: string; plain: string }> = {
+  ".": { itu: "DAY-SEE-MAL", plain: "Decimal" },
+  "-": { itu: "Hyphen", plain: "Hyphen" },
+};
 const UMLAUT: Record<string, string> = { "Ä": "AE", "Ö": "OE", "Ü": "UE", "ß": "SS" };
+
+function speechAvailable(): boolean {
+  return typeof window !== "undefined" && !!window.speechSynthesis && typeof window.SpeechSynthesisUtterance === "function";
+}
+
+function pickEnglishVoice(voices?: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  const list = voices || (speechAvailable() ? window.speechSynthesis.getVoices() : []);
+  let best: SpeechSynthesisVoice | undefined;
+  let score = 0;
+  for (const v of list) {
+    const lang = v.lang || "";
+    const name = v.name || "";
+    let s = 0;
+    if (/^en-GB\b/i.test(lang) || /\bGB\b|UK English|British/i.test(name)) s = 3;
+    else if (/^en-US\b/i.test(lang) || /US English|American/i.test(name)) s = 2;
+    else if (/^en\b/i.test(lang)) s = 1;
+    if (s > score) {
+      best = v;
+      score = s;
+    }
+  }
+  return best;
+}
+
+function applyEnglishVoice(u: SpeechSynthesisUtterance): SpeechSynthesisVoice | undefined {
+  const v = pickEnglishVoice();
+  if (v) {
+    u.voice = v;
+    u.lang = /^en-GB\b/i.test(v.lang) ? "en-GB" : /^en-US\b/i.test(v.lang) ? "en-US" : v.lang || "en-GB";
+  } else {
+    u.lang = "en-GB";
+  }
+  return v;
+}
+
+let speechPrimed = false;
+function primeSpeech(): void {
+  if (!speechAvailable() || speechPrimed) return;
+  try {
+    window.speechSynthesis.getVoices();
+    const u = new window.SpeechSynthesisUtterance(" ");
+    u.volume = 0;
+    window.speechSynthesis.speak(u);
+    window.speechSynthesis.cancel();
+    speechPrimed = true;
+  } catch (_e) {
+    /* bleibt unprimed, nächste Geste versucht es erneut */
+  }
+}
+
+function speakEnglish(text: string, onEnd?: () => void): "ok" | "none" | "fail" {
+  if (!speechAvailable()) return "none";
+  primeSpeech();
+  try {
+    const syn = window.speechSynthesis;
+    if (syn.paused) syn.resume();
+    syn.cancel();
+    const voices = syn.getVoices() || [];
+    if (voices.length > 0 && !pickEnglishVoice(voices)) return "none";
+    const u = new window.SpeechSynthesisUtterance(text);
+    applyEnglishVoice(u);
+    u.rate = 0.85;
+    u.onend = () => { if (onEnd) onEnd(); };
+    u.onerror = () => { if (onEnd) onEnd(); };
+    syn.speak(u);
+    return "ok";
+  } catch (_e) {
+    return "fail";
+  }
+}
 
 interface SpellPart {
   ch: string;
@@ -1461,8 +1542,9 @@ export default function App() {
     try {
       window.speechSynthesis.cancel();
       const words = seq.split("").map((ch: string) => officialWord(ch)).join(", ");
+      primeSpeech();
       const u = new window.SpeechSynthesisUtterance(words);
-      u.lang = "en-GB";
+      applyEnglishVoice(u);
       u.rate = 0.85;
       window.speechSynthesis.speak(u);
       setSpMsg("");
@@ -2004,6 +2086,9 @@ export default function App() {
   const [uiShort, setUiShort] = useState<boolean>(typeof window !== "undefined" ? window.innerHeight < 520 : false);
   const [ask, setAsk] = useState<{ title: string; body: string; ok: string; onOk: () => void } | null>(null);
   const [examInfo, setExamInfo] = useState<boolean>(false);
+  const [tafelSpeak, setTafelSpeak] = useState<{ id: string; mode: "itu" | "plain" } | null>(null);
+  const [tafelToast, setTafelToast] = useState<string>("");
+  const tafelLong = useRef<{ timer: number | null; skip: boolean }>({ timer: null, skip: false });
   useEffect(() => {
     const fn = () => {
       setUiNarrow(window.innerWidth < 720);
@@ -2012,6 +2097,36 @@ export default function App() {
     window.addEventListener("resize", fn);
     return () => window.removeEventListener("resize", fn);
   }, []);
+  useEffect(() => {
+    if (!speechAvailable()) return;
+    const syn = window.speechSynthesis;
+    const onVoices = () => { syn.getVoices(); };
+    onVoices();
+    if (typeof syn.addEventListener === "function") syn.addEventListener("voiceschanged", onVoices);
+    else syn.onvoiceschanged = onVoices;
+    const prime = () => {
+      primeSpeech();
+      window.removeEventListener("pointerdown", prime, true);
+    };
+    window.addEventListener("pointerdown", prime, true);
+    return () => {
+      if (typeof syn.removeEventListener === "function") syn.removeEventListener("voiceschanged", onVoices);
+      window.removeEventListener("pointerdown", prime, true);
+    };
+  }, []);
+  useEffect(() => {
+    if (!tafelToast) return;
+    const id = window.setTimeout(() => setTafelToast(""), 3500);
+    return () => window.clearTimeout(id);
+  }, [tafelToast]);
+  useEffect(() => {
+    setTafelSpeak(null);
+    return () => {
+      if (speechAvailable()) {
+        try { window.speechSynthesis.cancel(); } catch (_e) { /* */ }
+      }
+    };
+  }, [path.join("/"), pg]);
 
   type Tile = { id: string; title: string; sub?: string; done?: number; ok?: number; total?: number };
   type Steps = { title: string; detail: string }[];
@@ -2922,21 +3037,126 @@ export default function App() {
     <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: uiShort ? 6 : 8 }}>{children}</div>
   );
 
+  const clearTafelLong = () => {
+    if (tafelLong.current.timer != null) {
+      window.clearTimeout(tafelLong.current.timer);
+      tafelLong.current.timer = null;
+    }
+  };
+  const speakTafel = (id: string, itu: string, plain: string, forcePlain?: boolean) => {
+    const same = tafelSpeak && tafelSpeak.id === id;
+    const mode: "itu" | "plain" = forcePlain || (same && tafelSpeak!.mode === "itu") ? "plain" : "itu";
+    if (same && tafelSpeak!.mode === "plain" && !forcePlain) {
+      if (speechAvailable()) {
+        try { window.speechSynthesis.cancel(); } catch (_e) { /* */ }
+      }
+      setTafelSpeak(null);
+      return;
+    }
+    const text = mode === "plain" ? plain : itu;
+    const res = speakEnglish(text, () => setTafelSpeak((cur) => (cur && cur.id === id ? null : cur)));
+    if (res === "ok") {
+      setTafelSpeak({ id, mode });
+      setTafelToast("");
+    } else {
+      setTafelSpeak(null);
+      setTafelToast("Sprachausgabe ist auf diesem Gerät nicht verfügbar.");
+    }
+  };
+  const startTafelPress = (id: string, itu: string, plain: string) => {
+    clearTafelLong();
+    tafelLong.current.skip = false;
+    tafelLong.current.timer = window.setTimeout(() => {
+      tafelLong.current.timer = null;
+      tafelLong.current.skip = true;
+      speakTafel(id, itu, plain, true);
+    }, 550);
+  };
+  const endTafelPress = () => clearTafelLong();
+  const clickTafel = (id: string, itu: string, plain: string) => {
+    if (tafelLong.current.skip) {
+      tafelLong.current.skip = false;
+      return;
+    }
+    speakTafel(id, itu, plain);
+  };
+
+  const speakHint = (
+    <div style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px", flex: "0 0 auto" }}>Tippen zum Anhören</div>
+  );
+  const speakerIcon = (
+    <svg width="12" height="12" viewBox="0 0 16 16" aria-hidden="true">
+      <path fill="currentColor" d="M2 6.5v3h2.2L7.5 12V4L4.2 6.5H2zm7.2-1.2a3.5 3.5 0 0 1 0 5.4l.9 1a4.7 4.7 0 0 0 0-7.4l-.9 1zm1.8-2.1a6.2 6.2 0 0 1 0 9.6l.95.95a7.5 7.5 0 0 0 0-11.5l-.95.95z" />
+    </svg>
+  );
+  const tafelBtn = (opts: { id: string; label: string; itu: string; plain: string; children: ReactNode; style?: CSSProperties }): ReactNode => {
+    const on = tafelSpeak?.id === opts.id;
+    return (
+      <button
+        key={opts.id}
+        type="button"
+        data-tafel={opts.id}
+        aria-label={opts.label + (on ? ", wird vorgelesen" : ", tippen zum Anhören")}
+        aria-pressed={on}
+        onClick={() => clickTafel(opts.id, opts.itu, opts.plain)}
+        onPointerDown={() => startTafelPress(opts.id, opts.itu, opts.plain)}
+        onPointerUp={endTafelPress}
+        onPointerCancel={endTafelPress}
+        onContextMenu={(e: { preventDefault: () => void }) => { e.preventDefault(); }}
+        style={{
+          ...(opts.style || {}),
+          margin: 0,
+          width: "100%",
+          height: "100%",
+          textAlign: "left",
+          cursor: "pointer",
+          fontFamily: "inherit",
+          appearance: "none",
+          WebkitAppearance: "none",
+          userSelect: "none",
+          WebkitUserSelect: "none",
+          WebkitTouchCallout: "none",
+          touchAction: "manipulation",
+          position: "relative",
+          border: "1px solid " + (on ? t.text.accent : t.border.subtle),
+          background: on ? t.fill.accentSubtle : "transparent",
+          color: t.text.primary,
+          boxShadow: on ? "inset 0 0 0 1px " + t.text.accent : "none",
+        }}
+      >
+        {opts.children}
+        {on ? <span aria-hidden="true" style={{ position: "absolute", top: 2, right: 3, color: t.text.accent, display: "inline-flex" }}>{speakerIcon}</span> : null}
+      </button>
+    );
+  };
+
   const letterGrid = (letters: string[]): ReactNode => {
     const cols = uiShort ? (uiNarrow ? 4 : 7) : 3;
     const showSay = !uiShort;
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(" + cols + ", minmax(0, 1fr))", gridAutoRows: "minmax(min-content, 1fr)", gap: uiShort ? 4 : 5 }}>
-        {letters.map((a: string) => (
-          <div key={a} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: uiShort ? "2px 6px" : "3px 6px", display: "flex", gap: 6, alignItems: "center", minWidth: 0, boxSizing: "border-box", minHeight: 0 }}>
-            <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.1, flex: "0 0 auto" }}>{a}</span>
-            <span style={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 0, justifyContent: "center" }}>
-              <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "17px", fontWeight: t.weight.medium }}>{NATO[a]}</span>
-              {showSay && NATO_SAY[a] ? <span style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px" }}>{NATO_SAY[a]}</span> : null}
-            </span>
-          </div>
-        ))}
-      </div>
+      <>
+        {speakHint}
+        <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(" + cols + ", minmax(0, 1fr))", gridAutoRows: "minmax(min-content, 1fr)", gap: uiShort ? 4 : 5 }}>
+          {letters.map((a: string) =>
+            tafelBtn({
+              id: "L-" + a,
+              label: a + " " + NATO[a],
+              itu: NATO_TTS[a] || NATO[a],
+              plain: NATO[a],
+              style: { borderRadius: t.radius.md, padding: uiShort ? "2px 6px" : "3px 6px", display: "flex", gap: 6, alignItems: "center", minWidth: 0, boxSizing: "border-box", minHeight: 0 },
+              children: (
+                <>
+                  <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.1, flex: "0 0 auto" }}>{a}</span>
+                  <span style={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 0, justifyContent: "center" }}>
+                    <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "17px", fontWeight: t.weight.medium }}>{NATO[a]}</span>
+                    {showSay && NATO_SAY[a] ? <span style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px" }}>{NATO_SAY[a]}</span> : null}
+                  </span>
+                </>
+              ),
+            }),
+          )}
+        </div>
+      </>
     );
   };
 
@@ -2965,28 +3185,46 @@ export default function App() {
         fillPage(letterGrid(L)),
         fillPage(
           <>
-            {screenTitle("Ziffern und Zeichen", uiShort ? undefined : "Umlaute werden aufgelöst (Ä → A E). Im Alltag spricht man Ziffern meist englisch (Zero … Nine; auch Tree, Fower, Fife, Niner). Die ITU-Ziffernwörter stehen in der Vollzugsordnung für den Funkdienst.")}
-            <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: uiShort ? "repeat(4, minmax(0, 1fr))" : "repeat(auto-fill, minmax(150px, 1fr))", gap: uiShort ? 4 : 6, alignContent: "start" }}>
-              {DIGIT_EN.map((w: string, i: number) => (
-                <div key={i} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: uiShort ? "4px 6px" : "6px 8px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                    <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.15 }}>{i}</span>
-                    <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "18px", fontWeight: t.weight.medium }}>{w}</span>
-                  </div>
-                  <span style={{ ...txt("label", t.text.tertiary), paddingLeft: 2 }}>{DIGIT_ITU[i]}</span>
-                </div>
-              ))}
-              {extraMarks.map((x) => (
-                <div key={x.ch} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: uiShort ? "4px 6px" : "6px 8px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" }}>
-                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
-                    <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.15 }}>{x.ch}</span>
-                    <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "18px", fontWeight: t.weight.medium }}>{x.word}</span>
-                  </div>
-                  <span style={{ ...txt("label", t.text.tertiary), paddingLeft: 2 }}>{x.hint}</span>
-                </div>
-              ))}
+            {uiShort ? null : screenTitle("Ziffern und Zeichen", "Umlaute werden aufgelöst (Ä → A E). Im Alltag spricht man Ziffern meist englisch (Zero … Nine; auch Tree, Fower, Fife, Niner). Die ITU-Ziffernwörter stehen in der Vollzugsordnung für den Funkdienst.")}
+            {uiShort ? <div style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px", flex: "0 0 auto" }}>Tippen zum Anhören · Umlaute: Ä → A E. Alltag: Zero … Nine (auch Tree, Fower, Fife, Niner).</div> : speakHint}
+            <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: uiShort ? (uiNarrow ? "repeat(4, minmax(0, 1fr))" : "repeat(6, minmax(0, 1fr))") : "repeat(auto-fill, minmax(150px, 1fr))", gap: uiShort ? 4 : 6, alignContent: "start" }}>
+              {DIGIT_EN.map((w: string, i: number) =>
+                tafelBtn({
+                  id: "D-" + i,
+                  label: i + " " + DIGIT_ITU[i],
+                  itu: DIGIT_ITU_TTS[i],
+                  plain: w,
+                  style: { borderRadius: t.radius.md, padding: uiShort ? "4px 6px" : "6px 8px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" },
+                  children: (
+                    <>
+                      <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                        <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.15 }}>{i}</span>
+                        <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "18px", fontWeight: t.weight.medium }}>{w}</span>
+                      </div>
+                      <span style={{ ...txt("label", t.text.tertiary), paddingLeft: 2 }}>{DIGIT_ITU[i]}</span>
+                    </>
+                  ),
+                }),
+              )}
+              {extraMarks.map((x) =>
+                tafelBtn({
+                  id: "M-" + x.ch,
+                  label: x.word,
+                  itu: (MARK_TTS[x.ch] || { itu: x.word, plain: x.word }).itu,
+                  plain: (MARK_TTS[x.ch] || { itu: x.word, plain: x.word }).plain,
+                  style: { borderRadius: t.radius.md, padding: uiShort ? "4px 6px" : "6px 8px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" },
+                  children: (
+                    <>
+                      <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                        <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.15 }}>{x.ch}</span>
+                        <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "18px", fontWeight: t.weight.medium }}>{x.word}</span>
+                      </div>
+                      <span style={{ ...txt("label", t.text.tertiary), paddingLeft: 2 }}>{x.hint}</span>
+                    </>
+                  ),
+                }),
+              )}
             </div>
-            {uiShort ? <div style={txt("label", t.text.tertiary)}>Umlaute: Ä → A E. Alltag: Zero … Nine (auch Tree, Fower, Fife, Niner).</div> : null}
           </>,
         ),
         stack(
@@ -6656,6 +6894,9 @@ export default function App() {
         {titleInHeader ? (sub ? <div style={{ ...txt("label", t.text.secondary), flex: "0 0 auto" }}>{sub}</div> : null) : screenTitle(title, sub || undefined)}
         {body}
       </div>
+      {tafelToast ? (
+        <div role="status" aria-live="polite" style={{ position: "absolute", left: 12, right: 12, bottom: 12, zIndex: 20, background: t.bg.elevated, color: t.text.primary, border: "1px solid " + t.border.default, borderRadius: t.radius.lg, padding: "10px 14px", boxShadow: "0 6px 20px rgba(0,0,0,0.16)", ...txt("body2", t.text.primary) }}>{tafelToast}</div>
+      ) : null}
       {ask ? (
         <div role="dialog" aria-modal="true" aria-labelledby="ask-title" style={{ position: "absolute", inset: 0, background: "rgba(15,18,22,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, padding: 16 }}>
           <div style={{ background: t.bg.elevated, color: t.text.primary, borderRadius: t.radius.xl, border: "1px solid " + t.border.default, padding: 20, maxWidth: 400, width: "100%", display: "flex", flexDirection: "column", gap: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }}>
