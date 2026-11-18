@@ -6,3 +6,5 @@
 - German (UBI positions): Piper `de_DE-thorsten-medium` (22.05 kHz). Dataset: Thorsten Voice, CC0.
   See https://github.com/thorstenMueller/Thorsten-Voice and the Piper MODEL_CARD.
 - Encoding: mono 22050 Hz, 48k MP3, loudness normalised to about −16 LUFS, trimmed, short fade, true peak ≤ −1.5 dB.
+
+Files live under `media/spell/v3/` so a new voice cannot be served from an old service-worker cache of the previous path.

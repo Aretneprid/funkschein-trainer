@@ -24,7 +24,7 @@ import numpy as np
 import soundfile as sf
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "public" / "media" / "spell"
+OUT = ROOT / "public" / "media" / "spell" / "v3"
 WAV = Path("/tmp/spell-wav")
 MODEL = Path(os.environ.get("KOKORO_MODEL", "/tmp/kokoro-models/kokoro-v1.0.onnx"))
 VOICES = Path(os.environ.get("KOKORO_VOICES", "/tmp/kokoro-models/voices-v1.0.bin"))

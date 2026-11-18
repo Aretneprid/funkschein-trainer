@@ -566,10 +566,13 @@ function applyEnglishVoice(u: SpeechSynthesisUtterance): SpeechSynthesisVoice | 
   return applyVoice(u, "en-GB");
 }
 
+/** Versioned folder so a new voice cannot be served from an old SW/HTTP cache of l-a.mp3 etc. */
+const SPELL_CLIP_DIR = "media/spell/v3/";
+
 function spellClipUrl(file: string): string {
   const base = (typeof import.meta !== "undefined" && import.meta.env && import.meta.env.BASE_URL) ? String(import.meta.env.BASE_URL) : "./";
   const prefix = base.endsWith("/") ? base : base + "/";
-  return new URL(prefix + "media/spell/" + file, typeof document !== "undefined" ? document.baseURI : prefix).href;
+  return new URL(prefix + SPELL_CLIP_DIR + file, typeof document !== "undefined" ? document.baseURI : prefix).href;
 }
 
 function tafelClipFile(id: string, mode: "itu" | "plain"): string | null {
@@ -2269,6 +2272,18 @@ export default function App() {
   const [examInfo, setExamInfo] = useState<boolean>(false);
   const [tafelSpeak, setTafelSpeak] = useState<{ id: string; mode: "itu" | "plain" } | null>(null);
   const [tafelToast, setTafelToast] = useState<string>("");
+  const [swUpdate, setSwUpdate] = useState<null | (() => void)>(null);
+  useEffect(() => {
+    const apply = (update: () => void) => setSwUpdate(() => update);
+    const onUpd = (e: Event) => {
+      const update = (e as CustomEvent).detail && (e as CustomEvent).detail.update;
+      if (typeof update === "function") apply(update);
+    };
+    window.addEventListener("ft-sw-update", onUpd);
+    const pending = (window as unknown as { __ftSwUpdate?: () => void }).__ftSwUpdate;
+    if (typeof pending === "function") apply(pending);
+    return () => window.removeEventListener("ft-sw-update", onUpd);
+  }, []);
   const tafelLong = useRef<{ timer: number | null; skip: boolean }>({ timer: null, skip: false });
   useEffect(() => {
     const fn = () => {
@@ -7159,7 +7174,12 @@ export default function App() {
   const backText = par === null ? "‹ Zeugnisse" : "‹ " + titleOfPath(par);
 
   if (!chosen) {
-    return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base }}>{chooser()}</div>;
+    return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base, position: "relative" }}>{chooser()}{swUpdate ? (
+        <div role="status" aria-live="polite" data-sw-update="1" style={{ position: "absolute", left: 12, right: 12, bottom: 12, zIndex: 40, background: t.bg.elevated, color: t.text.primary, border: "1px solid " + t.border.default, borderRadius: t.radius.lg, padding: "10px 14px", boxShadow: "0 8px 28px rgba(0,0,0,0.2)", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+          <span style={txt("body2", t.text.primary)}>Update verfügbar – neue Sprachclips sind bereit.</span>
+          <Button label="Neu laden" variant="primary" onClick={() => { const fn = swUpdate; setSwUpdate(null); if (fn) fn(); }} />
+        </div>
+      ) : null}</div>;
   }
 
   const lastCrumb = crumbs[crumbs.length - 1];
@@ -7210,6 +7230,12 @@ export default function App() {
               <Button label={ask.ok} variant="primary" onClick={() => { const fn = ask.onOk; setAsk(null); fn(); }} />
             </div>
           </div>
+        </div>
+      ) : null}
+      {swUpdate ? (
+        <div role="status" aria-live="polite" data-sw-update="1" style={{ position: "absolute", left: 12, right: 12, bottom: 12, zIndex: 40, background: t.bg.elevated, color: t.text.primary, border: "1px solid " + t.border.default, borderRadius: t.radius.lg, padding: "10px 14px", boxShadow: "0 8px 28px rgba(0,0,0,0.2)", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
+          <span style={txt("body2", t.text.primary)}>Update verfügbar – neue Sprachclips sind bereit.</span>
+          <Button label="Neu laden" variant="primary" onClick={() => { const fn = swUpdate; setSwUpdate(null); if (fn) fn(); }} />
         </div>
       ) : null}
     </div>
