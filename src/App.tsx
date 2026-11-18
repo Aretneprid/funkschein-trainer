@@ -1225,7 +1225,7 @@ const HOLD_BTN: CSSProperties = {
   cursor: "pointer",
 };
 
-function HoldDeButton({ held, setHeld, t, fam, accent }: { held: boolean; setHeld: (v: boolean) => void; t: Theme; fam: string; accent: string }): ReactNode {
+function HoldDeButton({ held, setHeld, t, fam, accent, compact }: { held: boolean; setHeld: (v: boolean) => void; t: Theme; fam: string; accent: string; compact?: boolean }): ReactNode {
   const press = (e: { preventDefault: () => void; currentTarget?: { setPointerCapture?: (id: number) => void }; pointerId?: number }) => {
     e.preventDefault();
     setHeld(true);
@@ -1260,16 +1260,17 @@ function HoldDeButton({ held, setHeld, t, fam, accent }: { held: boolean; setHel
       onBlur={release}
       style={{
         ...HOLD_BTN,
+        ...(compact ? { minHeight: 32, padding: "4px 8px", gap: 4, fontSize: 13, lineHeight: "16px" } : {}),
         fontFamily: fam,
-        fontSize: t.font.body2.fontSize,
-        lineHeight: t.font.body2.lineHeight,
+        fontSize: compact ? 13 : t.font.body2.fontSize,
+        lineHeight: compact ? "16px" : t.font.body2.lineHeight,
         fontWeight: t.weight.semibold,
         border: "2px solid " + accent,
         background: held ? accent : t.fill.accentSubtle,
         color: held ? t.bg.base : t.text.primary,
       }}
     >
-      {held ? "Deutsch – loslassen" : "🇩🇪 Halten für Deutsch"}
+      {held ? (compact ? "Deutsch" : "Deutsch – loslassen") : (compact ? "🇩🇪 Deutsch" : "🇩🇪 Halten für Deutsch")}
     </button>
   );
 }
@@ -3683,6 +3684,7 @@ export default function App() {
   const [ordShown, setOrdShown] = useState(0);
   const [ordHint, setOrdHint] = useState(-1);
   const [ordSolved, setOrdSolved] = useState(false);
+  const [ordHintsOpen, setOrdHintsOpen] = useState(true);
   const [holdDe, setHoldDe] = useState(false);
 
   const exB = (scen: Scen, extra?: Partial<SP>): string[] => buildSpruch({ ...EX_SEE, rev: "binnen", scen, ...extra }).de;
@@ -4712,6 +4714,7 @@ export default function App() {
     setOrdShown(0);
     setOrdHint(-1);
     setOrdSolved(false);
+    setOrdHintsOpen(true);
     setHoldDe(false);
     setOrdMix(shuffleIdx(orderDrill(visibleOrderId).blocks.length));
   }, [certC, visibleOrderId]);
@@ -4737,6 +4740,7 @@ export default function App() {
     setOrdShown(0);
     setOrdHint(-1);
     setOrdSolved(false);
+    setOrdHintsOpen(true);
     setHoldDe(false);
     setOrdMix(shuffleIdx(d.blocks.length));
   };
@@ -4772,89 +4776,161 @@ export default function App() {
       if (!srcEn) return bl.label;
       return holdDe && bl.exDe ? bl.exDe : bl.ex;
     };
+    const instr = revealed ? (srcEn ? (holdDe ? "Lösung auf Deutsch (prüfen in Englisch)" : "Lösung – englischer Prüfungstext, zählt nicht als selbst gelöst") : "Lösung – zählt nicht als selbst gelöst") : (srcEn ? "Tippe die englischen Bausteine in der richtigen Reihenfolge an" : "Tippe die Bausteine in der richtigen Reihenfolge an");
+    const tight = uiNarrow || uiShort;
+    const answerLine: CSSProperties = {
+      textAlign: "left",
+      padding: tight ? (uiShort ? "0px 6px" : "3px 8px") : "6px 10px",
+      minHeight: 0,
+      width: "100%",
+      boxSizing: "border-box",
+      borderRadius: t.radius.md,
+      color: t.text.primary,
+      fontFamily: fam,
+      ...txt("body2", t.text.primary),
+      fontSize: tight ? (uiShort ? 12 : 13) : t.font.body2.fontSize,
+      lineHeight: tight ? (uiShort ? "13px" : "17px") : t.font.body2.lineHeight,
+      whiteSpace: "normal",
+      overflowWrap: "break-word",
+      overflow: "visible",
+      flex: "0 0 auto",
+      appearance: "none",
+      WebkitAppearance: "none",
+    };
+    const actBtn = (kind: "accent" | "primary" | "quiet" | "default"): CSSProperties => ({
+      fontFamily: fam,
+      fontSize: tight ? 13 : t.font.body2.fontSize,
+      lineHeight: tight ? "16px" : t.font.body2.lineHeight,
+      fontWeight: t.weight.semibold,
+      padding: uiShort ? "4px 8px" : tight ? "5px 8px" : "10px 14px",
+      minHeight: uiShort ? 32 : tight ? 36 : 44,
+      minWidth: uiShort ? 32 : tight ? 36 : 44,
+      boxSizing: "border-box",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: tight ? 4 : 8,
+      borderRadius: t.radius.full,
+      cursor: "pointer",
+      border: kind === "quiet" ? "1px solid transparent" : kind === "primary" ? "1px solid " + t.text.accent : "2px solid " + accent,
+      background: kind === "primary" ? t.text.accent : kind === "quiet" ? "transparent" : t.fill.accentSubtle,
+      color: kind === "primary" ? t.bg.base : t.text.primary,
+    });
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
-        {(() => {
-          const instr = revealed ? (srcEn ? (holdDe ? "Lösung auf Deutsch (prüfen in Englisch)" : "Lösung – englischer Prüfungstext, zählt nicht als selbst gelöst") : "Lösung – zählt nicht als selbst gelöst") : (srcEn ? "Tippe die englischen Bausteine in der richtigen Reihenfolge an" : "Tippe die Bausteine in der richtigen Reihenfolge an");
-          return hideTitle ? <div style={txt("body2", t.text.secondary)}>{instr}</div> : screenTitle(drill.title, instr);
-        })()}
-        {drill.dsc ? <div style={txt("subtext", t.text.secondary)}>{drill.dsc}</div> : null}
-        {drill.note ? <div style={txt("subtext", t.text.secondary)}>{drill.note}</div> : null}
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 5 }}>
-          {revealed
-            ? shown.map((bl: OrderBlock, i: number) => (
-                <div key={i} style={{ display: "flex", gap: 8, alignItems: "flex-start", padding: "6px 8px", borderRadius: t.radius.md, border: "1px solid " + t.text.success, background: t.fill.successSubtle, animation: "fsOrdIn 280ms ease-out" }}>
-                  <span style={{ flex: "0 0 26px", height: 26, borderRadius: t.radius.full, background: accent, color: t.bg.base, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: t.weight.semibold, ...txt("label", t.bg.base, t.weight.semibold) }}>{i + 1}</span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                    <span style={{ fontFamily: t.font.mono, ...txt("body1", t.text.primary, t.weight.semibold) }}>{blockText(bl)}</span>
-                    <span style={txt("subtext", t.text.secondary)}>{bl.hint}</span>
-                  </div>
-                </div>
-              ))
-            : (
-              <>
-                {ordUse.map((v: number, i: number) => (
-                  <button
-                    key={i}
-                    type="button"
-                    onClick={() => undoFrom(i)}
-                    aria-label={(i + 1) + ". " + blockText(blocks[v]) + " – diesen und folgende zurücknehmen"}
-                    style={{ textAlign: "left", padding: "10px 12px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.md, border: "1px solid " + (v === i ? t.text.success : t.text.danger), background: v === i ? t.fill.successSubtle : t.fill.dangerSubtle, color: t.text.primary, fontFamily: fam, ...txt("body1", t.text.primary), cursor: "pointer" }}
-                  >
-                    {i + 1 + ". " + blockText(blocks[v])}
-                  </button>
-                ))}
-                {!doneAll ? (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                    {mix
-                      .filter((i: number) => ordUse.indexOf(i) < 0)
-                      .map((i: number) => (
-                        <button
-                          key={"o" + i}
-                          type="button"
-                          onClick={() => {
-                            setOrdHint(-1);
-                            const next = ordUse.concat([i]);
-                            setOrd(next);
-                            if (next.length === blocks.length && next.every((v: number, j: number) => v === j)) markOrderSolved(drill.id);
-                          }}
-                          style={{
-                            fontFamily: fam,
-                            ...txt("body2", t.text.primary, t.weight.semibold),
-                            padding: "10px 14px",
-                            minHeight: 44,
-                            borderRadius: t.radius.full,
-                            border: "2px solid " + (ordHint === i ? t.text.warning : t.border.default),
-                            background: ordHint === i ? t.fill.warningSubtle : t.bg.elevated,
-                            boxShadow: ordHint === i ? "0 0 0 3px " + t.fill.warningSubtle : "none",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {blockText(blocks[i])}
-                        </button>
-                      ))}
-                  </div>
-                ) : null}
-              </>
-            )}
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: uiShort ? 4 : 8, overflow: "hidden" }}>
+        <div data-ord-hints="1" style={{ flex: ordHintsOpen ? "0 1 auto" : "0 0 auto", minHeight: ordHintsOpen ? (uiShort ? 44 : 56) : 0, maxHeight: ordHintsOpen ? (uiShort ? "28%" : "36%") : undefined, minWidth: 0, overflowY: "auto", overscrollBehavior: "contain", display: "flex", flexDirection: "column", gap: 4 }}>
+          <button
+            type="button"
+            data-ord-hints-toggle="1"
+            aria-expanded={ordHintsOpen}
+            aria-label={ordHintsOpen ? "Hinweise einklappen" : "Hinweise ausklappen"}
+            onClick={() => setOrdHintsOpen(!ordHintsOpen)}
+            style={{ flex: "0 0 auto", display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, width: "100%", margin: 0, padding: 0, border: "none", background: "transparent", color: t.text.primary, fontFamily: "inherit", textAlign: "left", cursor: "pointer" }}
+          >
+            <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+              {ordHintsOpen
+                ? (hideTitle ? <div style={txt("body2", t.text.secondary)}>{instr}</div> : screenTitle(drill.title, instr))
+                : <div style={{ ...txt("body2", t.text.primary, t.weight.semibold), fontSize: tight ? 14 : t.font.body2.fontSize, lineHeight: tight ? "18px" : t.font.body2.lineHeight }}>{hideTitle ? drill.short : drill.title}</div>}
+            </span>
+            <span aria-hidden="true" style={{ ...txt("body2", t.text.secondary), flex: "0 0 auto", paddingTop: 2 }}>{ordHintsOpen ? "▴" : "▾"}</span>
+          </button>
+          {ordHintsOpen ? (
+            <>
+              {drill.dsc ? <div style={txt("subtext", t.text.secondary)}>{drill.dsc}</div> : null}
+              {drill.note ? <div style={txt("subtext", t.text.secondary)}>{drill.note}</div> : null}
+            </>
+          ) : null}
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", flex: "0 0 auto", background: t.bg.elevated, paddingTop: 6 }}>
-          {revealed ? (ordSolved || orderDone(drill.id) ? <Status tone="success">Selbst gelöst</Status> : <Status tone="accent">Nicht selbst gelöst</Status>) : doneAll ? (ok ? <Status tone="success">Perfekt – richtige Reihenfolge</Status> : <Status tone="danger">Rote Bausteine stehen falsch</Status>) : ordHint === -2 ? <Status tone="warning">Erst neu ordnen oder Lösung zeigen</Status> : null}
-          {srcEn ? <HoldDeButton held={holdDe} setHeld={setHoldDe} t={t} fam={fam} accent={accent} /> : null}
+        {revealed ? (
+          <div data-ord-answer="1" style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: uiShort ? 1 : tight ? 3 : 4, minWidth: 0, border: "1px solid " + t.text.success, background: t.fill.successSubtle, borderRadius: t.radius.md, padding: uiShort ? 2 : tight ? 4 : 6 }}>
+            {ordSolved || orderDone(drill.id) ? <Status tone="success">Selbst gelöst</Status> : <Status tone="accent">Nicht selbst gelöst</Status>}
+            {shown.map((bl: OrderBlock, i: number) => (
+              <div key={i} style={{ display: "flex", gap: tight ? 6 : 8, alignItems: "flex-start", animation: "fsOrdIn 280ms ease-out", flex: "0 0 auto", minWidth: 0 }}>
+                <span style={{ flex: "0 0 " + (tight ? "18px" : "24px"), height: tight ? 18 : 24, borderRadius: t.radius.full, background: accent, color: t.bg.base, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: t.weight.semibold, ...txt("label", t.bg.base, t.weight.semibold), fontSize: tight ? 11 : t.font.label.fontSize }}>{i + 1}</span>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0, flex: "1 1 auto" }}>
+                  <span style={{ fontFamily: t.font.mono, ...txt("body2", t.text.primary, t.weight.semibold), fontSize: tight ? (uiShort ? 12 : 13) : t.font.body2.fontSize, lineHeight: tight ? (uiShort ? "13px" : "17px") : t.font.body2.lineHeight, whiteSpace: "normal", overflowWrap: "break-word" }}>{blockText(bl)}</span>
+                  {uiShort || uiNarrow ? null : <span style={txt("subtext", t.text.secondary)}>{bl.hint}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <div data-ord-answer="1" style={{ flex: "0 0 auto", display: "flex", flexDirection: "column", gap: uiShort ? 1 : tight ? 3 : 4, minWidth: 0, border: "1px solid " + (ordUse.length ? t.text.success : t.border.subtle), background: ordUse.length ? t.fill.successSubtle : t.bg.elevated, borderRadius: t.radius.md, padding: uiShort ? 2 : tight ? 4 : 6 }}>
+              {ordUse.length === 0 ? (
+                <div style={{ ...txt("subtext", t.text.tertiary), padding: "4px 6px" }}>Deine Reihenfolge erscheint hier</div>
+              ) : ordUse.map((v: number, i: number) => (
+                <button
+                  key={i}
+                  type="button"
+                  data-ord-item={i + 1}
+                  onClick={() => undoFrom(i)}
+                  aria-label={(i + 1) + ". " + blockText(blocks[v]) + " – diesen und folgende zurücknehmen"}
+                  style={{
+                    ...answerLine,
+                    border: v === i ? "none" : "1px solid " + t.text.danger,
+                    background: v === i ? "transparent" : t.fill.dangerSubtle,
+                    cursor: "pointer",
+                    color: t.text.primary,
+                  }}
+                >
+                  {i + 1 + ". " + blockText(blocks[v])}
+                </button>
+              ))}
+              {doneAll ? (ok ? <Status tone="success">Perfekt – richtige Reihenfolge</Status> : <Status tone="danger">Rote Bausteine stehen falsch</Status>) : ordHint === -2 ? <Status tone="warning">Erst neu ordnen oder Lösung zeigen</Status> : null}
+            </div>
+            {!doneAll ? (
+              <div data-ord-pool="1" style={{ flex: "1 1 auto", minHeight: uiShort ? 0 : 52, minWidth: 0, overflowY: "auto", overscrollBehavior: "contain", display: "flex", flexWrap: "wrap", gap: 6, alignContent: "flex-start" }}>
+                {mix
+                  .filter((i: number) => ordUse.indexOf(i) < 0)
+                  .map((i: number) => (
+                    <button
+                      key={"o" + i}
+                      type="button"
+                      onClick={() => {
+                        setOrdHint(-1);
+                        const next = ordUse.concat([i]);
+                        setOrd(next);
+                        if (next.length === 3 && (uiNarrow || uiShort)) setOrdHintsOpen(false);
+                        if (next.length === blocks.length && next.every((v: number, j: number) => v === j)) markOrderSolved(drill.id);
+                      }}
+                      style={{
+                        fontFamily: fam,
+                        ...txt("body2", t.text.primary, t.weight.semibold),
+                        padding: "8px 12px",
+                        minHeight: 40,
+                        whiteSpace: "normal",
+                        overflowWrap: "break-word",
+                        borderRadius: t.radius.full,
+                        border: "2px solid " + (ordHint === i ? t.text.warning : t.border.default),
+                        background: ordHint === i ? t.fill.warningSubtle : t.bg.elevated,
+                        boxShadow: ordHint === i ? "0 0 0 3px " + t.fill.warningSubtle : "none",
+                        cursor: "pointer",
+                      }}
+                    >
+                      {blockText(blocks[i])}
+                    </button>
+                  ))}
+              </div>
+            ) : null}
+          </>
+        )}
+        <div data-ord-actions="1" style={{ display: "flex", gap: tight ? 4 : 6, alignItems: "center", flexWrap: "wrap", flex: "0 0 auto", background: t.bg.elevated, paddingTop: tight ? 2 : 4 }}>
+          {srcEn ? <HoldDeButton held={holdDe} setHeld={setHoldDe} t={t} fam={fam} accent={accent} compact={tight} /> : null}
           {!revealed && ordUse.length > 0 ? (
             <button
               type="button"
               onClick={undoLast}
               aria-label="Letzten zurück"
-              style={{ fontFamily: fam, ...txt("body2", t.text.primary, t.weight.semibold), padding: "10px 14px", minHeight: 44, minWidth: 44, boxSizing: "border-box", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, cursor: "pointer" }}
+              style={actBtn("accent")}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H13"/></svg>
-              Letzten zurück
+              <svg width={tight ? 14 : 18} height={tight ? 14 : 18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 1 1 0 11H13"/></svg>
+              {tight ? "Zurück" : "Letzten zurück"}
             </button>
           ) : null}
-          {!revealed && !doneAll ? <Button label="Tipp" variant="quiet" onClick={() => (nextIdx >= 0 ? setOrdHint(nextIdx) : setOrdHint(-2))} /> : null}
-          {!revealed ? <Button label="Lösung zeigen" variant="primary" onClick={() => setOrdPhase("revealed")} /> : null}
-          {revealed || ordUse.length > 0 ? <Button label={revealed ? "Nochmal üben" : "Neu ordnen"} onClick={resetOrder} /> : null}
+          {!revealed && !doneAll ? <button type="button" style={actBtn("quiet")} onClick={() => (nextIdx >= 0 ? setOrdHint(nextIdx) : setOrdHint(-2))}>Tipp</button> : null}
+          {!revealed ? <button type="button" style={actBtn("primary")} onClick={() => { if (tight) setOrdHintsOpen(false); setOrdPhase("revealed"); }}>{tight ? "Lösung" : "Lösung zeigen"}</button> : null}
+          {revealed || ordUse.length > 0 ? <button type="button" style={actBtn("default")} onClick={resetOrder}>{revealed ? (tight ? "Nochmal" : "Nochmal üben") : (tight ? "Neu" : "Neu ordnen")}</button> : null}
         </div>
       </div>
     );
@@ -7030,6 +7106,7 @@ export default function App() {
   let body: ReactNode = null;
   let title = "";
   let sub = "";
+  let hideShellTitle = false;
   const a0 = path[0];
   if (path.length === 0) {
     title = "Was möchtest du tun?";
@@ -7063,7 +7140,8 @@ export default function App() {
         const d = orderDrill(path[2]);
         title = d.title;
         sub = d.short;
-        body = orderTool(path[2], true);
+        hideShellTitle = uiNarrow || uiShort;
+        body = orderTool(path[2], !(uiNarrow || uiShort));
       }
     } else if (path[1] === "funk" && path.length === 2) {
       title = "Funkverfahren";
@@ -7185,16 +7263,17 @@ export default function App() {
   const lastCrumb = crumbs[crumbs.length - 1];
   const namedBack = backText !== "‹ Zurück" && backText !== "‹ Zeugnisse";
   const titleInHeader = path.length > 0 && !uiNarrow && (title === lastCrumb || title.indexOf(lastCrumb) === 0);
-  const navBtn: CSSProperties = { flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: uiNarrow ? "8px 10px" : "10px 14px", minHeight: 44, boxSizing: "border-box", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: t.font.body2.fontSize, fontWeight: t.weight.semibold, cursor: "pointer", maxWidth: uiNarrow ? 220 : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
-  const crumbBtn = (current: boolean): CSSProperties => ({ border: "none", background: "transparent", padding: "10px 6px", minHeight: 44, minWidth: current ? 0 : 44, flexShrink: current ? 1 : 0, boxSizing: "border-box", cursor: current ? "default" : "pointer", fontFamily: fam, fontSize: t.font.body2.fontSize, color: current ? t.text.primary : t.text.secondary, fontWeight: current ? t.weight.semibold : t.weight.regular, overflow: current ? "hidden" : "visible", textOverflow: current ? "ellipsis" : "clip", whiteSpace: "nowrap", maxWidth: "100%" });
+  const compactChrome = hideShellTitle && uiShort;
+  const navBtn: CSSProperties = { flex: "0 0 auto", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 4, padding: compactChrome ? "4px 8px" : uiNarrow ? "8px 10px" : "10px 14px", minHeight: compactChrome ? 32 : 44, boxSizing: "border-box", borderRadius: t.radius.full, border: "2px solid " + accent, background: t.fill.accentSubtle, color: t.text.primary, fontFamily: fam, fontSize: compactChrome ? 13 : t.font.body2.fontSize, fontWeight: t.weight.semibold, cursor: "pointer", maxWidth: uiNarrow ? 220 : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" };
+  const crumbBtn = (current: boolean): CSSProperties => ({ border: "none", background: "transparent", padding: compactChrome ? "4px 6px" : "10px 6px", minHeight: compactChrome ? 32 : 44, minWidth: current ? 0 : (compactChrome ? 32 : 44), flexShrink: current ? 1 : 0, boxSizing: "border-box", cursor: current ? "default" : "pointer", fontFamily: fam, fontSize: compactChrome ? 13 : t.font.body2.fontSize, color: current ? t.text.primary : t.text.secondary, fontWeight: current ? t.weight.semibold : t.weight.regular, overflow: current ? "hidden" : "visible", textOverflow: current ? "ellipsis" : "clip", whiteSpace: "nowrap", maxWidth: "100%" });
 
   return (
     <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 1100, margin: "0 auto", height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box", position: "relative" }}>
-      <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: 8, padding: "8px 10px", borderBottom: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
+      <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: compactChrome ? 6 : 8, padding: compactChrome ? "4px 10px" : "8px 10px", borderBottom: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
         <button type="button" onClick={back} aria-label={backText} style={navBtn}>
           {backText}
         </button>
-        <button type="button" onClick={() => requestNav(() => goHome())} aria-label="Zur Übersicht" style={{ flex: "0 0 auto", border: "none", background: "transparent", padding: 4, minWidth: 44, minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", borderRadius: t.radius.md }}>
+        <button type="button" onClick={() => requestNav(() => goHome())} aria-label="Zur Übersicht" style={{ flex: "0 0 auto", border: "none", background: "transparent", padding: 4, minWidth: compactChrome ? 32 : 44, minHeight: compactChrome ? 32 : 44, display: "inline-flex", alignItems: "center", justifyContent: "center", cursor: "pointer", borderRadius: t.radius.md }}>
           {appIcon(28)}
         </button>
         <div style={{ flex: "1 1 auto", minWidth: 0, display: "flex", alignItems: "center", gap: 4, overflow: "hidden" }}>
@@ -7213,8 +7292,8 @@ export default function App() {
         </div>
         {certTabs("SRC", "UBI")}
       </div>
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: uiShort ? 8 : 12, padding: uiShort ? "8px 10px 8px" : "12px 12px 8px" }}>
-        {titleInHeader ? (sub ? <div style={{ ...txt("label", t.text.secondary), flex: "0 0 auto" }}>{sub}</div> : null) : screenTitle(title, sub || undefined)}
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: compactChrome ? 4 : uiShort ? 8 : 12, padding: compactChrome ? "4px 10px 4px" : uiShort ? "8px 10px 8px" : "12px 12px 8px" }}>
+        {hideShellTitle ? null : titleInHeader ? (sub ? <div style={{ ...txt("label", t.text.secondary), flex: "0 0 auto" }}>{sub}</div> : null) : screenTitle(title, sub || undefined)}
         {body}
       </div>
       {tafelToast ? (
