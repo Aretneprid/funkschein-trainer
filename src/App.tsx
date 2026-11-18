@@ -488,6 +488,11 @@ const NATO: Record<string, string> = {
   J: "Juliett", K: "Kilo", L: "Lima", M: "Mike", N: "November", O: "Oscar", P: "Papa", Q: "Quebec", R: "Romeo",
   S: "Sierra", T: "Tango", U: "Uniform", V: "Victor", W: "Whiskey", X: "X-ray", Y: "Yankee", Z: "Zulu",
 };
+const NATO_SAY: Record<string, string> = {
+  A: "AL-FAH", B: "BRAH-VOH", C: "CHAR-LEE", D: "DELL-TAH", E: "ECK-OH", F: "FOKS-TROT", G: "GOLF", H: "HOH-TEL", I: "IN-DEE-AH",
+  J: "JEW-LEE-ETT", K: "KEY-LOH", L: "LEE-MAH", M: "MIKE", N: "NO-VEM-BER", O: "OSS-CAH", P: "PAH-PAH", Q: "KEH-BECK", R: "ROW-ME-OH",
+  S: "SEE-AIR-RAH", T: "TANG-GO", U: "YOU-NEE-FORM", V: "VIK-TAH", W: "WISS-KEY", X: "ECKS-RAY", Y: "YANG-KEY", Z: "ZOO-LOO",
+};
 const DIGIT_EN = ["Zero", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"];
 const DIGIT_ITU = ["Nadazero", "Unaone", "Bissotwo", "Terrathree", "Kartefour", "Pantafive", "Soxisix", "Setteseven", "Oktoeight", "Novenine"];
 const UMLAUT: Record<string, string> = { "Ä": "AE", "Ö": "OE", "Ü": "UE", "ß": "SS" };
@@ -2251,8 +2256,8 @@ export default function App() {
   const stack = (children: ReactNode): ReactNode => <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>{children}</div>;
 
   const pageDots = (n: number): ReactNode =>
-    n <= 12 ? (
-      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+    n <= 12 && !uiNarrow ? (
+      <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "nowrap", justifyContent: "center", minWidth: 0 }}>
         {Array.from({ length: n }, (_: unknown, i: number) => (
           <button
             key={i}
@@ -2266,7 +2271,7 @@ export default function App() {
         ))}
       </div>
     ) : (
-      <span style={txt("subtext", t.text.secondary)}>{pg + 1 + " / " + n}</span>
+      <span style={{ ...txt("subtext", t.text.secondary), flex: "0 0 auto", whiteSpace: "nowrap" }}>{pg + 1 + " / " + n}</span>
     );
 
   /* Seiten mit Weiter/Zurück; der Inhalt bekommt den Restplatz, nur im Notfall scrollt die Karte selbst */
@@ -2277,7 +2282,7 @@ export default function App() {
       <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: "1 1 auto", minHeight: 0 }}>
         <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>{pages[p]}</div>
         {n > 1 ? (
-          <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "nowrap" }}>
             <Button label="Vorherige" onClick={() => setPg(Math.max(0, p - 1))} disabled={p === 0} />
             {pageDots(n)}
             <Button label="Weiter ›" variant="primary" onClick={() => setPg(Math.min(n - 1, p + 1))} disabled={p >= n - 1} />
@@ -2913,16 +2918,27 @@ export default function App() {
   const rowsPages = (rows: string[][], per: number, tone: string, title?: string): ReactNode[] =>
     chunk(rows, per).map((g: string[][]) => stack(<>{title ? screenTitle(title) : null}{g.map((r: string[]) => <div key={r[0]}>{mini(r[0], r[1], tone)}</div>)}</>));
 
-  const letterGrid = (letters: string[]): ReactNode => (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(96px, 1fr))", gap: 6 }}>
-      {letters.map((a: string) => (
-        <div key={a} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: "6px 8px", display: "flex", gap: 8, alignItems: "baseline" }}>
-          <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary }}>{a}</span>
-          <span style={txt("body2", t.text.secondary)}>{NATO[a]}</span>
-        </div>
-      ))}
-    </div>
+  const fillPage = (children: ReactNode): ReactNode => (
+    <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: uiShort ? 6 : 8 }}>{children}</div>
   );
+
+  const letterGrid = (letters: string[]): ReactNode => {
+    const cols = uiShort ? (uiNarrow ? 4 : 7) : 3;
+    const showSay = !uiShort;
+    return (
+      <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: "repeat(" + cols + ", minmax(0, 1fr))", gridAutoRows: "minmax(min-content, 1fr)", gap: uiShort ? 4 : 5 }}>
+        {letters.map((a: string) => (
+          <div key={a} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: uiShort ? "2px 6px" : "3px 6px", display: "flex", gap: 6, alignItems: "center", minWidth: 0, boxSizing: "border-box", minHeight: 0 }}>
+            <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.1, flex: "0 0 auto" }}>{a}</span>
+            <span style={{ display: "flex", flexDirection: "column", gap: 0, minWidth: 0, justifyContent: "center" }}>
+              <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "17px", fontWeight: t.weight.medium }}>{NATO[a]}</span>
+              {showSay && NATO_SAY[a] ? <span style={{ ...txt("label", t.text.tertiary), fontSize: 12, lineHeight: "14px" }}>{NATO_SAY[a]}</span> : null}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   const wissenPages = (id: string): ReactNode[] => {
     if (id === "ablauf") {
@@ -2941,7 +2957,38 @@ export default function App() {
     }
     if (id === "nato") {
       const L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      const extraMarks: { ch: string; word: string; hint: string }[] = [
+        { ch: ".", word: "Decimal", hint: "Dezimalpunkt / Komma bei Zahlen" },
+        { ch: "-", word: "Hyphen", hint: "Bindestrich" },
+      ];
       return [
+        fillPage(letterGrid(L)),
+        fillPage(
+          <>
+            {screenTitle("Ziffern und Zeichen", uiShort ? undefined : "Umlaute werden aufgelöst (Ä → A E). Im Alltag spricht man Ziffern meist englisch (Zero … Nine; auch Tree, Fower, Fife, Niner). Die ITU-Ziffernwörter stehen in der Vollzugsordnung für den Funkdienst.")}
+            <div style={{ flex: "1 1 auto", minHeight: 0, display: "grid", gridTemplateColumns: uiShort ? "repeat(4, minmax(0, 1fr))" : "repeat(auto-fill, minmax(150px, 1fr))", gap: uiShort ? 4 : 6, alignContent: "start" }}>
+              {DIGIT_EN.map((w: string, i: number) => (
+                <div key={i} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: uiShort ? "4px 6px" : "6px 8px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.15 }}>{i}</span>
+                    <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "18px", fontWeight: t.weight.medium }}>{w}</span>
+                  </div>
+                  <span style={{ ...txt("label", t.text.tertiary), paddingLeft: 2 }}>{DIGIT_ITU[i]}</span>
+                </div>
+              ))}
+              {extraMarks.map((x) => (
+                <div key={x.ch} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: uiShort ? "4px 6px" : "6px 8px", display: "flex", flexDirection: "column", gap: 0, minWidth: 0, boxSizing: "border-box" }}>
+                  <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
+                    <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary, fontSize: uiShort ? 18 : 20, lineHeight: 1.15 }}>{x.ch}</span>
+                    <span style={{ ...txt("body2", t.text.primary), fontSize: 15, lineHeight: "18px", fontWeight: t.weight.medium }}>{x.word}</span>
+                  </div>
+                  <span style={{ ...txt("label", t.text.tertiary), paddingLeft: 2 }}>{x.hint}</span>
+                </div>
+              ))}
+            </div>
+            {uiShort ? <div style={txt("label", t.text.tertiary)}>Umlaute: Ä → A E. Alltag: Zero … Nine (auch Tree, Fower, Fife, Niner).</div> : null}
+          </>,
+        ),
         stack(
           <>
             {screenTitle("Buchstabier-Werkzeug", "Geprüft bei der UBI-Textaufnahme und -abgabe und im SRC-Diktat („I spell“)")}
@@ -2952,21 +2999,6 @@ export default function App() {
             {spelled.length > 0 ? <div style={{ fontFamily: t.font.mono, fontSize: t.font.code.fontSize, color: t.text.primary, lineHeight: "1.7", padding: 12, borderRadius: t.radius.lg, border: "2px solid " + accent }}>{spelled.map((p: SpellPart) => p.word).join(" · ")}</div> : null}
             <div style={rowWrap}>
               <Button label="Buchstabier-Trainer öffnen" variant="primary" onClick={() => enter(["erklaeren", "ref", "spelltrain"])} />
-            </div>
-          </>,
-        ),
-        stack(<>{screenTitle("Buchstaben A–M")}{letterGrid(L.slice(0, 13))}</>),
-        stack(<>{screenTitle("Buchstaben N–Z")}{letterGrid(L.slice(13))}</>),
-        stack(
-          <>
-            {screenTitle("Ziffern", "Umlaute werden aufgelöst (Ä → A E). Die ITU-Ziffernwörter stehen in der Vollzugsordnung für den Funkdienst; im Alltag werden Ziffern meist englisch gesprochen.")}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 6 }}>
-              {DIGIT_EN.map((w: string, i: number) => (
-                <div key={i} style={{ border: "1px solid " + t.border.subtle, borderRadius: t.radius.md, padding: "6px 8px", ...txt("body2", t.text.secondary) }}>
-                  <span style={{ fontFamily: t.font.mono, fontWeight: t.weight.semibold, color: t.text.primary }}>{i + " "}</span>
-                  {w + " · " + DIGIT_ITU[i]}
-                </div>
-              ))}
             </div>
           </>,
         ),
@@ -4423,7 +4455,10 @@ export default function App() {
             </>,
           ),
         );
-      else if (c.k === "tool") out.push(toolCard(c.tool, c.id));
+      else if (c.k === "tool") {
+        if (c.tool === "spell") wissenPages("nato").forEach((p: ReactNode) => out.push(p));
+        else out.push(toolCard(c.tool, c.id));
+      }
       else if (c.k === "merke")
         out.push(
           stack(
@@ -6113,7 +6148,7 @@ export default function App() {
   ];
   const ERK: Tile[] = [
     { id: "spelltrain", title: "Buchstabier-Trainer", sub: "10er-Runden: Hören, Sprechen, schwache Buchstaben" },
-    { id: "nato", title: "Buchstabiertafel", sub: "Werkzeug und Tafel" },
+    { id: "nato", title: "Buchstabiertafel", sub: "Buchstaben, Ziffern und Werkzeug" },
     { id: "funk", title: "Funkverfahren", sub: "Mayday, Pan Pan, Sécurité, Routine" + (certC === "SRC" ? ", Fehlalarm" : "") },
     { id: "spruchbau", title: "Funksprüche bauen", sub: "Bausteine in die richtige Reihenfolge" },
     { id: "trainer", title: "Funkspruch-Trainer", sub: "Eigenen Funkspruch bauen" },
