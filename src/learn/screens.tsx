@@ -40,7 +40,7 @@ function card(t: ReturnType<typeof useGrokTheme>, children: ReactNode, extra?: C
 }
 
 function Area({ children }: { children: ReactNode }) {
-  return <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 0 24px" }}>{children}</div>;
+  return <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "0 0 32px" }}>{children}</div>;
 }
 
 function StarRow({ value, onChange, label }: { value?: Star; onChange: (s: Star) => void; label?: string }) {
@@ -67,6 +67,9 @@ function AreaBox({ label, value, onChange, rows }: { label: string; value: strin
         value={value}
         rows={rows}
         onChange={(e) => onChange(e.target.value)}
+        onFocus={(e) => {
+          try { e.currentTarget.scrollIntoView({ block: "center", behavior: "smooth" }); } catch (_e) { /* */ }
+        }}
         style={{
           fontFamily: t.font.family,
           ...t.font.body2,

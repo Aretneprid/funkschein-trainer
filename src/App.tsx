@@ -25,6 +25,29 @@ import { VOCAB_TOPICS } from "./learn/vocab";
 
 type Theme = ReturnType<typeof useGrokTheme>;
 
+/** Shared styles so inner panes actually scroll on Android (flex + overflow:auto needs a definite height). */
+function scrollY(extra?: CSSProperties): CSSProperties {
+  return {
+    overflowX: "hidden",
+    overflowY: "auto",
+    WebkitOverflowScrolling: "touch",
+    overscrollBehavior: "contain",
+    touchAction: "pan-y",
+    ...extra,
+  };
+}
+function fillScroll(extra?: CSSProperties): CSSProperties {
+  return scrollY({ flex: "1 1 auto", minHeight: 0, height: 0, ...extra });
+}
+function readViewport(): { h: number; top: number } {
+  if (typeof window === "undefined") return { h: 760, top: 0 };
+  const vv = window.visualViewport;
+  return {
+    h: Math.max(240, Math.round(vv ? vv.height : window.innerHeight)),
+    top: Math.round(vv ? vv.offsetTop : 0),
+  };
+}
+
 /* In der PWA liegen Commons-Fotos unter ./media/ (offline im Service Worker). Die Canvas-Fassung setzt USE_PHOTOS auf false und zeichnet stattdessen eigene SVGs. */
 const USE_PHOTOS = true;
 
@@ -1192,7 +1215,7 @@ function HoldSpruch({ t, fam, accent, en, de, titleEn, titleDe, hint }: { t: The
   const [held, setHeld] = useState(false);
   return (
     <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden", height: "100%" }}>
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 8 }}>
         {spruchBox(t, held ? titleDe : titleEn, held ? de : en)}
         {hint ? <Callout tone="info" lead="Ablauf:">{hint}</Callout> : null}
       </div>
@@ -2264,7 +2287,7 @@ export default function App() {
     </div>
   );
 
-  /* ================= Bildschirm-App: eine Ebene pro Bildschirm, kein Scrollen ================= */
+  /* ================= Bildschirm-App: eine Ebene pro Bildschirm; Inhalt, der nicht passt, scrollt im Hauptbereich ================= */
   const [path, setPath] = useState<string[]>([]);
   const [pg, setPg] = useState<number>(0);
   type NavFrame = { path: string[]; pg: number };
@@ -2280,6 +2303,8 @@ export default function App() {
   framesRef.current = frames;
   const [uiNarrow, setUiNarrow] = useState<boolean>(typeof window !== "undefined" ? window.innerWidth < 720 : true);
   const [uiShort, setUiShort] = useState<boolean>(typeof window !== "undefined" ? window.innerHeight < 520 : false);
+  const [appBox, setAppBox] = useState(readViewport);
+  const mainScroll = useRef<HTMLDivElement | null>(null);
   const [ask, setAsk] = useState<{ title: string; body: string; ok: string; onOk: () => void } | null>(null);
   const [examInfo, setExamInfo] = useState<boolean>(false);
   const [tafelSpeak, setTafelSpeak] = useState<{ id: string; mode: "itu" | "plain" } | null>(null);
@@ -2299,12 +2324,30 @@ export default function App() {
   const tafelLong = useRef<{ timer: number | null; skip: boolean }>({ timer: null, skip: false });
   useEffect(() => {
     const fn = () => {
+      const box = readViewport();
       setUiNarrow(window.innerWidth < 720);
-      setUiShort(window.innerHeight < 520);
+      setUiShort(box.h < 520);
+      setAppBox(box);
     };
+    fn();
     window.addEventListener("resize", fn);
-    return () => window.removeEventListener("resize", fn);
+    const vv = window.visualViewport;
+    if (vv) {
+      vv.addEventListener("resize", fn);
+      vv.addEventListener("scroll", fn);
+    }
+    return () => {
+      window.removeEventListener("resize", fn);
+      if (vv) {
+        vv.removeEventListener("resize", fn);
+        vv.removeEventListener("scroll", fn);
+      }
+    };
   }, []);
+  useEffect(() => {
+    const el = mainScroll.current;
+    if (el) el.scrollTop = 0;
+  }, [path, pg]);
   useEffect(() => {
     if (!speechAvailable()) return;
     const syn = window.speechSynthesis;
@@ -2600,7 +2643,7 @@ export default function App() {
     const p = Math.min(pg, n - 1);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: "1 1 auto", minHeight: 0 }}>
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>{pages[p]}</div>
+        <div data-app-scroll="page" style={fillScroll({ display: "flex", flexDirection: "column", gap: 10 })}>{pages[p]}</div>
         {n > 1 ? (
           <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "nowrap" }}>
             <Button label="Vorherige" onClick={() => setPg(Math.max(0, p - 1))} disabled={p === 0} />
@@ -2704,7 +2747,7 @@ export default function App() {
     ];
     if (spMode === "home") {
       return (
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
             <span style={txt("label", t.text.secondary)}>{"Serie " + spSave.streak + (spSave.best !== null ? " · Bestzeit 10/10: " + spSave.best + " s" : "")}</span>
             <Toggle label="Zeit messen" value={spTimer} onChange={setSpTimer} />
@@ -2733,7 +2776,7 @@ export default function App() {
     if (spMode === "weak") {
       const weak = weakList();
       return (
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 8 }}>
           {weak.length === 0 ? <span style={txt("body2", t.text.secondary)}>Noch keine Fehler gespeichert. Nach ein paar Runden erscheinen hier die unsicheren Zeichen.</span> : weak.map((x: { ch: string; ok: number; bad: number; rate: number }) => (
             <div key={x.ch} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
@@ -2753,7 +2796,7 @@ export default function App() {
     }
     if (done) {
       return (
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 12 }}>
           {card(
             <>
               <span style={txt("heading3", t.text.primary, t.weight.semibold)}>{spScore + " von 10 richtig"}</span>
@@ -3239,7 +3282,7 @@ export default function App() {
     chunk(rows, per).map((g: string[][]) => stack(<>{title ? screenTitle(title) : null}{g.map((r: string[]) => <div key={r[0]}>{mini(r[0], r[1], tone)}</div>)}</>));
 
   const fillPage = (children: ReactNode): ReactNode => (
-    <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: uiShort ? 6 : 8 }}>{children}</div>
+    <div style={fillScroll({ display: "flex", flexDirection: "column", gap: uiShort ? 6 : 8 })}>{children}</div>
   );
 
   const clearTafelLong = () => {
@@ -4965,7 +5008,7 @@ export default function App() {
           </div>
           <div style={{ ...txt("body1", t.text.primary, t.weight.semibold), overflowWrap: "break-word" }}>{it.q}</div>
         </div>
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 6 }}>
           {perm.map((pi: number, i: number) => {
             const right = pi === 0;
             const border = revealed || answered ? (right ? t.text.success : !revealed && i === pick ? t.text.danger : t.border.subtle) : t.border.default;
@@ -5000,7 +5043,7 @@ export default function App() {
       <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: 8, overflow: "hidden" }}>
         {certTabs("Seefunk (SRC)", "Binnenfunk (UBI)", true)}
         <div style={txt("body2", t.text.secondary)}>{done + " von " + drills.length + " selbst gelöst. „Lösung zeigen“ zählt nicht."}</div>
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 4 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 4 }}>
           {ORDER_GROUPS.map((g: { id: OrderGroup; label: string }) => {
             const items = drills.filter((d: OrderDrill) => d.group === g.id);
             if (!items.length) return null;
@@ -5157,7 +5200,7 @@ export default function App() {
           <div style={{ flex: "1 1 auto" }}>{bar(p + 1, n)}</div>
           <span style={txt("label", t.text.secondary)}>{p + 1 + " / " + n}</span>
         </div>
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderRadius: t.radius.xl, padding: 18, boxShadow: "0 1px 3px " + t.border.subtle }}>{cards[p]}</div>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", background: t.bg.elevated, border: "1px solid " + t.border.subtle, borderRadius: t.radius.xl, padding: 18, boxShadow: "0 1px 3px " + t.border.subtle }}>{cards[p]}</div>
         {!last ? (
           <div style={{ flex: "0 0 auto", display: "flex", justifyContent: "space-between", gap: 8 }}>
             <Button label="Vorherige" onClick={() => setPg(Math.max(0, p - 1))} disabled={p === 0} />
@@ -5652,7 +5695,7 @@ export default function App() {
   const panelScreen = (): ReactNode => {
     const ki = RKEYS.find((x: { id: RKey }) => x.id === rd.key);
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 10 }}>
         {panel()}
         {card(
           <>
@@ -5673,7 +5716,7 @@ export default function App() {
     if (!p) return null;
     const done = pstep >= p.steps.length;
     return (
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 10 }}>
         {bar(pstep, p.steps.length)}
         {card(
           <>
@@ -6409,7 +6452,7 @@ export default function App() {
           <Button label={micLang === "en-GB" ? "Mikrofon: Englisch" : "Mikrofon: Deutsch"} variant="quiet" onClick={() => setMicLang(micLang === "en-GB" ? "de-DE" : "en-GB")} />
         </div>
         {isUBI ? <span style={txt("label", t.text.secondary)}>Binnen: CHAN Group ATIS, DSC und DISTRESS gesperrt, Kanäle 10/15/17 automatisch 1 W, beim Loslassen von PTT ATIS-Kennung (RAINWAT / Handbuch Binnenschifffahrtsfunk, nicht aus dem Icom-Handbuch).</span> : null}
-        {showMenuRef ? <div style={{ flex: "0 1 28%", minHeight: 0, overflowY: "auto" }}>{menuRef()}</div> : null}
+        {showMenuRef ? <div style={{ flex: "0 1 28%", minHeight: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}>{menuRef()}</div> : null}
         {radioRig()}
       </div>
     );
@@ -6447,7 +6490,7 @@ export default function App() {
     const parts = tr ? tr.model.split(" / ") : [];
     return (
       <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ flex: "0 1 34%", minHeight: 0, overflowY: "auto" }}>
+        <div style={{ flex: "0 1 34%", minHeight: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}>
           {card(
             <>
               <span style={txt("label", t.text.secondary)}>{"Lage · " + s.ch + " · " + (s.lang === "en-GB" ? "Englisch" : "Deutsch") + " · PTT am Handapparat"}</span>
@@ -6681,7 +6724,7 @@ export default function App() {
   const examScreen2 = (): ReactNode => {
     if (path[1] === "exam" && path.length < 3 || examPhase === "intro" || examIds.length === 0) {
       return (
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 8 }}>
           {card(
             <>
               <span style={txt("body1", t.text.primary, t.weight.semibold)}>Praxisprüfung {certC} – Übungssimulation</span>
@@ -6717,7 +6760,7 @@ export default function App() {
     if (examPhase === "done") {
       const r = examPass();
       return (
-        <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column", gap: 8 }}>
           {card(
             <>
               <Status tone={r.ok ? "success" : "danger"}>{r.ok ? "Bestanden" : "Nicht bestanden"}</Status>
@@ -6743,7 +6786,7 @@ export default function App() {
     const idx = examI + 1;
     return (
       <div style={{ flex: "1 1 auto", minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column", gap: 6 }}>
-        <div style={{ flex: "0 1 30%", maxHeight: "34%", minHeight: 0, overflowY: "auto" }}>
+        <div style={{ flex: "0 1 30%", maxHeight: "34%", minHeight: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}>
           {card(
             <>
               <span style={txt("label", t.text.secondary)}>{"Aufgabe " + idx + " / " + examIds.length + " · Versuch " + examTry + " von 2 · " + task.src}</span>
@@ -6960,7 +7003,7 @@ export default function App() {
         )}
         <span style={txt("label", t.text.secondary)}>{"Runde: " + right + " richtig · " + wrong + " falsch"}</span>
       </div>
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto" }}>
+      <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y" }}>
         {deck.length === 0
           ? card(<div style={txt("body1", t.text.secondary)}>{flt === "neu" ? "Keine neuen Fragen mehr in dieser Auswahl. Stark!" : "Keine falsch beantworteten Fragen in dieser Auswahl."}</div>)
           : !finished
@@ -7012,7 +7055,7 @@ export default function App() {
         </div>
         {bar(Math.min(elapsed, examLimit * 60), examLimit * 60, elapsed >= examLimit * 60 ? t.text.danger : accent2)}
       </div>
-      <div style={{ flex: "1 1 auto", minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column" }}>{!finished ? questionView() : pager(resultPages())}</div>
+      <div style={{ flex: "1 1 auto", minHeight: 0, height: 0, overflowX: "hidden", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", display: "flex", flexDirection: "column" }}>{!finished ? questionView() : pager(resultPages())}</div>
     </>
   );
 
@@ -7336,9 +7379,29 @@ export default function App() {
   const par = parentPath();
   const backText = par === null ? "‹ Zeugnisse" : "‹ " + titleOfPath(par);
 
+  const shellStyle: CSSProperties = {
+    fontFamily: fam,
+    color: t.text.primary,
+    background: t.bg.base,
+    maxWidth: 1100,
+    margin: "0 auto",
+    width: "100%",
+    height: appBox.h + "px",
+    overflow: "hidden",
+    display: "flex",
+    flexDirection: "column",
+    boxSizing: "border-box",
+    position: "fixed",
+    left: 0,
+    right: 0,
+    top: appBox.top,
+    paddingBottom: "env(safe-area-inset-bottom, 0px)",
+    paddingLeft: "env(safe-area-inset-left, 0px)",
+    paddingRight: "env(safe-area-inset-right, 0px)",
+  };
   const askUbiKind = certC === "UBI" && ubiKind === null && (path.length === 0 || path[0] === "fragen" || path[0] === "pruefung");
   if (!chosen || askUbiKind) {
-    return <div style={{ height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", background: t.bg.base, position: "relative" }}>{!chosen ? chooser() : ubiKindChooser()}{swUpdate ? (
+    return <div style={shellStyle}><div ref={mainScroll} data-app-scroll="1" style={fillScroll()}>{!chosen ? chooser() : ubiKindChooser()}</div>{swUpdate ? (
         <div role="status" aria-live="polite" data-sw-update="1" style={{ position: "absolute", left: 12, right: 12, bottom: 12, zIndex: 40, background: t.bg.elevated, color: t.text.primary, border: "1px solid " + t.border.default, borderRadius: t.radius.lg, padding: "10px 14px", boxShadow: "0 8px 28px rgba(0,0,0,0.2)", display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", justifyContent: "space-between" }}>
           <span style={txt("body2", t.text.primary)}>Update verfügbar – neue Sprachclips sind bereit.</span>
           <Button label="Neu laden" variant="primary" onClick={() => { const fn = swUpdate; setSwUpdate(null); if (fn) fn(); }} />
@@ -7354,7 +7417,7 @@ export default function App() {
   const crumbBtn = (current: boolean): CSSProperties => ({ border: "none", background: "transparent", padding: compactChrome ? "4px 6px" : "10px 6px", minHeight: compactChrome ? 32 : 44, minWidth: current ? 0 : (compactChrome ? 32 : 44), flexShrink: current ? 1 : 0, boxSizing: "border-box", cursor: current ? "default" : "pointer", fontFamily: fam, fontSize: compactChrome ? 13 : t.font.body2.fontSize, color: current ? t.text.primary : t.text.secondary, fontWeight: current ? t.weight.semibold : t.weight.regular, overflow: current ? "hidden" : "visible", textOverflow: current ? "ellipsis" : "clip", whiteSpace: "nowrap", maxWidth: "100%" });
 
   return (
-    <div style={{ fontFamily: fam, color: t.text.primary, background: t.bg.base, maxWidth: 1100, margin: "0 auto", height: "min(760px, 100dvh)", overflow: "hidden", display: "flex", flexDirection: "column", boxSizing: "border-box", position: "relative" }}>
+    <div style={shellStyle}>
       <div style={{ flex: "0 0 auto", display: "flex", alignItems: "center", gap: compactChrome ? 6 : 8, padding: compactChrome ? "4px 10px" : "8px 10px", borderBottom: "1px solid " + t.border.subtle, background: t.bg.elevated }}>
         <button type="button" onClick={back} aria-label={backText} style={navBtn}>
           {backText}
@@ -7378,7 +7441,16 @@ export default function App() {
         </div>
         {certTabs("SRC", "UBI")}
       </div>
-      <div style={{ flex: "1 1 auto", minHeight: 0, display: "flex", flexDirection: "column", gap: compactChrome ? 4 : uiShort ? 8 : 12, padding: compactChrome ? "4px 10px 4px" : uiShort ? "8px 10px 8px" : "12px 12px 8px" }}>
+      <div
+        ref={mainScroll}
+        data-app-scroll="1"
+        style={fillScroll({
+          display: "flex",
+          flexDirection: "column",
+          gap: compactChrome ? 4 : uiShort ? 8 : 12,
+          padding: compactChrome ? "4px 10px 16px" : uiShort ? "8px 10px 20px" : "12px 12px 24px",
+        })}
+      >
         {hideShellTitle ? null : titleInHeader ? (sub ? <div style={{ ...txt("label", t.text.secondary), flex: "0 0 auto" }}>{sub}</div> : null) : screenTitle(title, sub || undefined)}
         {body}
       </div>
@@ -7387,7 +7459,7 @@ export default function App() {
       ) : null}
       {ask ? (
         <div role="dialog" aria-modal="true" aria-labelledby="ask-title" style={{ position: "absolute", inset: 0, background: "rgba(15,18,22,0.45)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 30, padding: 16 }}>
-          <div style={{ background: t.bg.elevated, color: t.text.primary, borderRadius: t.radius.xl, border: "1px solid " + t.border.default, padding: 20, maxWidth: 400, width: "100%", display: "flex", flexDirection: "column", gap: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }}>
+          <div style={scrollY({ background: t.bg.elevated, color: t.text.primary, borderRadius: t.radius.xl, border: "1px solid " + t.border.default, padding: 20, maxWidth: 400, width: "100%", maxHeight: "min(80dvh, 100%)", display: "flex", flexDirection: "column", gap: 12, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" })}>
             <span id="ask-title" style={txt("heading3", t.text.primary, t.weight.semibold)}>{ask.title}</span>
             <span style={txt("body2", t.text.secondary)}>{ask.body}</span>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
